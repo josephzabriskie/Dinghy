@@ -6,7 +6,6 @@ public class PlayBoard : MonoBehaviour {
 	public GameObject gridPrefab;
 	GameObject grid1;
 	GameObject grid2;
-	//public Plane bgPlane;
 	float midSpace = 1.0f;
 
 

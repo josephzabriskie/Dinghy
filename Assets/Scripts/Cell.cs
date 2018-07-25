@@ -3,15 +3,27 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Cell : MonoBehaviour {
-	Vector2 size;
+	SpriteRenderer sr;
+	public Sprite fog;
+	public Vector2 coords;
+
+	public bool hidden;
 
 	// Use this for initialization
 	void Start () {
-		//this.size = this.GetComponent<SpriteRenderer>().size;
+		this.sr = this.GetComponent<SpriteRenderer>();
 	}
 	
 	// Update is called once per frame
 	void Update () {
 		
+	}
+
+	void OnMouseEnter(){
+		sr.color = Color.black;
+	}
+
+	void OnMouseExit(){
+		sr.color = Color.white;
 	}
 }
