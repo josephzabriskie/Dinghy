@@ -5,6 +5,8 @@ using UnityEngine;
 public class GameGrid : MonoBehaviour {
 
 	public GameObject CellPrefab;
+	public Cell[,] cells;
+	int sizex, sizey;
 	
 
 
@@ -17,10 +19,21 @@ public class GameGrid : MonoBehaviour {
 		
 	}
 
+	public void SetColor(Color c){
+		for(int x = 0; x < sizex; x++){
+			for(int y = 0; y < sizey; y++){
+				this.cells[x,y].SetColor(c);
+			}
+		}
+	}
+
 	public void PlaceCells(float w, float h){
 		//Debug.Log(string.Format("STARTED GRID w:{0}, h:{1}", w, h));
 		int fitx = (int)(w / (this.CellPrefab.GetComponent<SpriteRenderer>().size.x));
 		int fity = (int)(h / (this.CellPrefab.GetComponent<SpriteRenderer>().size.y));
+		cells = new Cell[fitx,fity];
+		this.sizex = fitx;
+		this.sizey = fity;
 		
 		float offsetx = w/fitx;
 		float offsety = h/fity;
@@ -36,7 +49,9 @@ public class GameGrid : MonoBehaviour {
 				count++;
 				Vector3 spot = start + new Vector3(offsetx * x, offsety * y, -0.2f);
 				GameObject c = Instantiate(this.CellPrefab, spot, Quaternion.identity, this.transform);
-				c.GetComponent<Cell>().coords = new Vector2(x, y);
+				Cell tempCell = c.GetComponent<Cell>();
+				tempCell.coords = new Vector2(x, y);
+				this.cells[x,y] = tempCell;
 				//Debug.Log(string.Format("Spawned {0} at {1}", count, spot));
 				//n.transform.parent = this.transform;
 			}

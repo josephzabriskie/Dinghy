@@ -1,16 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 
-public class PlayerController : MonoBehaviour {
-	public GameObject baseboard;
+public class MyNetManager : NetworkManager {
 
-	GameGrid ourGG;
-	GameGrid theirGG;
-	
 	// Use this for initialization
 	void Start () {
-		Debug.Log("Hey I'm a player!");
 	}
 	
 	// Update is called once per frame
