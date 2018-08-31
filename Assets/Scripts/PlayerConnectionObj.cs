@@ -2,49 +2,94 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
+using PlayerActions;
+using CellInfo;
 
 public class PlayerConnectionObj : NetworkBehaviour {
-	public GameObject baseboard;
+	GameObject baseboard;
+	[SyncVar]
+	public int playerId;
+	public GameObject lcgo;
+	public LogicCore lc = null;
 	public string playerName = "Anonymous";
 
 	GameGrid myGG;
 	GameGrid theirGG;
 	
-	
 	// Use this for initialization
 	void Start () {
-		Debug.Log("New Player Joined!");
-		if (isLocalPlayer){ // object belongs to another player
-			GameObject pb = GameObject.Find("PlayBoard"); // Find the playboard in the scene	
+		Debug.Log("pco init: New Player Joined! ID: " + this.playerId.ToString());
+		if(!isServer && !isLocalPlayer){
+			Debug.Log("I ain't the server or the player owner, don't set any thing up");
+			return;
+		}
+
+		if (isServer){ //We're the object on the server, need to link up to logic core
+			Debug.Log("pco init: This is the server");
+			this.lcgo = GameObject.FindGameObjectWithTag("LogicCore");
+			if (this.lcgo != null){
+				this.lc =this.lcgo.GetComponent<LogicCore>();
+				Debug.Log("pco init: Logic core found by serverinstance of player: " + this.lc.ToString());
+			}
+			else
+				Debug.Log("pco init: Found no logic Core serverinstance of player");
+		}
+		if (isLocalPlayer) // We're the local player, need to grab out grids, set their owner, set color
+			Debug.Log("pco init: This is the local player");
+			//Set up play board
+			GameObject pb = GameObject.FindGameObjectWithTag("PlayBoard"); // Find the playboard in the scene	
 			if (!pb){
-				Debug.LogError("Couldn't find 'PlayBord'!");
+				Debug.LogError("pco init: Couldn't find 'PlayBoard'!");
 			}
 			PlayBoard pbs = pb.GetComponent<PlayBoard>(); // get playboard script
 			this.myGG = pbs.getMyGrid();
 			this.theirGG = pbs.getTheirGrid();
-			this.myGG.SetColor(Color.green);
-			this.theirGG.SetColor(Color.cyan);
-			Debug.Log("This is the local player");
-		}
-		//since the player object is invisible and not part of the world
-		//give me something physical to interact with.
-		//Instantiate()
-
-	}
-	
-	// Update is called once per frame
-	void Update () {
-		if (Input.GetKeyDown(KeyCode.Q)){
-			string n = "Joe" + Random.Range(1, 100);
-			Debug.Log("sending the server a request to change our name to: " + n);
-			CmdChangePlayerName(n);
-		}
+			this.myGG.pco = this;
+			this.theirGG.pco = this;
+			this.myGG.playerOwnedGrid=true;
+			this.theirGG.playerOwnedGrid=false;
+			this.CmdRequestGridUpdate();
+			//this.myGG.SetColor(Color.green);
+			//this.theirGG.SetColor(Color.magenta);
 	}
 
-	///Commands to send to server
+	//Communicate with gamegrid
+	public void RXGridInput(bool pGrid, Vector2 pos, CState state){
+		Debug.Log("RXGrid, forward action to server through cmd");
+		CmdSendPlayerActions(new ActionReq(this.playerId, pAction.placeTower, new Vector2[]{pos}));
+	}
+
+	// public void AssignClientAuth(NetworkConnection conn){
+	// 	this.network
+	// }
+
+	////////////////////////////////// COMMANDs 
+	///Special functions that only get executed on the server
 	[Command]
-	void CmdChangePlayerName(string n){
-		Debug.Log("CmdChangePlayerName: " + n);
-		this.playerName = n;
+	void CmdSendPlayerActions(ActionReq req){
+		Debug.Log("Player obj on server sending RX action to logic core!");
+		this.lc.RXActionReq(req);
+	}
+	[Command]
+	void CmdRequestGridUpdate(){
+		Debug.Log("Player '" + this.playerId + "' requesting grid Update");
+		this.lc.ReportGridState(this.playerId); // this simply gets the logic core to call our RPC update grid
+	}
+
+
+	////////////////////////////////// RPCs
+	///RPCs - Special functions only executed on the clients
+	[ClientRpc]
+	void RpcChangePlayerName(string n){
+		// Debug.Log("Server: RpcChangePlayerName: asked to change the player name on a particular PlayerConnectionObj: " + n);
+		/// SetPlayerName(n);
+	}
+
+	[ClientRpc]
+	public void RpcUpdateGrids(CState[] our, CState[] other, int dim1, int dim2){
+		Debug.Log("Player: " + this.playerId + " got update to our grids.");
+		Debug.Log("Ours: " + our.Length.ToString() + " :: Theirs: "  + other.Length.ToString());
+		this.myGG.SetArrayState(GridUtils.Deserialize(our, dim1, dim2));
+		this.theirGG.SetArrayState(GridUtils.Deserialize(other, dim1, dim2));
 	}
 }

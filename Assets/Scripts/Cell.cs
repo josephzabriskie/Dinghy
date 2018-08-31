@@ -1,27 +1,40 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using CellInfo;
 
-public class Cell : MonoBehaviour {
-	SpriteRenderer sr;
-	public Sprite fog;
-	public Vector2 coords;
-
+namespace CellInfo{
 	public enum CState{
 		hidden,
 		empty,
 		tower
 	}
+}
+
+public class Cell : MonoBehaviour {
+	SpriteRenderer srbg; // sr of the bg
+	SpriteRenderer srcover; // sr of the covering image
+	public Sprite fog;
+	public Sprite tower;
+	public Vector2 coords;
 	public CState state;
+	public GameGrid parentGrid;
+
+	//temp
+	Color defaultBGColor;
 
 	// Use this for initialization
 	void Start () {
-		this.sr = this.GetComponent<SpriteRenderer>();
+		SpriteRenderer[] srlist = this.GetComponentsInChildren<SpriteRenderer>();
+		this.srbg = srlist[0];
+		this.srcover = srlist[1];
 		this.SetState(CState.hidden);
+		this.SetBGColor(Color.white);
 	}
 
-	public void SetColor(Color c){
-		this.sr.color = c;
+	public void SetBGColor(Color c){
+		this.srbg.color = c;
+		this.defaultBGColor = c;
 	}
 	
 	// Update is called once per frame
@@ -30,18 +43,39 @@ public class Cell : MonoBehaviour {
 	}
 
 	void OnMouseEnter(){
-		sr.color = Color.black;
+		srbg.color = Color.black;
 	}
 
 	void OnMouseExit(){
-		sr.color = Color.white;
+		srbg.color = this.defaultBGColor;
 	}
 
+	void OnMouseDown(){
+		//this.SetColor(Color.red);
+		Debug.Log("Clicked on: " + this.coords.ToString() + "State currently " + this.state.ToString());
+		this.parentGrid.RXCellInput(this.coords, this.state);
+	}
+
+
 	public void SetState(CState newState){
-		
+		this.state = newState;
+		switch(this.state){
+			case CState.empty:
+				this.srcover.sprite = null;
+				break;
+			case CState.hidden:
+				this.srcover.sprite = this.fog;
+				break;
+			case CState.tower:
+				this.srcover.sprite = this.tower;
+				break;
+			default:
+				Debug.LogError("Unhandled state: " + this.state.ToString());
+				break;
+		}
 	}
 
 	public CState getState(){
-		return CState.hidden;
+		return this.state;
 	}
 }

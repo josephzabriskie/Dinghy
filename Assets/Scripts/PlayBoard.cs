@@ -4,26 +4,23 @@ using UnityEngine;
 
 public class PlayBoard : MonoBehaviour {
 	public GameObject gridPrefab;
-	GameObject grid1;
-	GameObject grid2;
+	GameObject grid1 = null;
+	GameObject grid2 = null;
 	float midSpace = 1.0f;
 
-
-	// Use this for initialization
 	void Start(){
-		this.GetCentersAndDimensions();
+		this.InstantiateGrids();
 	}
 
 	public GameGrid getMyGrid(){
 		return this.grid1.GetComponent<GameGrid>();
 	}
-
+ 
 	public GameGrid getTheirGrid(){
 		return this.grid2.GetComponent<GameGrid>();
 	}
 
-//void GetCentersAndDimensions (out float w, out float h, out Vector3 pos1, out Vector3 pos2) {
-	void GetCentersAndDimensions () {
+	public void InstantiateGrids() {
 		float width;
 		float height;
 		Vector3 center1;
@@ -55,6 +52,5 @@ public class PlayBoard : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		
 	}
 }

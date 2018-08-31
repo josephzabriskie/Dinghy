@@ -19,7 +19,7 @@ public class MenuScript : MonoBehaviour {
 	}
 
 	public void StartGame(){
-		SceneManager.LoadScene("PlayScene", LoadSceneMode.Additive);
+		SceneManager.LoadScene("PlayScene");
 	}
 
 	public void QuitGame(){

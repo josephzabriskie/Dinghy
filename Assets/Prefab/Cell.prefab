@@ -8,20 +8,20 @@ Prefab:
     m_TransformParent: {fileID: 0}
     m_Modifications: []
     m_RemovedComponents: []
-  m_ParentPrefab: {fileID: 0}
+  m_SourcePrefab: {fileID: 0}
   m_RootGameObject: {fileID: 1895625567825484}
-  m_IsPrefabParent: 1
+  m_IsPrefabAsset: 1
 --- !u!1 &1221757524456676
 GameObject:
   m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
-  serializedVersion: 5
+  serializedVersion: 6
   m_Component:
   - component: {fileID: 4636895412993610}
   - component: {fileID: 212864376207468972}
   m_Layer: 0
-  m_Name: Cover
+  m_Name: BG
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -30,14 +30,14 @@ GameObject:
 --- !u!1 &1895625567825484
 GameObject:
   m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
-  serializedVersion: 5
+  serializedVersion: 6
   m_Component:
   - component: {fileID: 4210719053438336}
   - component: {fileID: 212935846037023070}
-  - component: {fileID: 114634632478875126}
   - component: {fileID: 61550210020082018}
+  - component: {fileID: 114018592751279956}
   m_Layer: 0
   m_Name: Cell
   m_TagString: Untagged
@@ -48,7 +48,7 @@ GameObject:
 --- !u!4 &4210719053438336
 Transform:
   m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1895625567825484}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -62,7 +62,7 @@ Transform:
 --- !u!4 &4636895412993610
 Transform:
   m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1221757524456676}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -75,7 +75,7 @@ Transform:
 --- !u!61 &61550210020082018
 BoxCollider2D:
   m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1895625567825484}
   m_Enabled: 1
@@ -97,10 +97,10 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 0.9, y: 0.9}
   m_EdgeRadius: 0
---- !u!114 &114634632478875126
+--- !u!114 &114018592751279956
 MonoBehaviour:
   m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1895625567825484}
   m_Enabled: 1
@@ -108,13 +108,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad5c643bdea7460419bd2b950256326f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fog: {fileID: 0}
+  fog: {fileID: 21300000, guid: 681b965fb4f66054e92e6e69a031b921, type: 3}
+  tower: {fileID: 21300000, guid: 2d29a177bc4865141a31c0815464fa4a, type: 3}
   coords: {x: 0, y: 0}
-  hidden: 0
+  state: 0
+  parentGrid: {fileID: 0}
 --- !u!212 &212864376207468972
 SpriteRenderer:
   m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1221757524456676}
   m_Enabled: 1
@@ -146,7 +148,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 681b965fb4f66054e92e6e69a031b921, type: 3}
+  m_Sprite: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -154,12 +156,13 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_MaskInteraction: 0
+  m_SpriteSortPoint: 0
 --- !u!212 &212935846037023070
 SpriteRenderer:
   m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
+  m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1895625567825484}
   m_Enabled: 1
@@ -201,3 +204,4 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
+  m_SpriteSortPoint: 0

@@ -1,14 +1,16 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using CellInfo;
 
 public class GameGrid : MonoBehaviour {
 
 	public GameObject CellPrefab;
 	public Cell[,] cells;
+	//CState[,] cellStates; // We can just pass the state through, this class doesn't really care about it
+	public PlayerConnectionObj pco;
 	int sizex, sizey;
-	
-
+	public bool playerOwnedGrid = false;
 
 	// Use this for initialization
 	void Start () {
@@ -16,13 +18,12 @@ public class GameGrid : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		
 	}
 
 	public void SetColor(Color c){
-		for(int x = 0; x < sizex; x++){
-			for(int y = 0; y < sizey; y++){
-				this.cells[x,y].SetColor(c);
+		for(int x = 0; x < this.sizex; x++){
+			for(int y = 0; y < this.sizey; y++){
+				this.cells[x,y].SetBGColor(c);
 			}
 		}
 	}
@@ -52,8 +53,32 @@ public class GameGrid : MonoBehaviour {
 				Cell tempCell = c.GetComponent<Cell>();
 				tempCell.coords = new Vector2(x, y);
 				this.cells[x,y] = tempCell;
+				tempCell.parentGrid = this;
 				//Debug.Log(string.Format("Spawned {0} at {1}", count, spot));
 				//n.transform.parent = this.transform;
+			}
+		}
+	}
+
+	public void RXCellInput(Vector2 pos, CState state){
+		Debug.Log("RCCellInfo, send to pco. " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
+		this.pco.RXGridInput(this.playerOwnedGrid, pos, state);
+	}
+
+	public CState[,] GetArrayState(){
+		CState[,] output = new CState[this.sizex, this.sizey];
+		for(int x = 0; x < this.sizex; x++){
+			for(int y = 0; y < this.sizey; y++){
+				output[x,y] = this.cells[x,y].state;
+			}
+		}
+		return output;
+	}
+
+	public void SetArrayState(CState[,] inStates){
+		for(int x = 0; x < inStates.GetLength(0); x++){
+			for(int y = 0; y < inStates.GetLength(1); y++){
+				this.cells[x,y].SetState(inStates[x,y]);
 			}
 		}
 	}
