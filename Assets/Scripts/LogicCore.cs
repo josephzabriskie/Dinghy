@@ -32,12 +32,12 @@ public class LogicCore : NetworkBehaviour {
 
 	public PlayerConnectionObj[] playersObjs;
 	public ActionReq[] playerActions;
-	CState[,] p0own; // player 1's own grid
-	CState[,] p0other; // player 1's enemy grid (what they see of it)
-	CState[,] p1own; // player 2's own grid
-	CState[,] p1other; // player 2's enemy grid (what they see of it)
-	//CState [][,] pOwn;
-	//CState[][,] pOther;
+	// CState[,] p0own; // player 1's own grid
+	// CState[,] p0other; // player 1's enemy grid (what they see of it)
+	// CState[,] p1own; // player 2's own grid
+	// CState[,] p1other; // player 2's enemy grid (what they see of it)
+	CState [][,] pOwn;
+	CState[][,] pOther;
 	int pNum = 2;
 
 	PlayBoard pb;
@@ -56,19 +56,22 @@ public class LogicCore : NetworkBehaviour {
 	void IntializeGame(){
 		// Set state of internal grids to default, send state to players
 		//Fill in all state arrays, default is hidden
-		// for(int i = 0; i < this.pNum; i++){
-		// 	this.pOwn[i] = new CState[this.sizex, this.sizey];
-		// 	FillGrid(this.pOwn[i], CState.empty);
-		// 	this.pOther[i] = new CState[this.sizex, this.sizey];
-		// }
+		this.pOwn = new CState[this.pNum][,];
+		this.pOther = new CState[this.pNum][,];
+		for(int i = 0; i < this.pNum; i++){
+			this.pOwn[i] = new CState[this.sizex, this.sizey];
+			//Reveal player's own grid
+			FillGrid(this.pOwn[i], CState.empty);
+			this.pOther[i] = new CState[this.sizex, this.sizey];
+		}
 
-		this.p0own = new CState[this.sizex, this.sizey];
-		this.p0other = new CState[this.sizex, this.sizey];
-		this.p1own = new CState[this.sizex, this.sizey];
-		this.p1other = new CState[this.sizex, this.sizey];
-		//reveal players own grid
-		FillGrid(this.p0own, CState.empty);
-		FillGrid(this.p1own, CState.empty);
+		// this.p0own = new CState[this.sizex, this.sizey];
+		// this.p0other = new CState[this.sizex, this.sizey];
+		// this.p1own = new CState[this.sizex, this.sizey];
+		// this.p1other = new CState[this.sizex, this.sizey];
+		// //reveal players own grid
+		// FillGrid(this.p0own, CState.empty);
+		// FillGrid(this.p1own, CState.empty);
 	}
 
 	// helper function that I'd like to make local, but this version of c# doesn't support that :(
@@ -101,15 +104,7 @@ public class LogicCore : NetworkBehaviour {
 
 	public void ReportGridState(int player){
 		Debug.Log("Reporting Grid states to player '" + player + "'");
-		if (player == 0){
-			this.mnm.playerSlots[player].RpcUpdateGrids(GridUtils.Serialize(this.p0own), GridUtils.Serialize(this.p0other), this.sizex, this.sizey);
-		}
-		else if(player == 1){
-			this.mnm.playerSlots[player].RpcUpdateGrids(GridUtils.Serialize(this.p1own), GridUtils.Serialize(this.p1other), this.sizex, this.sizey);
-		}
-		else{
-			Debug.LogError("Player unsupported: " + player);
-		}
+		this.mnm.playerSlots[player].RpcUpdateGrids(GridUtils.Serialize(this.pOwn[player]), GridUtils.Serialize(this.pOther[player]), this.sizex, this.sizey);
 	}
 
 	void EvalActions(){
@@ -135,11 +130,13 @@ public class LogicCore : NetworkBehaviour {
 		//Now forward the results on to the world
 		//This would be nice to iterate over, but there's only two players for now
 		Debug.Log("Pushing updates to players");
-		//Player1
-
-		this.mnm.playerSlots[0].RpcUpdateGrids(GridUtils.Serialize(this.p0own), GridUtils.Serialize(this.p0other), this.sizex, this.sizey);
-		//Player2
-		this.mnm.playerSlots[1].RpcUpdateGrids(GridUtils.Serialize(this.p1own), GridUtils.Serialize(this.p1other), this.sizex, this.sizey);
+		for (int i = 0; i < this.pNum; i++){
+			this.mnm.playerSlots[i].RpcUpdateGrids(GridUtils.Serialize(this.pOwn[i]), GridUtils.Serialize(this.pOther[i]), this.sizex, this.sizey);
+		}
+		// //Player1
+		// this.mnm.playerSlots[0].RpcUpdateGrids(GridUtils.Serialize(this.p0own), GridUtils.Serialize(this.p0other), this.sizex, this.sizey);
+		// //Player2
+		// this.mnm.playerSlots[1].RpcUpdateGrids(GridUtils.Serialize(this.p1own), GridUtils.Serialize(this.p1other), this.sizex, this.sizey);
 	}
 
 	//public void 
