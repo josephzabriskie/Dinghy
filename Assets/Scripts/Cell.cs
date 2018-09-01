@@ -36,6 +36,10 @@ public class Cell : MonoBehaviour {
 		this.srbg.color = c;
 		this.defaultBGColor = c;
 	}
+
+	public void Flip(){
+		this.transform.Rotate(0.0f, 0.0f, 180.0f);
+	}
 	
 	// Update is called once per frame
 	void Update () {

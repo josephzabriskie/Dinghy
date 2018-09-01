@@ -48,6 +48,7 @@ public class PlayBoard : MonoBehaviour {
 		//pos2 = center2;
 		grid1.GetComponent<GameGrid>().PlaceCells(width, height);
 		grid2.GetComponent<GameGrid>().PlaceCells(width, height);
+		grid2.GetComponent<GameGrid>().Flip();
 	}
 	
 	// Update is called once per frame

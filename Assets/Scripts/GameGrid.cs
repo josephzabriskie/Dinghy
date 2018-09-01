@@ -60,6 +60,15 @@ public class GameGrid : MonoBehaviour {
 		}
 	}
 
+	public void Flip(){ // This is a function intended to be called right after instantiation
+		this.transform.Rotate(0.0f, 0.0f, 180.0f);
+		for(int x = 0; x < this.sizex; x++){
+			for(int y = 0; y < this.sizey; y++){
+				this.cells[x,y].Flip();
+			}
+		}
+	}
+
 	public void RXCellInput(Vector2 pos, CState state){
 		Debug.Log("RCCellInfo, send to pco. " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
 		this.pco.RXGridInput(this.playerOwnedGrid, pos, state);
