@@ -56,7 +56,13 @@ public class PlayerConnectionObj : NetworkBehaviour {
 
 	//Communicate with gamegrid
 	public void RXGridInput(bool pGrid, Vector2 pos, CState state){
-		ActionReq ar = new ActionReq(this.playerId, pAction.placeTower, new Vector2[]{pos});
+		ActionReq ar;
+		if (pGrid){ // If clicked on our grid, spawn a tower
+			ar = new ActionReq(this.playerId, pAction.placeTower, new Vector2[]{pos});
+		}
+		else{ // Else scout enemy spot
+			ar = new ActionReq(this.playerId, pAction.scout, new Vector2[]{pos});
+		}
 		Debug.Log("Player " + this.playerId.ToString() + ": RXGrid, forward action to server through cmd. " + ar.p.ToString());
 		CmdSendPlayerActions(ar);
 	}
@@ -87,15 +93,16 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		/// SetPlayerName(n);
 	}
 
+	//Serialized RPC with ours and other's grid state
 	[ClientRpc]
 	public void RpcUpdateGrids(CState[] our, CState[] other, int dim1, int dim2){
-		if (!isLocalPlayer){
+		if (!isLocalPlayer){ // only care if we're the local player
 			Debug.Log("Ignoring update to our grid, not the client, don't care");
 			return;
 		}
 		Debug.Log("Player: " + this.playerId + " got update to our grids.");
 		Debug.Log("Ours: " + our.Length.ToString() + " :: Theirs: "  + other.Length.ToString());
-		this.myGG.SetArrayState(GridUtils.Deserialize(our, dim1, dim2));
-		this.theirGG.SetArrayState(GridUtils.Deserialize(other, dim1, dim2));
+		this.myGG.SetArrayState(GUtils.Deserialize(our, dim1, dim2));
+		this.theirGG.SetArrayState(GUtils.Deserialize(other, dim1, dim2));
 	}
 }

@@ -9,7 +9,8 @@ namespace PlayerActions{
 	public enum pAction{
 		noAction,
 		placeTower,
-		fireBasic
+		fireBasic,
+		scout,
 	}
 	public struct ActionReq
 	{
@@ -32,8 +33,8 @@ public class LogicCore : NetworkBehaviour {
 
 	public PlayerConnectionObj[] playersObjs;
 	public ActionReq[] playerActions;
-	CState [][,] pOwn;
-	CState[][,] pOther;
+	CState [][,] pGrid;
+	bool[][,] pHidden;
 	int pNum = 2;
 
 	PlayBoard pb;
@@ -53,26 +54,16 @@ public class LogicCore : NetworkBehaviour {
 	void IntializeGame(){
 		// Set state of internal grids to default, send state to players
 		//Fill in all state arrays, default is hidden
-		this.pOwn = new CState[this.pNum][,];
-		this.pOther = new CState[this.pNum][,];
+		this.pGrid = new CState[this.pNum][,];
+		this.pHidden = new bool[this.pNum][,];
 		for(int i = 0; i < this.pNum; i++){
-			this.pOwn[i] = new CState[this.sizex, this.sizey];
-			//Reveal player's own grid
-			FillGrid(this.pOwn[i], CState.empty);
-			this.pOther[i] = new CState[this.sizex, this.sizey];
+			this.pGrid[i] = new CState[this.sizex, this.sizey];
+			GUtils.FillGrid(this.pGrid[i], CState.empty);
+			this.pHidden[i] = new bool[this.sizex, this.sizey];
+			GUtils.FillBoolGrid(this.pHidden[i], true);
 		}
 	}
 
-	// helper function that I'd like to make local, but this version of c# doesn't support that :(
-	void FillGrid(CState[,] grid, CState s){
-		Debug.Log("Filling grid with: " + s.ToString());
-		for (int i = 0; i < this.sizex; i++){
-			for (int j = 0; j < this.sizey; j++){
-				grid[i,j] = s;
-			}
-		}
-	}
-	
 	// Update is called once per frame
 	void Update () {
 		bool ready = true;
@@ -91,23 +82,33 @@ public class LogicCore : NetworkBehaviour {
 		this.playerActions[req.p] = req;
 	}
 
-	public void ReportGridState(int player){
-		Debug.Log("Reporting Grid states to player '" + player + "'");
-		this.mnm.playerSlots[player].RpcUpdateGrids(GridUtils.Serialize(this.pOwn[player]), GridUtils.Serialize(this.pOther[player]), this.sizex, this.sizey);
+	public void ReportGridState(int p){
+		Debug.Log("Reporting Grid states to player '" + p + "'");
+		int enemyIdx = (p + 1) % this.pNum; // Calculate the other player index, in our case we know it's 1/0, this may have to change if more players...
+		CState[] pOwnGrid = GUtils.Serialize(this.pGrid[p]);
+		CState[] pOtherGrid = GUtils.Serialize(GUtils.ApplyHiddenMask(this.pGrid[enemyIdx], this.pHidden[enemyIdx]));
+		this.mnm.playerSlots[p].RpcUpdateGrids(pOwnGrid, pOtherGrid, this.sizex, this.sizey);
 	}
 
 	void EvalActions(){
 		//Evaluate Actions
 		Debug.Log("Processing Actions");
 		for(int i = 0; i < this.pNum; i++){
+			Vector2 coord;
 			switch(this.playerActions[i].a){
 				case pAction.noAction:
 					Debug.Log("Player " + i.ToString() + " gave us a 'noAction' request, do nothing");
 					break;
 				case pAction.placeTower:
 					Debug.Log("Player " + i.ToString() + " gave us a 'placeTower' request, do it");
-					Vector2 coord = this.playerActions[i].coords[0];
-					this.pOwn[i][(int)coord.x, (int)coord.y] = CState.tower;
+					coord = this.playerActions[i].coords[0];
+					this.pGrid[i][(int)coord.x, (int)coord.y] = CState.tower;
+					break;
+				case pAction.scout:
+					Debug.Log("Player " + i.ToString() + " gave us a 'scout' request, do it");
+					int enemyIdx = (i + 1) % this.pNum;
+					coord = this.playerActions[i].coords[0];
+					this.pHidden[enemyIdx][(int)coord.x, (int)coord.y] = false;
 					break;
 				default:
 					Debug.LogError("unrecognized action?? " + this.playerActions[i].a.ToString());
@@ -120,7 +121,7 @@ public class LogicCore : NetworkBehaviour {
 		//This would be nice to iterate over, but there's only two players for now
 		Debug.Log("Pushing updates to players");
 		for (int i = 0; i < this.pNum; i++){
-			this.mnm.playerSlots[i].RpcUpdateGrids(GridUtils.Serialize(this.pOwn[i]), GridUtils.Serialize(this.pOther[i]), this.sizex, this.sizey);
+			this.ReportGridState(i);
 		}
 	}
 
