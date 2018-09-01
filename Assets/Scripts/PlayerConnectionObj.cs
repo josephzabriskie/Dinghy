@@ -13,8 +13,8 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	public LogicCore lc = null;
 	public string playerName = "Anonymous";
 
-	GameGrid myGG;
-	GameGrid theirGG;
+	public GameGrid myGG;
+	public GameGrid theirGG;
 	
 	// Use this for initialization
 	void Start () {
@@ -34,7 +34,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			else
 				Debug.Log("pco init: Found no logic Core serverinstance of player");
 		}
-		if (isLocalPlayer) // We're the local player, need to grab out grids, set their owner, set color
+		if (isLocalPlayer){ // We're the local player, need to grab out grids, set their owner, set color
 			Debug.Log("pco init: This is the local player");
 			//Set up play board
 			GameObject pb = GameObject.FindGameObjectWithTag("PlayBoard"); // Find the playboard in the scene	
@@ -51,12 +51,14 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			this.CmdRequestGridUpdate();
 			//this.myGG.SetColor(Color.green);
 			//this.theirGG.SetColor(Color.magenta);
+		}
 	}
 
 	//Communicate with gamegrid
 	public void RXGridInput(bool pGrid, Vector2 pos, CState state){
-		Debug.Log("RXGrid, forward action to server through cmd");
-		CmdSendPlayerActions(new ActionReq(this.playerId, pAction.placeTower, new Vector2[]{pos}));
+		ActionReq ar = new ActionReq(this.playerId, pAction.placeTower, new Vector2[]{pos});
+		Debug.Log("Player " + this.playerId.ToString() + ": RXGrid, forward action to server through cmd. " + ar.p.ToString());
+		CmdSendPlayerActions(ar);
 	}
 
 	// public void AssignClientAuth(NetworkConnection conn){
@@ -87,6 +89,10 @@ public class PlayerConnectionObj : NetworkBehaviour {
 
 	[ClientRpc]
 	public void RpcUpdateGrids(CState[] our, CState[] other, int dim1, int dim2){
+		if (!isLocalPlayer){
+			Debug.Log("Ignoring update to our grid, not the client, don't care");
+			return;
+		}
 		Debug.Log("Player: " + this.playerId + " got update to our grids.");
 		Debug.Log("Ours: " + our.Length.ToString() + " :: Theirs: "  + other.Length.ToString());
 		this.myGG.SetArrayState(GridUtils.Deserialize(our, dim1, dim2));
