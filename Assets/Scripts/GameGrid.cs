@@ -8,7 +8,7 @@ public class GameGrid : MonoBehaviour {
 	public GameObject CellPrefab;
 	public Cell[,] cells;
 	//CState[,] cellStates; // We can just pass the state through, this class doesn't really care about it
-	public PlayerConnectionObj pco;
+	public PlayerConnectionObj pco = null;
 	int sizex, sizey;
 	public bool playerOwnedGrid = false;
 
@@ -70,8 +70,13 @@ public class GameGrid : MonoBehaviour {
 	}
 
 	public void RXCellInput(Vector2 pos, CState state){
-		Debug.Log("RCCellInfo, send to pco. " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
-		this.pco.RXGridInput(this.playerOwnedGrid, pos, state);
+		if(this.pco != null){
+			Debug.Log("RCCellInfo, send to pco. " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
+			this.pco.RXGridInput(this.playerOwnedGrid, pos, state);
+		}
+		else{
+			Debug.Log("RCCellInfo, can't send to pco, don't have one " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
+		}
 	}
 
 	public CState[,] GetArrayState(){

@@ -6,6 +6,7 @@ TagManager:
   tags:
   - PlayBoard
   - LogicCore
+  - UIGroup
   layers:
   - Default
   - TransparentFX
