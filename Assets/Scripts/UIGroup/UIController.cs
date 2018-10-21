@@ -10,18 +10,21 @@ public class UIController : MonoBehaviour {
 	ActionDisplay ad;
 	LockButton lb;
 	DebugPanel dbp;
+	GameStateDisplay gsd;
 
 	void Start () {
 		this.tui = this.GetComponentInChildren<TimerUI>();
 		this.ad = this.GetComponentInChildren<ActionDisplay>();
-		this.lb = this.GetComponentInChildren<LockButton>(); // Warning, no script here... Just a button
+		this.lb = this.GetComponentInChildren<LockButton>();
 		this.dbp = this.GetComponentInChildren<DebugPanel>();
+		this.gsd = this.GetComponentInChildren<GameStateDisplay>();
+		
 	}
 	//#############################################
 	//Functions to control our timer UI
 	//Start
-	public void TimerStart(){
-		this.tui.StartTimer();
+	public void TimerStart(int time){
+		this.tui.StartTimer(time);
 	}
 	//Stop
 	public void TimerStop(){
@@ -49,6 +52,10 @@ public class UIController : MonoBehaviour {
 	public void LockButtonRegister(PlayerConnectionObj pobj){
 		this.lb.RegisterCallback(pobj);
 	}
+	//deregisterAction
+	public void LockButtonDeregister(){
+		this.lb.DeregisterCallbacks();
+	}
 
 	//#############################################
 	//Functions to write to our debug panel, ignore if no DBP available
@@ -63,5 +70,10 @@ public class UIController : MonoBehaviour {
 		if(this.dbp != null){
 			this.dbp.Clear();
 		}
-	}	
+	}
+	//#############################################
+	//Functions to update our game state display
+	public void GameStateUpdate(string msg){
+		this.gsd.SetDisplay(msg);
+	}
 }

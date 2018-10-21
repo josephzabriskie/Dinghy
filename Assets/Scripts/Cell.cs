@@ -7,6 +7,7 @@ namespace CellInfo{
 	public enum CState{
 		hidden,
 		empty,
+		towertemp,
 		tower
 	}
 }
@@ -16,6 +17,7 @@ public class Cell : MonoBehaviour {
 	SpriteRenderer srcover; // sr of the covering image
 	public Sprite fog;
 	public Sprite tower;
+	public Sprite towerTemp;
 	public Vector2 coords;
 	public CState state;
 	public GameGrid parentGrid;
@@ -72,6 +74,9 @@ public class Cell : MonoBehaviour {
 				break;
 			case CState.tower:
 				this.srcover.sprite = this.tower;
+				break;
+			case CState.towertemp:
+				this.srcover.sprite = this.towerTemp;
 				break;
 			default:
 				Debug.LogError("Unhandled state: " + this.state.ToString());

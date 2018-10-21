@@ -16,6 +16,10 @@ public class LockButton : MonoBehaviour {
 		this.button.onClick.AddListener(pobj.LockAction);
 	}
 
+	public void DeregisterCallbacks(){
+		this.button.onClick.RemoveAllListeners();
+	}
+
 	public void SetLocked(bool l){
 		this.button.interactable = l;
 	}

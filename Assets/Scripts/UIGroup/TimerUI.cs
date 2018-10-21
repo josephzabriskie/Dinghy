@@ -6,17 +6,14 @@ using UnityEngine.UI;
 public class TimerUI : MonoBehaviour {
 	Text timerText;
 	Coroutine currentCoroutine = null;
+	string defaultText;
 
 	void Start(){
 		this.timerText = GetComponentInChildren<Text>();
-		this.StartTimer();
+		this.defaultText = this.timerText.text;
 	}
 
-	public void StartTimer(){
-		this.StopTimer();
-		this.currentCoroutine = StartCoroutine(this.Countdown());
-	}
-
+	//Kills counting down coroutine if it's active, leaves the last number intact
 	public void StopTimer(){
 		if (this.currentCoroutine != null){
 			StopCoroutine(this.currentCoroutine);
@@ -24,7 +21,17 @@ public class TimerUI : MonoBehaviour {
 		this.currentCoroutine = null;
 	}
 
-	IEnumerator Countdown(int time = 60)
+	public void StartTimer(int time){
+		this.StopTimer();
+		this.currentCoroutine = StartCoroutine(this.Countdown(time));
+	}
+
+	public void ClearTimer(){
+		this.StopTimer();
+		timerText.text = this.defaultText;
+	}
+
+	IEnumerator Countdown(int time)
 	{
 		int currTime = time;
 		while (currTime >= 0)

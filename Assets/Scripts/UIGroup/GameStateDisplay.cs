@@ -9,6 +9,8 @@ public class GameStateDisplay : MonoBehaviour {
 	void Start () {
 		this.displayText = GetComponentInChildren<Text>();
 	}
-	
 
+	public void SetDisplay(string msg){
+		this.displayText.text = msg;
+	}
 }

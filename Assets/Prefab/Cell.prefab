@@ -110,6 +110,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fog: {fileID: 21300000, guid: 681b965fb4f66054e92e6e69a031b921, type: 3}
   tower: {fileID: 21300000, guid: 2d29a177bc4865141a31c0815464fa4a, type: 3}
+  towerTemp: {fileID: 21300000, guid: bb0814bedfc59db4ca5ad25009303f56, type: 3}
   coords: {x: 0, y: 0}
   state: 0
   parentGrid: {fileID: 0}

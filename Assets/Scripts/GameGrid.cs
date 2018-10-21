@@ -28,6 +28,10 @@ public class GameGrid : MonoBehaviour {
 		}
 	}
 
+	public void SetCellState(Vector2 pos, CState s){
+		this.cells[(int)pos.x, (int)pos.y].SetState(s);
+	}
+
 	public void PlaceCells(float w, float h){
 		//Debug.Log(string.Format("STARTED GRID w:{0}, h:{1}", w, h));
 		int fitx = (int)(w / (this.CellPrefab.GetComponent<SpriteRenderer>().size.x));
@@ -71,11 +75,11 @@ public class GameGrid : MonoBehaviour {
 
 	public void RXCellInput(Vector2 pos, CState state){
 		if(this.pco != null){
-			Debug.Log("RCCellInfo, send to pco. " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
+			//Debug.Log("RCCellInfo, send to pco. " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
 			this.pco.RXGridInput(this.playerOwnedGrid, pos, state);
 		}
 		else{
-			Debug.Log("RCCellInfo, can't send to pco, don't have one " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
+			//Debug.Log("RCCellInfo, can't send to pco, don't have one " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
 		}
 	}
 
@@ -93,6 +97,14 @@ public class GameGrid : MonoBehaviour {
 		for(int x = 0; x < inStates.GetLength(0); x++){
 			for(int y = 0; y < inStates.GetLength(1); y++){
 				this.cells[x,y].SetState(inStates[x,y]);
+			}
+		}
+	}
+
+	public void ClearArrayState(){
+		for(int x = 0; x < this.sizex; x++){
+			for(int y = 0; y < this.sizey; y++){
+				this.cells[x,y].SetState(CState.hidden);
 			}
 		}
 	}

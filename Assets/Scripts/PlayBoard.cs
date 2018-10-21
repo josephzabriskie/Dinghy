@@ -39,7 +39,7 @@ public class PlayBoard : MonoBehaviour {
 			center1 = this.transform.position - new Vector3(0, height/2.0f + this.midSpace/2.0f, 0);
 			center2 = this.transform.position + new Vector3(0, height/2.0f + this.midSpace/2.0f, 0);
 		}
-		Debug.Log(string.Format("cent1 {0}, cent2 {1}", center1, center2));
+		//Debug.Log(string.Format("cent1 {0}, cent2 {1}", center1, center2));
 		this.grid1 = Instantiate(gridPrefab, center1, Quaternion.identity);
 		this.grid2 = Instantiate(gridPrefab, center2, Quaternion.identity);
 		//w = width;
