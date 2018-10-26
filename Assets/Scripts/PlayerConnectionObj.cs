@@ -176,7 +176,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	}
 
 	////////////////////////////////// RPCs
-	//Serialized RPC with ours and other's grid state
+	//RPC's can be called before start is called. isReady guards against that.
 	bool ReadyGuard(){
 		if(!this.isReady){
 			Debug.Log("Caught RPC before player 'isReady'. Advise return early");
@@ -185,6 +185,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		return true;
 	}
 
+	//Serialized RPC with ours and other's grid state
 	[ClientRpc]
 	public void RpcUpdateGrids(CState[] our, CState[] other, int dim1, int dim2){
 		if (!isLocalPlayer || !this.ReadyGuard()){// Ignore info if not local or Start not called yet
@@ -197,7 +198,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	}
 
 	[ClientRpc]
-	public void RpcUpdateGameState(MatchState ms){
+	public void RpcUpdateGameState(MatchState ms, int timeleft){
 		if (!isLocalPlayer || !this.ReadyGuard()){
 			return;
 		}
@@ -218,15 +219,16 @@ public class PlayerConnectionObj : NetworkBehaviour {
 				new ActionReq(this.playerId, pAction.noAction, null),
 				new ActionReq(this.playerId, pAction.noAction, null)});
 			this.uic.GameStateUpdate("Hey Time to place towers: You've got 60s");
-			this.uic.TimerStart(15);
+			this.uic.TimerStart(timeleft);
 			break;
 		case MatchState.actionSelect:
-			this.queuedActions.Clear();
-			this.queuedActions.AddRange(new List<ActionReq> {new ActionReq(this.playerId, pAction.noAction, null)});
 			Debug.Log("RPC Game state: actionSelect");
 			this.apc = ActionProcState.singleAction;
+			this.queuedActions.Clear();
+			this.queuedActions.AddRange(new List<ActionReq> {new ActionReq(this.playerId, pAction.noAction, null)});
+			this.apc = ActionProcState.singleAction;
 			this.uic.GameStateUpdate("Now you just enter an action every 30s");
-			this.uic.TimerStop();
+			this.uic.TimerStart(timeleft);
 			break;
 		default:
 			Debug.Log("RPC Game state: Uh oh default");
@@ -245,6 +247,15 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		// 	Debug.Log("Send " + i.ToString() + ": " + qa[i].coords[0].ToString());
 		// }
 		this.CmdSendPlayerActions(qa);
+	}
+
+	[ClientRpc]
+	public void RpcResetPlayerLock(){
+		if(!isLocalPlayer || !this.ReadyGuard()){
+			return;
+		}
+		Debug.Log("RpcResetPlayerLock id: " + this.playerId.ToString());
+		this.UnlockAction();
 	}
 	
 	//Note about checking for local player. At the time of writing, the architecture of the networked game

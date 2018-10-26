@@ -34,8 +34,10 @@ namespace MatchSequence{
 	//Feel free to divide these down as needed (like place towers in to pre, mid, post place towers)
 	public enum MatchState{
 		waitForPlayers,
-		placeTowers, // Players will have 1m to select their tower starting positions
-		actionSelect, 
+		placeTowers, // Players will have an amount of time to select their tower starting positions
+		actionSelect, // Players will have an amount of time to select their next action
+		resolveState, // Give the clients some time to resolve game state before next action
+		gameEnd,
 	}
 }
 
@@ -49,6 +51,7 @@ public class LogicCore : NetworkBehaviour {
 	public List<bool> playerResps; // Keeps track of which players have send in action requests since we last cleared
 	public MatchState currMS = MatchState.waitForPlayers;
 	public MatchState pausedMS = MatchState.placeTowers;
+	public int stateTime;
 	CState [][,] pGrid;
 	bool[][,] pHidden;
 	int pNum = 2; // max player number
@@ -64,7 +67,7 @@ public class LogicCore : NetworkBehaviour {
 	// Use this for initialization
 	void Start () {
 		//this.playerActions = new ActionReq[this.pNum]{new ActionReq(0, pAction.noAction, new Vector2[]{}), new ActionReq(-1, pAction.noAction, new Vector2[]{})};
-		Debug.Log("Starting Logic Core!");
+		//Debug.Log("Starting Logic Core!");
 		this.playerActions = new List<ActionReq>();
 		this.playerLocks = new List<bool>(new bool[this.pNum]);
 		this.playerResps = new List<bool>(new bool[this.pNum]);
@@ -77,6 +80,9 @@ public class LogicCore : NetworkBehaviour {
 	void ResetPlayerLocks(){
 		for(int i = 0; i < this.playerLocks.Count; i++){
 			this.playerLocks[i] = false;
+			if(this.mnm.playerSlots[i]){
+				this.mnm.playerSlots[i].RpcResetPlayerLock();
+			}
 		}
 	}
 
@@ -125,7 +131,7 @@ public class LogicCore : NetworkBehaviour {
 		}
 	}
 
-	//Call this externally if we lose a player
+	//Call this externally if we lose a player (like from my net manager)
 	public void PauseGameProcess(){
 		if (this.currMS != MatchState.waitForPlayers){
 			Debug.Log("Told to pause our GameProcess");
@@ -133,36 +139,48 @@ public class LogicCore : NetworkBehaviour {
 			this.currMS = MatchState.waitForPlayers;
 			this.GameProcess();
 		}
-
 	}
 	
 	//Our main game play process, this one's important
 	void GameProcess(){
-		bool done = false;
-		while(!done){
-			switch(this.currMS){
-			case MatchState.waitForPlayers:
-				Debug.Log("We're entering waiting for players state");
-				this.UpdatePlayersGameState();
-				done = true;
-				break;
-			case MatchState.placeTowers:
-				Debug.Log("We're entering PlaceTowers state!");
-				this.UpdatePlayersGameState();
-				StartCoroutine(this.PlaceTowerIE(15, MatchState.actionSelect));
-				done = true;
-				break;
-			case MatchState.actionSelect:
-				Debug.Log("We're entering actionSelect state!");
-				this.UpdatePlayersGameState();
-				this.ResetPlayerLocks();
-				done = true;
-				break;
-			default:
-				Debug.LogError("Don't expect to hit default state in LogicCore's GameProcess, State: " + this.currMS.ToString());
-				done = true;
-				break;
-			}
+		// bool done = false; // Hey, if you use this guy, make sure every state has a done = true!
+		// while(!done){
+		switch(this.currMS){
+		case MatchState.waitForPlayers:
+			Debug.Log("We're entering waiting for players state");
+			this.UpdatePlayersGameState();
+			break;
+		case MatchState.placeTowers:
+			Debug.Log("We're entering PlaceTowers state!");
+			this.stateTime = 60;
+			this.ClearCurrentCoroutine();
+			this.UpdatePlayersGameState();
+			this.ResetPlayerLocks();
+			this.currentCoroutine = StartCoroutine(this.PlaceTowerIE(this.stateTime, MatchState.actionSelect));
+			break;
+		case MatchState.actionSelect:
+			Debug.Log("We're entering actionSelect state!");
+			this.stateTime = 30;
+			this.ClearCurrentCoroutine();
+			this.UpdatePlayersGameState();
+			this.ResetPlayerLocks();
+			this.currentCoroutine = StartCoroutine(this.SingleInputIE(this.stateTime, MatchState.resolveState));
+			break;
+		case MatchState.resolveState:
+			Debug.Log("We're entering resolveState state!");
+			break;
+		case MatchState.gameEnd:
+			break;
+		default:
+			Debug.LogError("Don't expect to hit default state in LogicCore's GameProcess, State: " + this.currMS.ToString());
+			break;
+		}
+	}
+
+	void ClearCurrentCoroutine(){
+		if(this.currentCoroutine != null){
+			StopCoroutine(this.currentCoroutine);
+			this.currentCoroutine = null;
 		}
 	}
 
@@ -174,62 +192,96 @@ public class LogicCore : NetworkBehaviour {
 		}
 	}
 
+	//This guy is public for a reason (unlike most of my public stuff...) Player objs can request the game state
 	public void ReportGameState(int p){
 		Debug.Log("Reporting game state to player " + p.ToString());
 		if (this.mnm.playerSlots[p]){
-			this.mnm.playerSlots[p].RpcUpdateGameState(this.currMS);
+			this.mnm.playerSlots[p].RpcUpdateGameState(this.currMS, this.stateTime);
 		}
 	}
 
-	IEnumerator PlaceTowerIE(int time, MatchState nextState)
-	{
+	///////////////////////////////////////////////////State IE's
+	//These State IE's control the logic core's states. Each state transition should clear and then
+	//kick off a new IE that will later pump GameProcess()
+
+	//IE state for initial tower placement
+	IEnumerator PlaceTowerIE(int time, MatchState nextState){
 		float currTime = time;
-		while (currTime >= 0)
-		{
-			if((int)currTime%10 == 0 || (int)currTime <= 5){
-				Debug.Log(this.currMS.ToString() + " :testIE time left: " + currTime.ToString());
-			}
+		const float interval = 0.1f;
+		while (currTime >= 0){ // Wait for locks first
+			// if((int)currTime%10 == 0 || (int)currTime <= 5){
+			// 	Debug.Log(this.currMS.ToString() + " :testIE time left: " + currTime.ToString());
+			// }
 			if(this.playerLocks.All(x => x)){
 				Debug.Log("All of our locks are true!");
 				break;
 			}
-			// else{
-			// 	Debug.Log("PlayerLocks Currently " + this.playerLocks[0].ToString() + " " + this.playerLocks[1].ToString());
-			// }
-			yield return new WaitForSeconds(1.0f);
-			currTime -= 1.0f;
+			yield return new WaitForSeconds(interval);
+			currTime -= interval;
+			this.stateTime = (int)currTime;
 		}
-		//So our locks have been set, now we wait for input
-		currTime = 10;
+		//So our locks have been set or we ran out of time, now we wait for input
+		this.stateTime = 0; // If a player asks for time, tell them 0 after locks are rx'd
+		currTime = 5; //Now get responses for a bit
 		this.GetActionReqs();
-		while(currTime >= 0){
-			if((int)currTime%10 == 0 || currTime <= 5){
-				Debug.Log(this.currMS.ToString() + ":testIE time left: " + currTime.ToString());
-			}
+		while(currTime >= 0){ // Then wait for responses to GetActionReqs
+			// if((int)currTime%10 == 0 || currTime <= 5){
+			// 	Debug.Log(this.currMS.ToString() + ":testIE time left: " + currTime.ToString());
+			// }
 			if (this.playerResps.All(x => x)){
 				Debug.Log("All of our responses are in!");
 				break;
 			}
-			yield return new WaitForSeconds(0.1f);
-			currTime -= 0.1f;
+			this.GetActionReqs(); // This is ok to call multiple times like this. Input rx is gated to 1 response before reset
+			yield return new WaitForSeconds(interval);
+			currTime -= interval;
 		}
 		if (this.playerResps.All(x => x)){ // Nice, we've got all of our input we need
 			this.EvalActions();
-			this.currMS = nextState;
-			this.GameProcess();
 		}
-		else{ // Uhoh, we didn't get input there ... Place tower state needs that. What do we do here?
+		else{ // Uhoh, we didn't get input there ... Place tower state needs that. What do we do here? TODO
 			Debug.Log("Don't have all responses yet! " + this.playerResps[0] + this.playerResps[1]);
-			//Pause game state?
-			//Kick out player who didn't give input?
-			//Place random towers for that player?
+			//Pause game state? Kick out player who didn't give input? Place random towers for that player?
 		}
+		this.currMS = nextState;
+		this.GameProcess();
 	}
 
-	// Update is called once per frame
-	void Update () {
-
+	IEnumerator SingleInputIE(int time, MatchState nextState){
+		float currTime = time;
+		const float interval = 0.1f;
+		while(currTime >=0){ // Wait for locks
+			if(this.playerLocks.All(x => x)){
+				Debug.Log("All of our locks are true!");
+				break;
+			}
+			yield return new WaitForSeconds(interval);
+			currTime -=interval;
+			this.stateTime = (int)currTime;
+		}
+		//So our locks have been set or we ran out of time, now we wait for input
+		this.stateTime = 0;
+		currTime = 5;
+		this.GetActionReqs();
+		while(currTime >= 0){ // Then wait for responses to GetActionReqs
+			if (this.playerResps.All(x => x)){
+				Debug.Log("All of our responses are in!");
+				break;
+			}
+			this.GetActionReqs(); // This is ok to call multiple times like this. Input rx is gated to 1 response before reset
+			yield return new WaitForSeconds(interval);
+			currTime -= interval;
+		}
+		if (this.playerResps.All(x => x)){ // Nice, we've got all of our input we need
+			this.EvalActions();
+		}
+		else{ // TODO what do we do here?
+			Debug.Log("Don't have all responses yet! " + this.playerResps[0] + this.playerResps[1]);
+		}
+		this.currMS = nextState;
+		this.GameProcess();
 	}
+	////////////////////////////////////////////////End state IEs
 
 	void GetActionReqs(){
 		for(int i = 0; i < this.pNum; i++){

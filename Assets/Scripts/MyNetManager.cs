@@ -26,7 +26,7 @@ public class MyNetManager : NetworkManager {
 				//playerObj.GetComponent<PlayerConnectionObj>().Start();
 				var player = playerObj.GetComponent<PlayerConnectionObj>();
 
-				Debug.Log("Setting player ID and adding player to slot: " + slot.ToString());
+				Debug.Log("Server adding player. ID: " + slot.ToString());
 				player.playerId = slot;
 				playerSlots[slot] = player;
 
