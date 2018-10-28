@@ -141,7 +141,12 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			}
 			break;
 		case ActionProcState.singleAction:
-			Debug.Log("APC singleAction: Not implemented Ignoring input from grid");
+			if(pGrid){ // If we click on our side, that means place tower
+				this.queuedActions[0] = new ActionReq(this.playerId, pAction.placeTower, new Vector2[]{pos});
+			}
+			else{ // If we click on their side, that means reveal/shoot
+				this.queuedActions[0] = new ActionReq(this.playerId, pAction.scout, new Vector2[]{pos});
+			}
 			break;
 		default:
 			break;

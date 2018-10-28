@@ -94,7 +94,7 @@ public class LogicCore : NetworkBehaviour {
 
 	/////////////////////////////////
 	//Player response tracking functions
-	void RessetRespTrack(){
+	void ResetRespTrack(){
 		for(int i = 0; i < this.playerResps.Count; i++){
 			this.playerResps[i] = false;
 		}
@@ -112,7 +112,7 @@ public class LogicCore : NetworkBehaviour {
 		this.pGrid = new CState[this.pNum][,];
 		this.pHidden = new bool[this.pNum][,];
 		this.ResetPlayerLocks();
-		this.RessetRespTrack();
+		this.ResetRespTrack();
 		for (int i = 0; i < this.pNum; i++){
 			this.pGrid[i] = new CState[this.sizex, this.sizey];
 			GUtils.FillGrid(this.pGrid[i], CState.empty);
@@ -143,8 +143,6 @@ public class LogicCore : NetworkBehaviour {
 	
 	//Our main game play process, this one's important
 	void GameProcess(){
-		// bool done = false; // Hey, if you use this guy, make sure every state has a done = true!
-		// while(!done){
 		switch(this.currMS){
 		case MatchState.waitForPlayers:
 			Debug.Log("We're entering waiting for players state");
@@ -155,6 +153,7 @@ public class LogicCore : NetworkBehaviour {
 			this.stateTime = 60;
 			this.ClearCurrentCoroutine();
 			this.UpdatePlayersGameState();
+			this.ResetRespTrack();
 			this.ResetPlayerLocks();
 			this.currentCoroutine = StartCoroutine(this.PlaceTowerIE(this.stateTime, MatchState.actionSelect));
 			break;
@@ -163,11 +162,14 @@ public class LogicCore : NetworkBehaviour {
 			this.stateTime = 30;
 			this.ClearCurrentCoroutine();
 			this.UpdatePlayersGameState();
+			this.ResetRespTrack();
 			this.ResetPlayerLocks();
 			this.currentCoroutine = StartCoroutine(this.SingleInputIE(this.stateTime, MatchState.resolveState));
 			break;
 		case MatchState.resolveState:
 			Debug.Log("We're entering resolveState state!");
+			this.stateTime = 0; // Time here is 0, players don't need to know how long we're here since timer shouldnt get set
+			this.currentCoroutine = StartCoroutine(this.ResolveIE(this.stateTime, MatchState.actionSelect));
 			break;
 		case MatchState.gameEnd:
 			break;
@@ -213,7 +215,7 @@ public class LogicCore : NetworkBehaviour {
 			// 	Debug.Log(this.currMS.ToString() + " :testIE time left: " + currTime.ToString());
 			// }
 			if(this.playerLocks.All(x => x)){
-				Debug.Log("All of our locks are true!");
+				Debug.Log("All " + this.playerLocks.Count() + " of our locks are true!");
 				break;
 			}
 			yield return new WaitForSeconds(interval);
@@ -229,7 +231,7 @@ public class LogicCore : NetworkBehaviour {
 			// 	Debug.Log(this.currMS.ToString() + ":testIE time left: " + currTime.ToString());
 			// }
 			if (this.playerResps.All(x => x)){
-				Debug.Log("All of our responses are in!");
+				Debug.Log("All " + this.playerResps.Count() + " of our responses are in!");
 				break;
 			}
 			this.GetActionReqs(); // This is ok to call multiple times like this. Input rx is gated to 1 response before reset
@@ -247,12 +249,13 @@ public class LogicCore : NetworkBehaviour {
 		this.GameProcess();
 	}
 
+	//This waits for both players to lock in their single action each turn then evals those actions
 	IEnumerator SingleInputIE(int time, MatchState nextState){
 		float currTime = time;
 		const float interval = 0.1f;
 		while(currTime >=0){ // Wait for locks
 			if(this.playerLocks.All(x => x)){
-				Debug.Log("All of our locks are true!");
+				Debug.Log("All " + this.playerLocks.Count() + " of our locks are true!");
 				break;
 			}
 			yield return new WaitForSeconds(interval);
@@ -265,7 +268,7 @@ public class LogicCore : NetworkBehaviour {
 		this.GetActionReqs();
 		while(currTime >= 0){ // Then wait for responses to GetActionReqs
 			if (this.playerResps.All(x => x)){
-				Debug.Log("All of our responses are in!");
+				Debug.Log("All " + this.playerResps.Count() + " of our responses are in!");
 				break;
 			}
 			this.GetActionReqs(); // This is ok to call multiple times like this. Input rx is gated to 1 response before reset
@@ -281,11 +284,19 @@ public class LogicCore : NetworkBehaviour {
 		this.currMS = nextState;
 		this.GameProcess();
 	}
+
+	//This is just a temporary small timer for resolving animations on clients before the next turn starts
+	IEnumerator ResolveIE(int time, MatchState nextState){
+		//For now just sleep for a bit then go to next state
+		yield return new WaitForSeconds(time);
+		this.currMS = nextState;
+		this.GameProcess();
+	}
 	////////////////////////////////////////////////End state IEs
 
 	void GetActionReqs(){
 		for(int i = 0; i < this.pNum; i++){
-			Debug.Log("GetActionReqs: i = " + i.ToString());
+			//Debug.Log("GetActionReqs: i = " + i.ToString());
 			if (!this.playerResps[i]){
 				this.mnm.playerSlots[i].RpcReportActionReqs();
 			}
@@ -355,7 +366,7 @@ public class LogicCore : NetworkBehaviour {
 		this.playerActions.Clear();
 		//Now forward the results on to the world
 		//This would be nice to iterate over, but there's only two players for now
-		Debug.Log("Pushing updates to players");
+		Debug.Log("Dont Processing Pushing updates to players");
 		for (int i = 0; i < this.pNum; i++){
 			this.ReportGridState(i);
 		}
