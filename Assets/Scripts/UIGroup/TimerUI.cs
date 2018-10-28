@@ -28,6 +28,7 @@ public class TimerUI : MonoBehaviour {
 
 	public void ClearTimer(){
 		this.StopTimer();
+		Debug.Log("Clearing the timer");
 		timerText.text = this.defaultText;
 	}
 

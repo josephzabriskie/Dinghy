@@ -228,12 +228,18 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			break;
 		case MatchState.actionSelect:
 			Debug.Log("RPC Game state: actionSelect");
-			this.apc = ActionProcState.singleAction;
 			this.queuedActions.Clear();
 			this.queuedActions.AddRange(new List<ActionReq> {new ActionReq(this.playerId, pAction.noAction, null)});
 			this.apc = ActionProcState.singleAction;
 			this.uic.GameStateUpdate("Now you just enter an action every 30s");
 			this.uic.TimerStart(timeleft);
+			break;
+		case MatchState.resolveState:
+			Debug.Log("RPC Game state: resolveState");
+			this.apc = ActionProcState.reject;
+			this.uic.TimerClear();
+			this.uic.GameStateUpdate("Hey we're resolving real quick");
+
 			break;
 		default:
 			Debug.Log("RPC Game state: Uh oh default");

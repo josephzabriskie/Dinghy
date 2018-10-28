@@ -31,6 +31,11 @@ public class UIController : MonoBehaviour {
 		this.tui.StopTimer();
 	}
 
+	//Clear
+	public void TimerClear(){
+		this.tui.ClearTimer();
+	}
+
 	//#############################################
 	//Functions to control our Action Display
 	//UpdateAction

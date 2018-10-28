@@ -169,7 +169,9 @@ public class LogicCore : NetworkBehaviour {
 		case MatchState.resolveState:
 			Debug.Log("We're entering resolveState state!");
 			this.stateTime = 0; // Time here is 0, players don't need to know how long we're here since timer shouldnt get set
-			this.currentCoroutine = StartCoroutine(this.ResolveIE(this.stateTime, MatchState.actionSelect));
+			this.ClearCurrentCoroutine();
+			this.UpdatePlayersGameState();
+			this.currentCoroutine = StartCoroutine(this.ResolveIE(3, MatchState.actionSelect));
 			break;
 		case MatchState.gameEnd:
 			break;
