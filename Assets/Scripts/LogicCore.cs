@@ -344,6 +344,7 @@ public class LogicCore : NetworkBehaviour {
 		for(int i = 0; i < this.playerActions.Count; i++){
 			Vector2 coord;
 			ActionReq currentAR = this.playerActions[i];
+			int enemyIdx = (currentAR.p + 1) % this.pNum;
 			switch(currentAR.a){
 				case pAction.noAction:
 					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'noAction' request, do nothing");
@@ -355,12 +356,22 @@ public class LogicCore : NetworkBehaviour {
 					break;
 				case pAction.scout:
 					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'scout' request, do it");
-					int enemyIdx = (currentAR.p + 1) % this.pNum;
 					coord = currentAR.coords[0];
 					this.pHidden[enemyIdx][(int)coord.x, (int)coord.y] = false;
 					break;
+				case pAction.fireBasic:
+					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'fireBasic' request, do it");
+					coord = currentAR.coords[0];
+					if (this.pGrid[enemyIdx][(int)coord.x,(int)coord.y] == CState.tower){
+						this.pGrid[enemyIdx][(int)coord.x,(int)coord.y] = CState.destroyedTower;
+					}
+					else{
+						this.pGrid[enemyIdx][(int)coord.x,(int)coord.y] = CState.destroyedTerrain;
+					}
+					this.pHidden[enemyIdx][(int)coord.x,(int)coord.y] = false;
+					break;
 				default:
-					Debug.LogError("unrecognized action?? " + currentAR.a.ToString());
+					Debug.LogError("Unhandled action?? " + currentAR.a.ToString());
 					break;
 			}
 		}

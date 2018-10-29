@@ -7,8 +7,10 @@ namespace CellInfo{
 	public enum CState{
 		hidden,
 		empty,
-		towertemp,
-		tower
+		towerTemp,
+		tower,
+		destroyedTower,
+		destroyedTerrain
 	}
 }
 
@@ -18,6 +20,8 @@ public class Cell : MonoBehaviour {
 	public Sprite fog;
 	public Sprite tower;
 	public Sprite towerTemp;
+	public Sprite destroyedTower;
+	public Sprite destroyedTerrain;
 	public Vector2 coords;
 	public CState state;
 	public GameGrid parentGrid;
@@ -75,8 +79,14 @@ public class Cell : MonoBehaviour {
 			case CState.tower:
 				this.srcover.sprite = this.tower;
 				break;
-			case CState.towertemp:
+			case CState.towerTemp:
 				this.srcover.sprite = this.towerTemp;
+				break;
+			case CState.destroyedTerrain:
+				this.srcover.sprite = this.destroyedTerrain;
+				break;
+			case CState.destroyedTower:
+				this.srcover.sprite = this.destroyedTower;
 				break;
 			default:
 				Debug.LogError("Unhandled state: " + this.state.ToString());

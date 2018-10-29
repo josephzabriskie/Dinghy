@@ -11,6 +11,7 @@ public class UIController : MonoBehaviour {
 	LockButton lb;
 	DebugPanel dbp;
 	GameStateDisplay gsd;
+	ActionSelectGroup asg;
 
 	void Start () {
 		this.tui = this.GetComponentInChildren<TimerUI>();
@@ -18,8 +19,24 @@ public class UIController : MonoBehaviour {
 		this.lb = this.GetComponentInChildren<LockButton>();
 		this.dbp = this.GetComponentInChildren<DebugPanel>();
 		this.gsd = this.GetComponentInChildren<GameStateDisplay>();
-		
+		this.asg = this.GetComponentInChildren<ActionSelectGroup>();		
 	}
+	
+	//#############################################
+	//Functions to control our action select button group
+	//Register
+	public void ActionSelectButtonsRegister(PlayerConnectionObj pobj){
+		this.asg.RegisterCallbacks(pobj);
+	}
+	//Deregister
+	public void ActionSelectButtonsDeregister(){
+		this.asg.DeregisterCallbacks();
+	}
+	//Enable/disable
+	public void ActionSelectButtonsEnable(bool en){
+		this.asg.SetButtonEnabled(en);
+	}
+
 	//#############################################
 	//Functions to control our timer UI
 	//Start
