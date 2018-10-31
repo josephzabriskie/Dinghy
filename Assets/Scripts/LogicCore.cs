@@ -78,6 +78,7 @@ public class LogicCore : NetworkBehaviour {
 	//Player Lock functions
 	//Call these to indicate that the player's ready with their actions
 	void ResetPlayerLocks(){
+		Debug.Log("Logic Core: Resetting all Player Locks");
 		for(int i = 0; i < this.playerLocks.Count; i++){
 			this.playerLocks[i] = false;
 			if(this.mnm.playerSlots[i]){
@@ -95,6 +96,7 @@ public class LogicCore : NetworkBehaviour {
 	/////////////////////////////////
 	//Player response tracking functions
 	void ResetRespTrack(){
+		Debug.Log("Logic Core: reset response tracker");
 		for(int i = 0; i < this.playerResps.Count; i++){
 			this.playerResps[i] = false;
 		}

@@ -72,8 +72,8 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	}
 
 	public void SetActionContext(pAction a){
-		Debug.Log("Action Context changed to " + a.ToString());
 		this.actionContext = a;
+		Debug.Log("Action Context changed to " + a.ToString());
 	}
 
 	public void LockAction(){
@@ -85,15 +85,15 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		}
 	}
 
-	public void ClearGrids(){ // mostly just used to make sure we clean up on disconnect
-		this.myGG.ClearArrayState();
-		this.theirGG.ClearArrayState();
-	}
-
 	//Unlock and wipe queued Action - Do I need this?
 	public void UnlockAction(){
 		this.actionLocked = false;
 		this.uic.LockButtonEnabled(true);
+	}
+
+	public void ClearGrids(){ // mostly just used to make sure we clean up on disconnect
+		this.myGG.ClearArrayState();
+		this.theirGG.ClearArrayState();
 	}
 
 	/////////////////////////////////Get and process input from grids
@@ -145,18 +145,21 @@ public class PlayerConnectionObj : NetworkBehaviour {
 					break; //Don't want to shoot yourself...or do you?
 				}
 				this.queuedActions[0] = new ActionReq(this.playerId, pAction.fireBasic, new Vector2[]{pos});
+				this.uic.ActionDisplayUpdate(this.queuedActions[0]);
 				break;
 			case pAction.scout:
 				if (pGrid){
 					break; //Don't scout yourself...
 				}
 				this.queuedActions[0] = new ActionReq(this.playerId, pAction.scout, new Vector2[]{pos});
+				this.uic.ActionDisplayUpdate(this.queuedActions[0]);
 				break;
 			case pAction.placeTower:
 				if(!pGrid){
 					break; //Don't build on their side...
 				}
 				this.queuedActions[0] = new ActionReq(this.playerId, pAction.placeTower, new Vector2[]{pos});
+				this.uic.ActionDisplayUpdate(this.queuedActions[0]);
 				break;
 			}
 			break;
@@ -236,6 +239,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 				new ActionReq(this.playerId, pAction.noAction, null),
 				new ActionReq(this.playerId, pAction.noAction, null),
 				new ActionReq(this.playerId, pAction.noAction, null)});
+			this.uic.ActionDisplayUpdate(this.queuedActions[0]);
 			this.uic.GameStateUpdate("Hey Time to place towers: You've got 60s");
 			this.uic.TimerStart(timeleft);
 			this.uic.ActionSelectButtonsEnable(false);
@@ -244,6 +248,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			Debug.Log("RPC Game state: actionSelect");
 			this.queuedActions.Clear();
 			this.queuedActions.AddRange(new List<ActionReq> {new ActionReq(this.playerId, pAction.noAction, null)});
+			this.uic.ActionDisplayUpdate(this.queuedActions[0]);
 			this.apc = ActionProcState.singleAction;
 			this.uic.GameStateUpdate("Now you just enter an action every 30s");
 			this.uic.TimerStart(timeleft);
