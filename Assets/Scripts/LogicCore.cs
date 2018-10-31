@@ -292,9 +292,30 @@ public class LogicCore : NetworkBehaviour {
 		//For now just sleep for a bit then go to next state
 		yield return new WaitForSeconds(time);
 		this.currMS = nextState;
+		this.GameOverCheck();
 		this.GameProcess();
 	}
 	////////////////////////////////////////////////End state IEs
+
+	bool GameOverCheck(){
+		Debug.Log("GameOverChecking");
+		bool[] playerLoss = {true, true};
+		for(int p = 0; p < this.pNum; p++){
+			for(int x = 0; x < this.pGrid[p].GetLength(0); x++){
+				for(int y = 0; y < this.pGrid[p].GetLength(1); y++){
+					if (this.pGrid[p][x,y] == CState.tower){
+						playerLoss[p] = false; // as long as they have one tower, they're still in it!
+					}
+				}
+			}
+		}
+		if (playerLoss.Any(x => x)){
+			Debug.Log("Hey!! We got a loser over here! P0: " + playerLoss[0].ToString() + " P1: " + playerLoss[1].ToString());
+			return true;
+		}
+		Debug.Log("Nope, both players still have at least 1 tower");
+		return false;
+	}
 
 	void GetActionReqs(){
 		for(int i = 0; i < this.pNum; i++){
