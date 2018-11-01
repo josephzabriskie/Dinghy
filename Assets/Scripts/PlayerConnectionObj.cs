@@ -181,12 +181,12 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		this.lc.RXActionReq(new List<ActionReq>(qa));
 	}
 	[Command]
-	void CmdRequestGridUpdate(){ // This guy should only be called internally on startup, not local player guarded
+	void CmdRequestGridUpdate(){ // This guy should only be called internally on startup
 		//Debug.Log("Player '" + this.playerId.ToString() + "' requesting CmdRequestGridUpdate");
 		this.lc.ReportGridState(this.playerId); // this simply gets the logic core to call our RPC update grid
 	}
 	[Command]
-	void CmdRequestGameStateUpdate(){ // This guy should only be called internally on startup, not local player guarded
+	void CmdRequestGameStateUpdate(){ // This guy should only be called internally on startup
 		//Debug.Log("Player '" + this.playerId.ToString() + "' requesting CmdRequestGameStateUpdate");
 		this.lc.ReportGameState(this.playerId);
 	}
@@ -219,11 +219,11 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	}
 
 	[ClientRpc]
-	public void RpcUpdateGameState(MatchState ms, int timeleft){
+	public void RpcUpdateGameState(StateInfo si){
 		if (!isLocalPlayer || !this.ReadyGuard()){
 			return;
 		}
-		switch(ms){
+		switch(si.ms){
 		case MatchState.waitForPlayers:
 			Debug.Log("RPC Game state: wait for players");
 			this.apc = ActionProcState.reject;
@@ -241,7 +241,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 				new ActionReq(this.playerId, pAction.noAction, null)});
 			this.uic.ActionDisplayUpdate(this.queuedActions[0]);
 			this.uic.GameStateUpdate("Hey Time to place towers: You've got 60s");
-			this.uic.TimerStart(timeleft);
+			this.uic.TimerStart(si.time);
 			this.uic.ActionSelectButtonsEnable(false);
 			break;
 		case MatchState.actionSelect:
@@ -251,7 +251,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			this.uic.ActionDisplayUpdate(this.queuedActions[0]);
 			this.apc = ActionProcState.singleAction;
 			this.uic.GameStateUpdate("Now you just enter an action every 30s");
-			this.uic.TimerStart(timeleft);
+			this.uic.TimerStart(si.time);
 			this.uic.ActionSelectButtonsEnable(true);
 			break;
 		case MatchState.resolveState:
@@ -261,8 +261,16 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			this.uic.GameStateUpdate("Hey we're resolving real quick");
 			this.uic.ActionSelectButtonsEnable(false);
 			break;
+		case MatchState.gameEnd:
+			Debug.Log("Rpc Game state: gameEnd");
+			this.apc = ActionProcState.reject;
+			this.uic.TimerClear();
+			this.uic.GameStateUpdate("Game Over!");
+			this.uic.ActionSelectButtonsEnable(false);
+			this.uic.GameOverDisplayShow(si.won);
+			break;
 		default:
-			Debug.LogError("RPC Game state: Uh oh, default. State is: " + ms.ToString());
+			Debug.LogError("RPC Game state: Uh oh, default. State is: " + si.ms.ToString());
 			break;
 		}
 	}

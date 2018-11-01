@@ -18,7 +18,7 @@ public class LockButton : MonoBehaviour {
 		this.button.onClick.RemoveAllListeners();
 	}
 
-	public void SetLocked(bool l){
-		this.button.interactable = l;
+	public void SetEnabled(bool en){
+		this.button.interactable = en;
 	}
 }

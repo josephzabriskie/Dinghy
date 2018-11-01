@@ -14,15 +14,11 @@ namespace PlayerActions{
 		fireBasic,
 		scout,
 	}
-
-	public struct ActionReq
-	{
+	public struct ActionReq	{
 		public int p; //player number
 		public pAction a;
 		public Vector2[] coords;
-
-		public ActionReq(int inPlayer, pAction inAction, Vector2[] inCoords)
-		{
+		public ActionReq(int inPlayer, pAction inAction, Vector2[] inCoords){
 			p=inPlayer;
 			a=inAction;
 			coords=inCoords;
@@ -39,6 +35,16 @@ namespace MatchSequence{
 		resolveState, // Give the clients some time to resolve game state before next action
 		gameEnd,
 	}
+	public struct StateInfo{
+		public MatchState ms;
+		public int time; // Time
+		public bool won; // Winner
+		public StateInfo(MatchState state, int time, bool winner){
+			ms = state;
+			this.time = time;
+			won = winner;
+		}
+	}
 }
 
 //Logic core's job is to take action requests as inputs and then compute the new game state
@@ -49,6 +55,7 @@ public class LogicCore : NetworkBehaviour {
 	public List<ActionReq> playerActions;
 	public List<bool> playerLocks;
 	public List<bool> playerResps; // Keeps track of which players have send in action requests since we last cleared
+	public List<bool> playerWin;
 	public MatchState currMS = MatchState.waitForPlayers;
 	public MatchState pausedMS = MatchState.placeTowers;
 	public int stateTime;
@@ -71,6 +78,7 @@ public class LogicCore : NetworkBehaviour {
 		this.playerActions = new List<ActionReq>();
 		this.playerLocks = new List<bool>(new bool[this.pNum]);
 		this.playerResps = new List<bool>(new bool[this.pNum]);
+		this.playerWin = new List<bool>(new bool[this.pNum]); // Defaults to false
 		this.ResetGame();
 	}
 	
@@ -176,6 +184,11 @@ public class LogicCore : NetworkBehaviour {
 			this.currentCoroutine = StartCoroutine(this.ResolveIE(3, MatchState.actionSelect));
 			break;
 		case MatchState.gameEnd:
+			Debug.Log("We're entering gameEnd state!");
+			this.stateTime = 0;
+			this.ClearCurrentCoroutine();
+			this.UpdatePlayersGameState();
+			//What next?
 			break;
 		default:
 			Debug.LogError("Don't expect to hit default state in LogicCore's GameProcess, State: " + this.currMS.ToString());
@@ -202,7 +215,7 @@ public class LogicCore : NetworkBehaviour {
 	public void ReportGameState(int p){
 		Debug.Log("Reporting game state to player " + p.ToString());
 		if (this.mnm.playerSlots[p]){
-			this.mnm.playerSlots[p].RpcUpdateGameState(this.currMS, this.stateTime);
+			this.mnm.playerSlots[p].RpcUpdateGameState(new StateInfo(this.currMS, this.stateTime, this.playerWin[p]));
 		}
 	}
 
@@ -293,26 +306,35 @@ public class LogicCore : NetworkBehaviour {
 	IEnumerator ResolveIE(int time, MatchState nextState){
 		//For now just sleep for a bit then go to next state
 		yield return new WaitForSeconds(time);
-		this.currMS = nextState;
-		this.GameOverCheck();
+		if (this.GameOverCheck()){
+			this.currMS = MatchState.gameEnd;
+		}
+		else{
+			this.currMS = nextState;
+		}
 		this.GameProcess();
 	}
 	////////////////////////////////////////////////End state IEs
 
 	bool GameOverCheck(){
 		Debug.Log("GameOverChecking");
-		bool[] playerLoss = {true, true};
+		bool[] playerlose = {true, true};
 		for(int p = 0; p < this.pNum; p++){
 			for(int x = 0; x < this.pGrid[p].GetLength(0); x++){
 				for(int y = 0; y < this.pGrid[p].GetLength(1); y++){
 					if (this.pGrid[p][x,y] == CState.tower){
-						playerLoss[p] = false; // as long as they have one tower, they're still in it!
+						playerlose[p] = false; // as long as they have one tower, they're still in it!
 					}
 				}
 			}
 		}
-		if (playerLoss.Any(x => x)){
-			Debug.Log("Hey!! We got a loser over here! P0: " + playerLoss[0].ToString() + " P1: " + playerLoss[1].ToString());
+		for(int i = 0; i < playerlose.Length; i++){
+			if(playerlose[i]){
+				this.playerWin[(i + 1) % this.pNum] = true;
+			}
+		}
+		if (playerWin.Any(x => x)){
+			Debug.Log("Hey!! We got a Winner over here! P0: " + playerWin[0].ToString() + " P1: " + playerWin[1].ToString());
 			return true;
 		}
 		Debug.Log("Nope, both players still have at least 1 tower");

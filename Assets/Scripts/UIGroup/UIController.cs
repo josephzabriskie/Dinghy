@@ -12,6 +12,7 @@ public class UIController : MonoBehaviour {
 	DebugPanel dbp;
 	GameStateDisplay gsd;
 	ActionSelectGroup asg;
+	GameOverDisplay god;
 
 	void Start () {
 		this.tui = this.GetComponentInChildren<TimerUI>();
@@ -20,8 +21,19 @@ public class UIController : MonoBehaviour {
 		this.dbp = this.GetComponentInChildren<DebugPanel>();
 		this.gsd = this.GetComponentInChildren<GameStateDisplay>();
 		this.asg = this.GetComponentInChildren<ActionSelectGroup>();		
+		this.god = this.GetComponentInChildren<GameOverDisplay>();
+		this.GameOverDisplayHide(); // Hide this till needed. Todo Warning, may depend on script execution order
 	}
-	
+	//#############################################
+	//Functions to control our gameover display
+	//Show
+	public void GameOverDisplayShow(bool won){
+		this.god.Show(won);
+	}
+	//Hide
+	public void GameOverDisplayHide(){
+		this.god.Hide();
+	}
 	//#############################################
 	//Functions to control our action select button group
 	//Register
@@ -36,7 +48,6 @@ public class UIController : MonoBehaviour {
 	public void ActionSelectButtonsEnable(bool en){
 		this.asg.SetButtonEnabled(en);
 	}
-
 	//#############################################
 	//Functions to control our timer UI
 	//Start
@@ -47,12 +58,10 @@ public class UIController : MonoBehaviour {
 	public void TimerStop(){
 		this.tui.StopTimer();
 	}
-
 	//Clear
 	public void TimerClear(){
 		this.tui.ClearTimer();
 	}
-
 	//#############################################
 	//Functions to control our Action Display
 	//UpdateAction
@@ -63,12 +72,11 @@ public class UIController : MonoBehaviour {
 	public void ActionDisplayClear(){
 		this.ad.ClearAction();
 	}
-
 	//#############################################
 	//Functions to control our lock button
 	//SetEnabled
 	public void LockButtonEnabled(bool b){
-		this.lb.SetLocked(b);
+		this.lb.SetEnabled(b);
 	}
 	//registerAction
 	public void LockButtonRegister(PlayerConnectionObj pobj){
@@ -78,7 +86,6 @@ public class UIController : MonoBehaviour {
 	public void LockButtonDeregister(){
 		this.lb.DeregisterCallbacks();
 	}
-
 	//#############################################
 	//Functions to write to our debug panel, ignore if no DBP available
 	//Write
