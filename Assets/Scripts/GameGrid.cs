@@ -7,8 +7,7 @@ public class GameGrid : MonoBehaviour {
 
 	public GameObject CellPrefab;
 	public Cell[,] cells;
-	//CState[,] cellStates; // We can just pass the state through, this class doesn't really care about it
-	public PlayerConnectionObj pco = null;
+	public PlayBoard parent = null;
 	int sizex, sizey;
 	public bool playerOwnedGrid = false;
 
@@ -39,12 +38,9 @@ public class GameGrid : MonoBehaviour {
 		cells = new Cell[fitx,fity];
 		this.sizex = fitx;
 		this.sizey = fity;
-		
 		float offsetx = w/fitx;
 		float offsety = h/fity;
-		
 		Vector3 start = this.transform.position + new Vector3(offsetx/2.0f - w/2.0f, offsety/2.0f - h/2.0f, 0.0f);
-
 		//Debug.Log(string.Format("We can fit x {0}, y {1}", fitx, fity));
 		//Debug.Log(string.Format("offset x: {0}, y: {1}", offsetx, offsety));
 		//Debug.Log(string.Format("Start pos: {0}", start));
@@ -74,12 +70,12 @@ public class GameGrid : MonoBehaviour {
 	}
 
 	public void RXCellInput(Vector2 pos, CState state){
-		if(this.pco != null){
-			//Debug.Log("RCCellInfo, send to pco. " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
-			this.pco.RXGridInput(this.playerOwnedGrid, pos, state);
+		if(this.parent != null){
+			Debug.Log("RCCellInfo, send to parent. " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
+			this.parent.RXGridInput(this.playerOwnedGrid, pos, state);
 		}
 		else{
-			//Debug.Log("RCCellInfo, can't send to pco, don't have one " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
+			Debug.Log("RCCellInfo, can't send to parent, don't have one " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
 		}
 	}
 

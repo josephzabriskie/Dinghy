@@ -5,13 +5,16 @@ using UnityEngine.UI;
 
 public class ActionSelectGroup : MonoBehaviour {
     ActionSelectButton[] buttons;
+    public InputProcessor ip; // Really don't like that I have to put this here... TODO FIX ME/. IP should find us and register itself
+
 	void Start () {
         this.buttons = GetComponentsInChildren<ActionSelectButton>();
+        this.RegisterCallbacks();
 	}
 
-    public void RegisterCallbacks(PlayerConnectionObj pobj){
+    void RegisterCallbacks(){
         for (int i = 0; i < this.buttons.Length; i++){
-		    this.buttons[i].RegisterCallback(pobj);
+		    this.buttons[i].RegisterCallback(this.ip);
         }
 	}
 

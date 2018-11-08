@@ -36,10 +36,10 @@ public class UIController : MonoBehaviour {
 	}
 	//#############################################
 	//Functions to control our action select button group
-	//Register
-	public void ActionSelectButtonsRegister(PlayerConnectionObj pobj){
-		this.asg.RegisterCallbacks(pobj);
-	}
+	// //Register
+	// public void ActionSelectButtonsRegister(PlayerConnectionObj pobj){
+	// 	this.asg.RegisterCallbacks(pobj);
+	// }
 	//Deregister
 	public void ActionSelectButtonsDeregister(){
 		this.asg.DeregisterCallbacks();
@@ -78,10 +78,10 @@ public class UIController : MonoBehaviour {
 	public void LockButtonEnabled(bool b){
 		this.lb.SetEnabled(b);
 	}
-	//registerAction
-	public void LockButtonRegister(PlayerConnectionObj pobj){
-		this.lb.RegisterCallback(pobj);
-	}
+	// //registerAction
+	// public void LockButtonRegister(InputProcessor ip){
+	// 	this.lb.RegisterCallback(ip);
+	// }
 	//deregisterAction
 	public void LockButtonDeregister(){
 		this.lb.DeregisterCallbacks();

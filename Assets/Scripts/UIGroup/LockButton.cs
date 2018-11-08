@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 public class LockButton : MonoBehaviour {
@@ -10,9 +11,9 @@ public class LockButton : MonoBehaviour {
 		this.button = GetComponent<Button>();
 	}
 
-	public void RegisterCallback(PlayerConnectionObj pobj){
-		this.button.onClick.AddListener(pobj.LockAction);
-	}
+	// public void RegisterCallback(InputProcessor ip){
+	// 	this.button.onClick.AddListener(ip.LockAction);
+	// }
 
 	public void DeregisterCallbacks(){
 		this.button.onClick.RemoveAllListeners();

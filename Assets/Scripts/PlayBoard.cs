@@ -1,23 +1,43 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using CellInfo;
 
 public class PlayBoard : MonoBehaviour {
+	//For Setting up
 	public GameObject gridPrefab;
-	GameObject grid1 = null;
-	GameObject grid2 = null;
 	float midSpace = 1.0f;
+	//Other
+	GameGrid playerGrid = null;
+	GameGrid enemyGrid = null;
+	public InputProcessor ip = null; // Link up the guy that will process our grid clicks
 
 	void Start(){
 		this.InstantiateGrids();
 	}
 
-	public GameGrid getMyGrid(){
-		return this.grid1.GetComponent<GameGrid>();
+	public void SetGridStates(CState[,] pGrid, CState[,] eGrid){
+		this.playerGrid.SetArrayState(pGrid);
+		this.enemyGrid.SetArrayState(eGrid);
 	}
- 
-	public GameGrid getTheirGrid(){
-		return this.grid2.GetComponent<GameGrid>();
+
+	public void RXGridInput(bool pGrid, Vector2 pos, CState state){
+		this.ip.RXInput(pGrid, pos, state);
+	}
+
+	public void SetCellState(bool pGrid, Vector2 pos, CState state){
+		GameGrid g = (pGrid) ? this.playerGrid : this.enemyGrid;
+		g.SetCellState(pos, state);
+	}
+
+	public void ClearGrids(){
+		this.playerGrid.ClearArrayState();
+		this.enemyGrid.ClearArrayState();
+	}
+
+	void numberGrid(){
+		//TBD auto number the grid
+		//Should be done on InstantiateGrids
 	}
 
 	public void InstantiateGrids() {
@@ -40,18 +60,14 @@ public class PlayBoard : MonoBehaviour {
 			center2 = this.transform.position + new Vector3(0, height/2.0f + this.midSpace/2.0f, 0);
 		}
 		//Debug.Log(string.Format("cent1 {0}, cent2 {1}", center1, center2));
-		this.grid1 = Instantiate(gridPrefab, center1, Quaternion.identity);
-		this.grid2 = Instantiate(gridPrefab, center2, Quaternion.identity);
-		//w = width;
-		//h = height;
-		//pos1 = center1;
-		//pos2 = center2;
-		grid1.GetComponent<GameGrid>().PlaceCells(width, height);
-		grid2.GetComponent<GameGrid>().PlaceCells(width, height);
-		grid2.GetComponent<GameGrid>().Flip();
-	}
-	
-	// Update is called once per frame
-	void Update () {
+		this.playerGrid = Instantiate(gridPrefab, center1, Quaternion.identity).GetComponent<GameGrid>();
+		this.enemyGrid = Instantiate(gridPrefab, center2, Quaternion.identity).GetComponent<GameGrid>();
+		this.playerGrid.PlaceCells(width, height);
+		this.playerGrid.parent = this;
+		this.playerGrid.playerOwnedGrid = true;
+		this.enemyGrid.PlaceCells(width, height);
+		this.enemyGrid.parent = this;
+		this.enemyGrid.playerOwnedGrid = false;
+		this.enemyGrid.Flip(); //This one's facing the player, needs to be flipped
 	}
 }

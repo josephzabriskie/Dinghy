@@ -7,28 +7,17 @@ using CellInfo;
 using MatchSequence;
 using UnityEngine.UI;
 using System.Linq;
+using ActionProc;
 
 public class PlayerConnectionObj : NetworkBehaviour {
 	GameObject baseboard;
 	[SyncVar]
 	public int playerId;
-	public LogicCore lc = null;
-	//public DebugPanel dbp;
-	public UIController uic;
-	public GameGrid myGG;
-	public GameGrid theirGG;
-	bool actionLocked = false;
+	LogicCore lc = null;
+	UIController uic = null;
+	PlayBoard pb = null;
+	InputProcessor ip = null;
 	bool isReady = false;
-	pAction actionContext;
-
-	//these guys are used to define how we process input and where we store it
-	enum ActionProcState{ // How do we save and send input?
-		reject, // Default reject input, don't save, don't send
-		multiTower, // This is multi selection mode at start of game. Save up to 3, send 3
-		singleAction, // Here we store only one action in first index. Save 1 send 1
-	}
-	ActionProcState apc = ActionProcState.reject;
-	List<ActionReq> queuedActions; // Used for game start tower placement
 
 	void Start () {
 		Debug.Log("PlayerConnectionObj Start. Local: " + isLocalPlayer.ToString());
@@ -51,122 +40,19 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			//Find our UIC and do it's setup
 			this.uic = GameObject.FindGameObjectWithTag("UIGroup").GetComponent<UIController>();
 			this.uic.DBPWrite("Player " +  this.playerId.ToString() + " joined!");
-			this.uic.LockButtonRegister(this);
-			this.uic.ActionSelectButtonsRegister(this);
-			this.uic.ActionSelectButtonsEnable(false);
-			//this.uic.ActionDisplayUpdate(this.queuedActions[0]);
-			this.queuedActions = new List<ActionReq>();
 			//Find our local playboard, and get grids
-			PlayBoard pbs = GameObject.FindGameObjectWithTag("PlayBoard").GetComponent<PlayBoard>(); // Find the playboard in the scene	
-			this.myGG = pbs.getMyGrid();
-			this.theirGG = pbs.getTheirGrid();
-			this.myGG.pco = this;
-			this.theirGG.pco = this;
-			this.myGG.playerOwnedGrid=true;
-			this.theirGG.playerOwnedGrid=false;
-			this.isReady = true;
-			this.actionContext = pAction.noAction;
+			this.pb = GameObject.FindGameObjectWithTag("PlayBoard").GetComponent<PlayBoard>(); // Find the playboard in the scene	
+			this.ip = GameObject.FindGameObjectWithTag("InputProcessor").GetComponent<InputProcessor>();
+			this.ip.RegisterReport(this);
+
+			this.isReady = true; //Now we can recieve RPC's ready's set
 			this.CmdRequestGameStateUpdate();
 			this.CmdRequestGridUpdate();
 		}
 	}
 
-	public void SetActionContext(pAction a){
-		this.actionContext = a;
-		Debug.Log("Action Context changed to " + a.ToString());
-	}
-
-	public void LockAction(){
-		if (this.queuedActions.Any(req => req.a != pAction.noAction)){
-			Debug.Log("LockactionPressed pid: " + this.playerId.ToString());
-			this.actionLocked = true;
-			this.uic.LockButtonEnabled(false);
-			this.CmdSendPlayerLock();
-		}
-	}
-
-	//Unlock and wipe queued Action - Do I need this?
-	public void UnlockAction(){
-		this.actionLocked = false;
-		this.uic.LockButtonEnabled(true);
-	}
-
 	public void ClearGrids(){ // mostly just used to make sure we clean up on disconnect
-		this.myGG.ClearArrayState();
-		this.theirGG.ClearArrayState();
-	}
-
-	/////////////////////////////////Get and process input from grids
-	//Communicate with gamegrid
-	public void RXGridInput(bool pGrid, Vector2 pos, CState state){
-		//Don't need to ensure local player, grid only assigned to localplayer
-		if (this.actionLocked){
-			Debug.Log("Got input, but we're already locked... ignoring");
-			return;
-		}
-		//ActionReq ar;
-		switch(this.apc){
-		case ActionProcState.reject:
-			Debug.Log("APC Reject: Ignoring input from grid");
-			//Do nothing, we ignore the request
-			break;
-		case ActionProcState.multiTower:
-			if (!pGrid){
-				Debug.Log("APC multitower: not our grid, don't do nuthin");
-				break;
-			}
-			//In this state, action select buttons should be disabled, all input treated as tower placement
-			//Does this location already exist within our queuedactions?
-			int idx = this.queuedActions.FindIndex(x => x.a == pAction.placeTower && x.coords[0] == pos);
-			//Debug.Log("APC multitower: check for dup result " + idx.ToString());
-			if (idx >=0 ){ // We've already got this guy selected, deselect it
-				//Debug.Log("APC multitower: Already got this one, toggle off");
-				this.queuedActions[idx] = new ActionReq(this.playerId, pAction.noAction, null);
-				this.myGG.SetCellState(pos, CState.empty);
-				break;
-			}
-			idx = this.queuedActions.FindIndex(x => x.a == pAction.noAction);
-			//Debug.Log("APC multitower: check for open result " + idx.ToString());
-			if(idx >=0){ // We've still have room for a new request
-				//Debug.Log("APC multitower: we have room at idx " + idx.ToString());
-				this.queuedActions[idx] = new ActionReq(this.playerId, pAction.placeTower, new Vector2[]{pos});
-				this.myGG.SetCellState(pos, CState.towerTemp);
-			}
-			else{ // No room for another tower selection, ignore
-				//Debug.Log(" APC multitower: no room left! ignoring");
-			}
-			break;
-		case ActionProcState.singleAction:
-			switch(this.actionContext){
-			case pAction.noAction:
-				break; // don't do nuthin if no action context
-			case pAction.fireBasic:
-				if(pGrid){
-					break; //Don't want to shoot yourself...or do you?
-				}
-				this.queuedActions[0] = new ActionReq(this.playerId, pAction.fireBasic, new Vector2[]{pos});
-				this.uic.ActionDisplayUpdate(this.queuedActions[0]);
-				break;
-			case pAction.scout:
-				if (pGrid){
-					break; //Don't scout yourself...
-				}
-				this.queuedActions[0] = new ActionReq(this.playerId, pAction.scout, new Vector2[]{pos});
-				this.uic.ActionDisplayUpdate(this.queuedActions[0]);
-				break;
-			case pAction.placeTower:
-				if(!pGrid){
-					break; //Don't build on their side...
-				}
-				this.queuedActions[0] = new ActionReq(this.playerId, pAction.placeTower, new Vector2[]{pos});
-				this.uic.ActionDisplayUpdate(this.queuedActions[0]);
-				break;
-			}
-			break;
-			//Todo here, highlight selected square coords
-		default:
-			break;
-		}
+		this.pb.ClearGrids();
 	}
 
 	////////////////////////////////// COMMANDs 
@@ -191,7 +77,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		this.lc.ReportGameState(this.playerId);
 	}
 	[Command]
-	void CmdSendPlayerLock(){
+	public void CmdSendPlayerLock(){ //Public so that Input processor can call it
 		Debug.Log("Sending action lock in for player " + this.playerId);
 		this.lc.SetPlayerLock(this.playerId);
 	}
@@ -214,8 +100,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		}
 		//Debug.Log("Player: " + this.playerId + " got update to our grids.");
 		//Debug.Log("Ours: " + our.Length.ToString() + " :: Theirs: "  + other.Length.ToString());
-		this.myGG.SetArrayState(GUtils.Deserialize(our, dim1, dim2));
-		this.theirGG.SetArrayState(GUtils.Deserialize(other, dim1, dim2));
+		this.pb.SetGridStates(GUtils.Deserialize(our, dim1, dim2), GUtils.Deserialize(other, dim1, dim2));
 	}
 
 	[ClientRpc]
@@ -226,44 +111,35 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		switch(si.ms){
 		case MatchState.waitForPlayers:
 			Debug.Log("RPC Game state: wait for players");
-			this.apc = ActionProcState.reject;
+			this.ip.SetActionProcState(ActionProcState.reject);
 			this.uic.GameStateUpdate("Hey We're waiting for players");
 			break;
 		case MatchState.placeTowers:
 			Debug.Log("RPC Game state: placeTowers");
 			// you need to have filled in the action request on the server within in 60s
 			// After that it'll be read, set or not
-			this.apc = ActionProcState.multiTower;
-			this.queuedActions.Clear();
-			this.queuedActions.AddRange(new List<ActionReq>{ // currently hold 3. 1 for each initial tower allowed to place
-				new ActionReq(this.playerId, pAction.noAction, null),
-				new ActionReq(this.playerId, pAction.noAction, null),
-				new ActionReq(this.playerId, pAction.noAction, null)});
-			this.uic.ActionDisplayUpdate(this.queuedActions[0]);
+			this.ip.SetActionProcState(ActionProcState.multiTower);
 			this.uic.GameStateUpdate("Hey Time to place towers: You've got 60s");
 			this.uic.TimerStart(si.time);
 			this.uic.ActionSelectButtonsEnable(false);
 			break;
 		case MatchState.actionSelect:
 			Debug.Log("RPC Game state: actionSelect");
-			this.queuedActions.Clear();
-			this.queuedActions.AddRange(new List<ActionReq> {new ActionReq(this.playerId, pAction.noAction, null)});
-			this.uic.ActionDisplayUpdate(this.queuedActions[0]);
-			this.apc = ActionProcState.singleAction;
+			this.ip.SetActionProcState(ActionProcState.singleAction);
 			this.uic.GameStateUpdate("Now you just enter an action every 30s");
 			this.uic.TimerStart(si.time);
 			this.uic.ActionSelectButtonsEnable(true);
 			break;
 		case MatchState.resolveState:
 			Debug.Log("RPC Game state: resolveState");
-			this.apc = ActionProcState.reject;
+			this.ip.SetActionProcState(ActionProcState.reject);
 			this.uic.TimerClear();
 			this.uic.GameStateUpdate("Hey we're resolving real quick");
 			this.uic.ActionSelectButtonsEnable(false);
 			break;
 		case MatchState.gameEnd:
 			Debug.Log("Rpc Game state: gameEnd");
-			this.apc = ActionProcState.reject;
+			this.ip.SetActionProcState(ActionProcState.reject);
 			this.uic.TimerClear();
 			this.uic.GameStateUpdate("Game Over!");
 			this.uic.ActionSelectButtonsEnable(false);
@@ -281,7 +157,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			return;
 		}
 		Debug.Log("RpcReportActionReqs from player " + this.playerId.ToString());
-		ActionReq[] qa = this.queuedActions.ToArray();
+		ActionReq[] qa = this.ip.GetQueuedActions().ToArray();
 		// for(int i =0; i < qa.Count(); i ++){
 		// 	Debug.Log("Send " + i.ToString() + ": " + qa[i].coords[0].ToString());
 		// }
@@ -294,7 +170,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			return;
 		}
 		Debug.Log("RpcResetPlayerLock id: " + this.playerId.ToString());
-		this.UnlockAction();
+		this.ip.UnlockAction();
 	}
 	
 	//Note about checking for local player. At the time of writing, the architecture of the networked game

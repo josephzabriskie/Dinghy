@@ -7,8 +7,9 @@ public class MyNetManager : NetworkManager {
 	const int maxPlayers = 2;
 	int currentPlayers = 0;
 	public LogicCore logicCore;
+	public UIController uic;
+	public PlayBoard pb;
 	public PlayerConnectionObj[] playerSlots = new PlayerConnectionObj[2];
-	public GameObject localPlayerObj; // The local player
 
 	void Awake(){
 		LogFilter.currentLogLevel = LogFilter.Debug;
@@ -84,13 +85,11 @@ public class MyNetManager : NetworkManager {
 
 	public override void OnStopClient(){ // you can use this to do stuff when the player disconencts
 		//Debug.Log("OnStopClient()");
-		// you can use this to do stuff when the player disconencts
-		PlayerConnectionObj pobj = GameObject.Find("PlayerConnObject(Clone)Local").GetComponent<PlayerConnectionObj>();
-		pobj.uic.GameStateUpdate("Disconnected");
-		pobj.uic.TimerStop();
-		pobj.uic.ActionDisplayClear();
-		pobj.uic.LockButtonDeregister();
-		pobj.ClearGrids();
+		this.uic.GameStateUpdate("Disconnected");
+		this.uic.TimerStop();
+		this.uic.ActionDisplayClear();
+		//this.uic.LockButtonDeregister();
+		this.pb.ClearGrids();
 		base.OnStopClient();
 	}
 
