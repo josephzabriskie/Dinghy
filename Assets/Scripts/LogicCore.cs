@@ -50,7 +50,6 @@ namespace MatchSequence{
 //Logic core's job is to take action requests as inputs and then compute the new game state
 public class LogicCore : NetworkBehaviour {
 	public MyNetManager mnm;
-
 	public PlayerConnectionObj[] playersObjs;
 	public List<ActionReq> playerActions;
 	public List<bool> playerLocks;
@@ -63,18 +62,16 @@ public class LogicCore : NetworkBehaviour {
 	bool[][,] pHidden;
 	int pNum = 2; // max player number
 	Coroutine currentCoroutine = null;
-
-	PlayBoard pb;
-	// Grid size right now is hard coded. Should be passed in from the main menu
-	//Based on playboard scale x:8, y:17
-	int sizex = 8;
-	int sizey = 8;
-
+	public PlayBoard pb = null;
+	public int sizex;
+	public int sizey;
 
 	// Use this for initialization
 	void Start () {
-		//this.playerActions = new ActionReq[this.pNum]{new ActionReq(0, pAction.noAction, new Vector2[]{}), new ActionReq(-1, pAction.noAction, new Vector2[]{})};
 		//Debug.Log("Starting Logic Core!");
+		int[] size = this.pb.GetGridSize();
+		this.sizex = size[0];
+		this.sizey = size[1];
 		this.playerActions = new List<ActionReq>();
 		this.playerLocks = new List<bool>(new bool[this.pNum]);
 		this.playerResps = new List<bool>(new bool[this.pNum]);
@@ -181,7 +178,7 @@ public class LogicCore : NetworkBehaviour {
 			this.stateTime = 0; // Time here is 0, players don't need to know how long we're here since timer shouldnt get set
 			this.ClearCurrentCoroutine();
 			this.UpdatePlayersGameState();
-			this.currentCoroutine = StartCoroutine(this.ResolveIE(3, MatchState.actionSelect));
+			this.currentCoroutine = StartCoroutine(this.ResolveIE(1, MatchState.actionSelect));
 			break;
 		case MatchState.gameEnd:
 			Debug.Log("We're entering gameEnd state!");

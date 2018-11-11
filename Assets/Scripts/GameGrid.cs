@@ -60,6 +60,11 @@ public class GameGrid : MonoBehaviour {
 		}
 	}
 
+	public int[] GetGridSize(){
+		int[] ret = {this.sizex, this.sizey};
+		return ret;
+	}
+
 	public void Flip(){ // This is a function intended to be called right after instantiation
 		this.transform.Rotate(0.0f, 0.0f, 180.0f);
 		for(int x = 0; x < this.sizex; x++){

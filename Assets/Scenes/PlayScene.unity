@@ -701,6 +701,9 @@ MonoBehaviour:
   currMS: 0
   pausedMS: 1
   stateTime: 0
+  pb: {fileID: 985081541}
+  sizex: 0
+  sizey: 0
 --- !u!114 &533413170
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2400,7 +2403,18 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1925451797}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 768907115}
+        m_MethodName: LockAction
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
     m_TypeName: UnityEngine.UI.Button+ButtonClickedEvent, UnityEngine.UI, Version=1.0.0.0,
       Culture=neutral, PublicKeyToken=null
 --- !u!114 &1925451797

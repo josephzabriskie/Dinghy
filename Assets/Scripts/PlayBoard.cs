@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using CellInfo;
 
+//!! Important This script should be high priority in execution order
 public class PlayBoard : MonoBehaviour {
 	//For Setting up
 	public GameObject gridPrefab;
@@ -11,6 +12,8 @@ public class PlayBoard : MonoBehaviour {
 	GameGrid playerGrid = null;
 	GameGrid enemyGrid = null;
 	public InputProcessor ip = null; // Link up the guy that will process our grid clicks
+	int sizex;
+	int sizey;
 
 	void Start(){
 		this.InstantiateGrids();
@@ -33,6 +36,11 @@ public class PlayBoard : MonoBehaviour {
 	public void ClearGrids(){
 		this.playerGrid.ClearArrayState();
 		this.enemyGrid.ClearArrayState();
+	}
+
+	public int[] GetGridSize(){
+		int[] ret = {this.sizex, this.sizey};
+		return ret;
 	}
 
 	void numberGrid(){
@@ -63,6 +71,9 @@ public class PlayBoard : MonoBehaviour {
 		this.playerGrid = Instantiate(gridPrefab, center1, Quaternion.identity).GetComponent<GameGrid>();
 		this.enemyGrid = Instantiate(gridPrefab, center2, Quaternion.identity).GetComponent<GameGrid>();
 		this.playerGrid.PlaceCells(width, height);
+		int[] size = this.playerGrid.GetGridSize();
+		this.sizex = size[0];
+		this.sizey = size[1];
 		this.playerGrid.parent = this;
 		this.playerGrid.playerOwnedGrid = true;
 		this.enemyGrid.PlaceCells(width, height);
