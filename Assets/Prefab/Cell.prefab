@@ -21,7 +21,23 @@ GameObject:
   - component: {fileID: 4636895412993610}
   - component: {fileID: 212864376207468972}
   m_Layer: 0
-  m_Name: BG
+  m_Name: Background
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!1 &1244375430994014
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4527715736357832}
+  - component: {fileID: 212874779282968304}
+  m_Layer: 0
+  m_Name: MainState
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -35,7 +51,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4210719053438336}
-  - component: {fileID: 212935846037023070}
   - component: {fileID: 61550210020082018}
   - component: {fileID: 114018592751279956}
   m_Layer: 0
@@ -52,12 +67,26 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1895625567825484}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 12.7540655, y: -3.5176973, z: 0.06177473}
+  m_LocalPosition: {x: 5.6920586, y: -0.93429625, z: 0.06177473}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4636895412993610}
+  - {fileID: 4527715736357832}
   m_Father: {fileID: 0}
   m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &4527715736357832
+Transform:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1244375430994014}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 4210719053438336}
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4636895412993610
 Transform:
@@ -110,11 +139,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fog: {fileID: 21300000, guid: 681b965fb4f66054e92e6e69a031b921, type: 3}
   tower: {fileID: 21300000, guid: 2d29a177bc4865141a31c0815464fa4a, type: 3}
+  towerOffence: {fileID: 21300000, guid: d13ae8ea52b07c841ae8fdbfe595165e, type: 3}
+  towerDefence: {fileID: 21300000, guid: d320a742aa6968a4b850528afc4c162f, type: 3}
+  towerIntel: {fileID: 21300000, guid: 60e529a18f190e44f9471cb67ceeb31a, type: 3}
   towerTemp: {fileID: 21300000, guid: bb0814bedfc59db4ca5ad25009303f56, type: 3}
   destroyedTower: {fileID: 21300000, guid: 2f33d6c69e43a6042be18cd42ba5acc6, type: 3}
   destroyedTerrain: {fileID: 21300000, guid: 06dd6cc8d80bcd14badfe36708a531b8, type: 3}
+  defaultBG: {fileID: 21300000, guid: 3469a51f0714bc44889e92b07ff33fae, type: 3}
+  selectBG: {fileID: 21300000, guid: abfa7ff6220b2af4289403789b592604, type: 3}
+  selectHoverBG: {fileID: 21300000, guid: 953a9dac67a8c7742ab4ec8d29637ae1, type: 3}
   coords: {x: 0, y: 0}
-  state: 0
+  cState: 0
+  selState: 0
   parentGrid: {fileID: 0}
 --- !u!212 &212864376207468972
 SpriteRenderer:
@@ -148,10 +184,10 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: -1779762497
+  m_SortingLayer: 1
   m_SortingOrder: 1
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 3469a51f0714bc44889e92b07ff33fae, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -159,15 +195,15 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
+  m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!212 &212935846037023070
+--- !u!212 &212874779282968304
 SpriteRenderer:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1895625567825484}
+  m_GameObject: {fileID: 1244375430994014}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -194,10 +230,10 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: -1980479075
+  m_SortingLayer: 2
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 3469a51f0714bc44889e92b07ff33fae, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 681b965fb4f66054e92e6e69a031b921, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0

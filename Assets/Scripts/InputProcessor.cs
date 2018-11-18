@@ -69,74 +69,105 @@ public class InputProcessor : MonoBehaviour {
 		this.queuedActions.Clear();
 	}
 
-	public void RXInput(bool pGrid, Vector2 pos, CState state){
+	public void RXInput(bool pGrid, InputType it, Vector2 pos, CState state, SelState selstate){
 		//Don't need to ensure local player, grid only assigned to localplayer
 		if (this.actionLocked){
 			Debug.Log("Got input, but we're already locked... ignoring");
 			return;
 		}
-		//ActionReq ar;
-		switch(this.apc){
-		case ActionProcState.reject:
-			Debug.Log("APC Reject: Ignoring input from grid");
-			//Do nothing, we ignore the request
-			break;
-		case ActionProcState.multiTower:
-			if (!pGrid){
-				Debug.Log("APC multitower: not our grid, don't do nuthin");
+		if(it == InputType.hover){ // Handle hover input. Probably will depend on current action context, don't worry about that now
+			this.pb.ClearSelectionState(true);
+			if(selstate != SelState.select){
+				this.pb.SetCellBGState(pGrid, pos, SelState.selectHover);
+			}
+		}
+		else if(it == InputType.click){ // Handle click input
+			switch(this.apc){
+			case ActionProcState.reject:
+				Debug.Log("APC Reject: Ignoring input from grid");
+				//Do nothing, we ignore the request
 				break;
-			}
-			//In this state, action select buttons should be disabled, all input treated as tower placement
-			//Does this location already exist within our queuedactions?
-			int idx = this.queuedActions.FindIndex(x => x.a == pAction.placeTower && x.coords[0] == pos);
-			//Debug.Log("APC multitower: check for dup result " + idx.ToString());
-			if (idx >=0 ){ // We've already got this guy selected, deselect it
-				//Debug.Log("APC multitower: Already got this one, toggle off");
-				this.queuedActions[idx] = new ActionReq(this.report.playerId, pAction.noAction, null);
-				this.pb.SetCellState(true, pos, CState.empty);
-				break;
-			}
-			idx = this.queuedActions.FindIndex(x => x.a == pAction.noAction);
-			//Debug.Log("APC multitower: check for open result " + idx.ToString());
-			if(idx >=0){ // We've still have room for a new request
-				//Debug.Log("APC multitower: we have room at idx " + idx.ToString());
-				this.queuedActions[idx] = new ActionReq(this.report.playerId, pAction.placeTower, new Vector2[]{pos});
-				this.pb.SetCellState(true, pos, CState.towerTemp);
-			}
-			else{ // No room for another tower selection, ignore
-				//Debug.Log(" APC multitower: no room left! ignoring");
-			}
-			break;
-		case ActionProcState.singleAction:
-			switch(this.actionContext){
-			case pAction.noAction:
-				break; // don't do nuthin if no action context
-			case pAction.fireBasic:
-				if(pGrid){
-					break; //Don't want to shoot yourself...or do you?
+			case ActionProcState.multiTower:
+				List<pAction> allowedActions = new List<pAction>(){pAction.placeOffenceTower, pAction.placeDefenceTower, pAction.placeIntelTower};
+				List<CState> resultingState = new List<CState>(){CState.towerOffence, CState.towerDefence, CState.towerIntel};
+				if (!pGrid){
+					Debug.Log("Rejected input during Multitower placement, not our grid");
+					break; // do nothing if not our grid, do nothing if no action selected
 				}
-				this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.fireBasic, new Vector2[]{pos});
-				this.uic.ActionDisplayUpdate(this.queuedActions[0]);
-				break;
-			case pAction.scout:
-				if (pGrid){
-					break; //Don't scout yourself...
+ 				if(!allowedActions.Contains(this.actionContext)){
+					Debug.Log("Rejected input during Multitower placement, bad context: " + this.actionContext.ToString());
+					break; // do nothing if not our grid, do nothing if no action selected
 				}
-				this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.scout, new Vector2[]{pos});
-				this.uic.ActionDisplayUpdate(this.queuedActions[0]);
-				break;
-			case pAction.placeTower:
-				if(!pGrid){
-					break; //Don't build on their side...
+				//Does this location already exist within our queuedactions?
+				int idx = this.queuedActions.FindIndex(x => allowedActions.Contains(x.a) && x.coords[0] == pos);
+				//Debug.Log("APC multitower: check for dup result " + idx.ToString());
+				if (idx >=0 ){ // We've already got this guy selected, deselect it
+					//Debug.Log("APC multitower: Already got this one, toggle off");
+					this.queuedActions[idx] = new ActionReq(this.report.playerId, pAction.noAction, null);
+					this.pb.SetCellMainState(true, pos, CState.empty);
+					break;
 				}
-				this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.placeTower, new Vector2[]{pos});
-				this.uic.ActionDisplayUpdate(this.queuedActions[0]);
+				//Do we already have a tower of this type?
+				idx = this.queuedActions.FindIndex(x => x.a == this.actionContext);
+				if (idx >= 0){
+					Debug.Log("multiTower proc: Already have a " + this.actionContext.ToString());
+					break;
+				}
+				idx = this.queuedActions.FindIndex(x => x.a == pAction.noAction);
+				//Debug.Log("APC multitower: check for open result " + idx.ToString());
+				if(idx >=0){ // We've still have room for a new request
+					//Debug.Log("APC multitower: we have room at idx " + idx.ToString());
+					this.queuedActions[idx] = new ActionReq(this.report.playerId, this.actionContext, new Vector2[]{pos});
+					CState s = resultingState[allowedActions.IndexOf(this.actionContext)];
+					this.pb.SetCellMainState(true, pos, s);
+				}
+				else{ // No room for another tower selection, ignore
+					//Debug.Log(" APC multitower: no room left! ignoring");
+				}
+				break;
+			case ActionProcState.singleAction:
+				switch(this.actionContext){
+				case pAction.noAction:
+					break; // don't do nuthin if no action context
+				case pAction.fireBasic:
+					if(pGrid){
+						break; //Don't want to shoot yourself...or do you?
+					}
+					this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.fireBasic, new Vector2[]{pos});
+					this.uic.ActionDisplayUpdate(this.queuedActions[0]);
+					this.pb.ClearSelectionState(false);
+					this.pb.SetCellBGState(pGrid, pos, SelState.select);
+					break;
+				case pAction.scout:
+					if (pGrid){
+						break; //Don't scout yourself...
+					}
+					this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.scout, new Vector2[]{pos});
+					this.uic.ActionDisplayUpdate(this.queuedActions[0]);
+					this.pb.ClearSelectionState(false);
+					this.pb.SetCellBGState(pGrid, pos, SelState.select);
+					break;
+				case pAction.placeTower:
+					if(!pGrid){
+						break; //Don't build on their side...
+					}
+					this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.placeTower, new Vector2[]{pos});
+					this.uic.ActionDisplayUpdate(this.queuedActions[0]);
+					this.pb.ClearSelectionState(false);
+					this.pb.SetCellBGState(pGrid, pos, SelState.select);
+					break;
+				default:
+					Debug.LogError("Input processor unhandled actionContext: " + this.actionContext.ToString());	
+					break;
+				}
+				break;
+			default:
+				Debug.LogError("Input processor unhandled actionprocstate: " + this.apc.ToString());
 				break;
 			}
-			break;
-			//Todo here, highlight selected square coords
-		default:
-			break;
+		}
+		else{
+			Debug.LogError("Hey in our RXInput we didn't get a handled input type: " + it.ToString());
 		}
 	}
 	

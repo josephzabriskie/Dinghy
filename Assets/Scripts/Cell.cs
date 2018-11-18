@@ -5,36 +5,68 @@ using CellInfo;
 
 namespace CellInfo{
 	public enum CState{
-		hidden,
+		hidden = 0,
 		empty,
 		towerTemp,
-		tower,
+		tower, // Should be unused
+		towerOffence,
+		towerDefence,
+		towerIntel,
 		destroyedTower,
 		destroyedTerrain
+	}
+	public enum SelState{
+		def = 0,
+		select,
+		selectHover
+	}
+	public enum InputType{
+		hover,
+		click
 	}
 }
 
 public class Cell : MonoBehaviour {
 	SpriteRenderer srbg; // sr of the bg
-	SpriteRenderer srcover; // sr of the covering image
+	SpriteRenderer srmain; // sr of the covering image
+	//CoverState
 	public Sprite fog;
 	public Sprite tower;
+	public Sprite towerOffence;
+	public Sprite towerDefence;
+	public Sprite towerIntel;
 	public Sprite towerTemp;
 	public Sprite destroyedTower;
 	public Sprite destroyedTerrain;
+	//bgState
+	public Sprite defaultBG;
+	public Sprite selectBG;
+	public Sprite selectHoverBG;
 	public Vector2 coords;
-	public CState state;
+	//Other
+	public CState cState;
+	public SelState selState;
 	public GameGrid parentGrid;
-
 	//temp
 	Color defaultBGColor;
 
 	// Use this for initialization
 	void Start () {
 		SpriteRenderer[] srlist = this.GetComponentsInChildren<SpriteRenderer>();
+		foreach(SpriteRenderer sr in srlist){
+			if(sr.name == "Background"){
+				this.srbg = sr;
+			}
+			else if(sr.name == "MainState"){
+				this.srmain = sr;
+			}
+			else{
+				Debug.LogError("Cell init: Unhandled name " + sr.name);
+			}
+		}
 		this.srbg = srlist[0];
-		this.srcover = srlist[1];
-		this.SetState(CState.hidden);
+		this.srmain = srlist[1];
+		this.SetMainState(CState.hidden);
 		this.SetBGColor(Color.white);
 	}
 
@@ -53,48 +85,74 @@ public class Cell : MonoBehaviour {
 	}
 
 	void OnMouseEnter(){
-		srbg.color = Color.black;
+		this.ReportInput(InputType.hover);
 	}
 
 	void OnMouseExit(){
-		srbg.color = this.defaultBGColor;
+		// don't report this...
 	}
 
 	void OnMouseDown(){
-		//this.SetColor(Color.red);
-		Debug.Log("Clicked on: " + this.coords.ToString() + "State currently " + this.state.ToString());
-		this.parentGrid.RXCellInput(this.coords, this.state);
+		Debug.Log("Clicked on: " + this.coords.ToString() + "State currently " + this.cState.ToString());
+		this.ReportInput(InputType.click);
 	}
 
+	void ReportInput(InputType it){
+		this.parentGrid.RXCellInput(this.coords, it, this.cState, this.selState);
+	}
 
-	public void SetState(CState newState){
-		this.state = newState;
-		switch(this.state){
+	public void SetMainState(CState newState){
+		this.cState = newState;
+		switch(this.cState){
 			case CState.empty:
-				this.srcover.sprite = null;
+				this.srmain.sprite = null;
 				break;
 			case CState.hidden:
-				this.srcover.sprite = this.fog;
+				this.srmain.sprite = this.fog;
 				break;
 			case CState.tower:
-				this.srcover.sprite = this.tower;
+				this.srmain.sprite = this.tower;
 				break;
 			case CState.towerTemp:
-				this.srcover.sprite = this.towerTemp;
+				this.srmain.sprite = this.towerTemp;
 				break;
 			case CState.destroyedTerrain:
-				this.srcover.sprite = this.destroyedTerrain;
+				this.srmain.sprite = this.destroyedTerrain;
 				break;
 			case CState.destroyedTower:
-				this.srcover.sprite = this.destroyedTower;
+				this.srmain.sprite = this.destroyedTower;
+				break;
+			case CState.towerOffence:
+				this.srmain.sprite = this.towerOffence;
+				break;
+			case CState.towerDefence:
+				this.srmain.sprite = this.towerDefence;
+				break;
+			case CState.towerIntel:
+				this.srmain.sprite = this.towerIntel;
 				break;
 			default:
-				Debug.LogError("Unhandled state: " + this.state.ToString());
+				Debug.LogError("Unhandled state: " + this.cState.ToString());
 				break;
 		}
 	}
 
+	public void SetSelectState(SelState s){
+		this.selState = s;
+		switch(this.selState){
+		case SelState.def:
+			this.srbg.sprite = this.defaultBG;
+			break;
+		case SelState.select:
+			this.srbg.sprite = this.selectBG;
+			break;
+		case SelState.selectHover:
+		this.srbg.sprite = this.selectHoverBG;
+			break;
+		}
+	}
+
 	public CState getState(){
-		return this.state;
+		return this.cState;
 	}
 }

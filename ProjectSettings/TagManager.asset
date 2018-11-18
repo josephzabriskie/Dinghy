@@ -46,3 +46,12 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Background
+    uniqueID: 2515204799
+    locked: 0
+  - name: MainState
+    uniqueID: 2314488221
+    locked: 0
+  - name: UI
+    uniqueID: 78344301
+    locked: 0

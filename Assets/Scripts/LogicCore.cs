@@ -10,7 +10,10 @@ using System.Linq;
 namespace PlayerActions{
 	public enum pAction{
 		noAction,
-		placeTower,
+		placeTower, //Should be unused, place type of tower is new action
+		placeOffenceTower,
+		placeDefenceTower,
+		placeIntelTower,
 		fireBasic,
 		scout,
 	}
@@ -314,12 +317,13 @@ public class LogicCore : NetworkBehaviour {
 	////////////////////////////////////////////////End state IEs
 
 	bool GameOverCheck(){
+		List<CState> s = new List<CState>(){CState.towerOffence, CState.towerDefence, CState.towerIntel};
 		Debug.Log("GameOverChecking");
 		bool[] playerlose = {true, true};
 		for(int p = 0; p < this.pNum; p++){
 			for(int x = 0; x < this.pGrid[p].GetLength(0); x++){
 				for(int y = 0; y < this.pGrid[p].GetLength(1); y++){
-					if (this.pGrid[p][x,y] == CState.tower){
+					if (s.Contains(this.pGrid[p][x,y])){
 						playerlose[p] = false; // as long as they have one tower, they're still in it!
 					}
 				}
@@ -391,10 +395,20 @@ public class LogicCore : NetworkBehaviour {
 				case pAction.noAction:
 					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'noAction' request, do nothing");
 					break;
-				case pAction.placeTower://Use for beginning of game and normal single action
-					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'placeTower' request, do it");
+				case pAction.placeOffenceTower:
+					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'placeOffenceTower' request, do it");
 					coord = currentAR.coords[0];
-					this.pGrid[currentAR.p][(int)coord.x, (int)coord.y] = CState.tower;
+					this.pGrid[currentAR.p][(int)coord.x, (int)coord.y] = CState.towerOffence;
+					break;
+				case pAction.placeDefenceTower:
+					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'placeDefenceTower' request, do it");
+					coord = currentAR.coords[0];
+					this.pGrid[currentAR.p][(int)coord.x, (int)coord.y] = CState.towerDefence;
+					break;
+				case pAction.placeIntelTower:
+					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'placeIntelTower' request, do it");
+					coord = currentAR.coords[0];
+					this.pGrid[currentAR.p][(int)coord.x, (int)coord.y] = CState.towerIntel;
 					break;
 				case pAction.scout:
 					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'scout' request, do it");

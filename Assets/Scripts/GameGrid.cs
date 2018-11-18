@@ -27,14 +27,18 @@ public class GameGrid : MonoBehaviour {
 		}
 	}
 
-	public void SetCellState(Vector2 pos, CState s){
-		this.cells[(int)pos.x, (int)pos.y].SetState(s);
+	public void SetCellMainState(Vector2 pos, CState s){
+		this.cells[(int)pos.x, (int)pos.y].SetMainState(s);
+	}
+
+	public void SetCellBGState(Vector2 pos, SelState s){
+		this.cells[(int)pos.x, (int)pos.y].SetSelectState(s);
 	}
 
 	public void PlaceCells(float w, float h){
 		//Debug.Log(string.Format("STARTED GRID w:{0}, h:{1}", w, h));
-		int fitx = (int)(w / (this.CellPrefab.GetComponent<SpriteRenderer>().size.x));
-		int fity = (int)(h / (this.CellPrefab.GetComponent<SpriteRenderer>().size.y));
+		int fitx = (int)(w / (this.CellPrefab.GetComponentInChildren<SpriteRenderer>().size.x)); //Warning there are multiple sprites as obj children, assuming here all the same size
+		int fity = (int)(h / (this.CellPrefab.GetComponentInChildren<SpriteRenderer>().size.y));
 		cells = new Cell[fitx,fity];
 		this.sizex = fitx;
 		this.sizey = fity;
@@ -74,21 +78,16 @@ public class GameGrid : MonoBehaviour {
 		}
 	}
 
-	public void RXCellInput(Vector2 pos, CState state){
-		if(this.parent != null){
-			Debug.Log("RCCellInfo, send to parent. " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
-			this.parent.RXGridInput(this.playerOwnedGrid, pos, state);
-		}
-		else{
-			Debug.Log("RCCellInfo, can't send to parent, don't have one " + this.playerOwnedGrid.ToString() + pos.ToString() + state.ToString());
-		}
+	public void RXCellInput(Vector2 pos, InputType it, CState cellState, SelState selState){
+		//Debug.Log("RCCellInfo, send to parent. " + this.playerOwnedGrid.ToString() + pos.ToString() + cellState.ToString());
+		this.parent.RXGridInput(this.playerOwnedGrid, it, pos, cellState, selState);
 	}
 
 	public CState[,] GetArrayState(){
 		CState[,] output = new CState[this.sizex, this.sizey];
 		for(int x = 0; x < this.sizex; x++){
 			for(int y = 0; y < this.sizey; y++){
-				output[x,y] = this.cells[x,y].state;
+				output[x,y] = this.cells[x,y].cState;
 			}
 		}
 		return output;
@@ -97,7 +96,7 @@ public class GameGrid : MonoBehaviour {
 	public void SetArrayState(CState[,] inStates){
 		for(int x = 0; x < inStates.GetLength(0); x++){
 			for(int y = 0; y < inStates.GetLength(1); y++){
-				this.cells[x,y].SetState(inStates[x,y]);
+				this.cells[x,y].SetMainState(inStates[x,y]);
 			}
 		}
 	}
@@ -105,7 +104,17 @@ public class GameGrid : MonoBehaviour {
 	public void ClearArrayState(){
 		for(int x = 0; x < this.sizex; x++){
 			for(int y = 0; y < this.sizey; y++){
-				this.cells[x,y].SetState(CState.hidden);
+				this.cells[x,y].SetMainState(CState.hidden);
+			}
+		}
+	}
+
+	public void ClearSelectionState(bool hoveronly){
+		for(int x = 0; x < this.sizex; x++){
+			for(int y = 0; y < this.sizey; y++){
+				if(!hoveronly || this.cells[x,y].selState == SelState.selectHover){
+					this.cells[x,y].SetSelectState(SelState.def);
+				}
 			}
 		}
 	}

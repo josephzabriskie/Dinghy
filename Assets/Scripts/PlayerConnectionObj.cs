@@ -121,7 +121,6 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			this.ip.SetActionProcState(ActionProcState.multiTower);
 			this.uic.GameStateUpdate("Hey Time to place towers: You've got 60s");
 			this.uic.TimerStart(si.time);
-			this.uic.ActionSelectButtonsEnable(false);
 			break;
 		case MatchState.actionSelect:
 			Debug.Log("RPC Game state: actionSelect");
@@ -133,6 +132,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		case MatchState.resolveState:
 			Debug.Log("RPC Game state: resolveState");
 			this.ip.SetActionProcState(ActionProcState.reject);
+			this.ip.pb.ClearSelectionState(false); // Clear selected squares while resolving
 			this.uic.TimerClear();
 			this.uic.GameStateUpdate("Hey we're resolving real quick");
 			this.uic.ActionSelectButtonsEnable(false);

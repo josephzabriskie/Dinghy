@@ -24,18 +24,28 @@ public class PlayBoard : MonoBehaviour {
 		this.enemyGrid.SetArrayState(eGrid);
 	}
 
-	public void RXGridInput(bool pGrid, Vector2 pos, CState state){
-		this.ip.RXInput(pGrid, pos, state);
+	public void RXGridInput(bool pGrid, InputType it, Vector2 pos, CState cstate, SelState selstate){
+		this.ip.RXInput(pGrid, it, pos, cstate, selstate);
 	}
 
-	public void SetCellState(bool pGrid, Vector2 pos, CState state){
+	public void SetCellMainState(bool pGrid, Vector2 pos, CState state){
 		GameGrid g = (pGrid) ? this.playerGrid : this.enemyGrid;
-		g.SetCellState(pos, state);
+		g.SetCellMainState(pos, state);
+	}
+	
+	public void SetCellBGState(bool pGrid, Vector2 pos, SelState state){
+		GameGrid g = (pGrid) ? this.playerGrid : this.enemyGrid;
+		g.SetCellBGState(pos, state);
 	}
 
 	public void ClearGrids(){
 		this.playerGrid.ClearArrayState();
 		this.enemyGrid.ClearArrayState();
+	}
+
+	public void ClearSelectionState(bool hoveronly){
+		this.playerGrid.ClearSelectionState(hoveronly);
+		this.enemyGrid.ClearSelectionState(hoveronly);
 	}
 
 	public int[] GetGridSize(){
