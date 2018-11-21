@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using PlayerActions;
-using CellInfo;
+using CellTypes;
 using MatchSequence;
 using UnityEngine.UI;
 using System.Linq;

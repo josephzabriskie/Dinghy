@@ -1,10 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using CellInfo;
 using MatchSequence;
 using PlayerActions;
 using ActionProc;
+using CellTypes;
+using CellUIInfo;
 using System.Linq;
 
 namespace ActionProc{

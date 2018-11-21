@@ -1,5 +1,5 @@
 using PlayerActions;
-using CellInfo;
+using CellTypes;
 public static class GUtils {
     //public static CState[] GridSerialize(CState[,] inGrid, out int dim1, out int dim2){
     public static CState[] Serialize(CState[,] inGrid){

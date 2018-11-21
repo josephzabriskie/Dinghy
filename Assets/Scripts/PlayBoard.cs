@@ -1,7 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using CellInfo;
+using CellTypes;
+using CellUIInfo;
 
 //!! Important This script should be high priority in execution order
 public class PlayBoard : MonoBehaviour {

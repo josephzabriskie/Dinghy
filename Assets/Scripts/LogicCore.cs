@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
-using CellInfo;
+using CellUIInfo;
+using CellTypes;
 using PlayerActions;
 using MatchSequence;
 using System.Linq;
@@ -26,6 +27,20 @@ namespace PlayerActions{
 			a=inAction;
 			coords=inCoords;
 		}
+	}
+}
+
+namespace CellTypes{
+	public enum CState{
+		hidden = 0,
+		empty,
+		towerTemp,
+		tower, // Should be unused
+		towerOffence,
+		towerDefence,
+		towerIntel,
+		destroyedTower,
+		destroyedTerrain
 	}
 }
 

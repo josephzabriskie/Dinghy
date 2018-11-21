@@ -1,12 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using CellInfo;
+using CellTypes;
+using CellUIInfo;
 
 public class GameGrid : MonoBehaviour {
 
 	public GameObject CellPrefab;
-	public Cell[,] cells;
+	public Cell2D[,] cells;
 	public PlayBoard parent = null;
 	int sizex, sizey;
 	public bool playerOwnedGrid = false;
@@ -39,7 +40,7 @@ public class GameGrid : MonoBehaviour {
 		//Debug.Log(string.Format("STARTED GRID w:{0}, h:{1}", w, h));
 		int fitx = (int)(w / (this.CellPrefab.GetComponentInChildren<SpriteRenderer>().size.x)); //Warning there are multiple sprites as obj children, assuming here all the same size
 		int fity = (int)(h / (this.CellPrefab.GetComponentInChildren<SpriteRenderer>().size.y));
-		cells = new Cell[fitx,fity];
+		cells = new Cell2D[fitx,fity];
 		this.sizex = fitx;
 		this.sizey = fity;
 		float offsetx = w/fitx;
@@ -54,7 +55,7 @@ public class GameGrid : MonoBehaviour {
 				count++;
 				Vector3 spot = start + new Vector3(offsetx * x, offsety * y, -0.2f);
 				GameObject c = Instantiate(this.CellPrefab, spot, Quaternion.identity, this.transform);
-				Cell tempCell = c.GetComponent<Cell>();
+				Cell2D tempCell = c.GetComponent<Cell2D>();
 				tempCell.coords = new Vector2(x, y);
 				this.cells[x,y] = tempCell;
 				tempCell.parentGrid = this;
