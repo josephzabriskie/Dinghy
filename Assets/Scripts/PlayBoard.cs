@@ -1,95 +1,114 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using CellTypes;
+using PlayerActions;
 using UnityEngine;
-using CellTypes;
-using CellUIInfo;
+using System.Collections;
+using System.Collections.Generic;
 
-//!! Important This script should be high priority in execution order
-public class PlayBoard : MonoBehaviour {
-	//For Setting up
-	public GameObject gridPrefab;
-	float midSpace = 1.0f;
-	//Other
-	GameGrid playerGrid = null;
-	GameGrid enemyGrid = null;
-	public InputProcessor ip = null; // Link up the guy that will process our grid clicks
-	int sizex;
-	int sizey;
+namespace PlayboardTypes{
+	public class PlayBoard {
 
-	void Start(){
-		this.InstantiateGrids();
-	}
-
-	public void SetGridStates(CState[,] pGrid, CState[,] eGrid){
-		this.playerGrid.SetArrayState(pGrid);
-		this.enemyGrid.SetArrayState(eGrid);
-	}
-
-	public void RXGridInput(bool pGrid, InputType it, Vector2 pos, CState cstate, SelState selstate){
-		this.ip.RXInput(pGrid, it, pos, cstate, selstate);
-	}
-
-	public void SetCellMainState(bool pGrid, Vector2 pos, CState state){
-		GameGrid g = (pGrid) ? this.playerGrid : this.enemyGrid;
-		g.SetCellMainState(pos, state);
-	}
-	
-	public void SetCellBGState(bool pGrid, Vector2 pos, SelState state){
-		GameGrid g = (pGrid) ? this.playerGrid : this.enemyGrid;
-		g.SetCellBGState(pos, state);
-	}
-
-	public void ClearGrids(){
-		this.playerGrid.ClearArrayState();
-		this.enemyGrid.ClearArrayState();
-	}
-
-	public void ClearSelectionState(bool hoveronly){
-		this.playerGrid.ClearSelectionState(hoveronly);
-		this.enemyGrid.ClearSelectionState(hoveronly);
-	}
-
-	public int[] GetGridSize(){
-		int[] ret = {this.sizex, this.sizey};
-		return ret;
-	}
-
-	void numberGrid(){
-		//TBD auto number the grid
-		//Should be done on InstantiateGrids
-	}
-
-	public void InstantiateGrids() {
-		float width;
-		float height;
-		Vector3 center1;
-		Vector3 center2;
-		if (this.transform.localScale.x > this.transform.localScale.y){ // horizontal board
-			width = (this.transform.localScale.x - this.midSpace) / 2.0f;
-			height = this.transform.localScale.y;
-			//Debug.Log(string.Format("W{0} > H{1}", width, height));
-			center1 = this.transform.position - new Vector3(width/2.0f + this.midSpace/2.0f, 0, 0);
-			center2 = this.transform.position + new Vector3(width/2.0f + this.midSpace/2.0f, 0, 0);
+		const int playercnt = 2; //So far we're only designing for 2 players
+		Cell[][,] cells;
+		int sizex;
+		int sizey;
+		
+		public PlayBoard(int sizex, int sizey){
+			Debug.Log("Hey, I'm making a Playboard: " + sizex.ToString() + "X" + sizey.ToString());
+			this.sizex = sizex;
+			this.sizey = sizey;
+			this.InitializeCells();
 		}
-		else{ // vertical board
-			width = this.transform.localScale.x;
-			height = (this.transform.localScale.y - this.midSpace) / 2.0f;
-			//Debug.Log(string.Format("W{0} < H{1}", width, height));
-			center1 = this.transform.position - new Vector3(0, height/2.0f + this.midSpace/2.0f, 0);
-			center2 = this.transform.position + new Vector3(0, height/2.0f + this.midSpace/2.0f, 0);
+
+		void InitializeCells(){
+			//Clear out all cells if they exist TODO
+			this.cells = new Cell[playercnt][,];
+			for(int p = 0; p < playercnt; p++){
+				this.cells[p] = new Cell[this.sizex, this.sizey];
+				for(int x = 0; x < this.sizex; x++){
+					for(int y = 0; y < this.sizey; y++){
+						this.cells[p][x,y] = new Cell(CState.empty, p, new Vector2Int(x,y), this);
+					}
+				}
+			}
 		}
-		//Debug.Log(string.Format("cent1 {0}, cent2 {1}", center1, center2));
-		this.playerGrid = Instantiate(gridPrefab, center1, Quaternion.identity).GetComponent<GameGrid>();
-		this.enemyGrid = Instantiate(gridPrefab, center2, Quaternion.identity).GetComponent<GameGrid>();
-		this.playerGrid.PlaceCells(width, height);
-		int[] size = this.playerGrid.GetGridSize();
-		this.sizex = size[0];
-		this.sizey = size[1];
-		this.playerGrid.parent = this;
-		this.playerGrid.playerOwnedGrid = true;
-		this.enemyGrid.PlaceCells(width, height);
-		this.enemyGrid.parent = this;
-		this.enemyGrid.playerOwnedGrid = false;
-		this.enemyGrid.Flip(); //This one's facing the player, needs to be flipped
+		//////////////////////Public functions for logic core calls
+		//Return value will always put requesting player's grid in idx 0, enemy grid in idx 1
+		public CState[][,] GetPlayerGameState(int playerIdx){
+			int enemyIdx = (playerIdx + 1) % playercnt;
+			CState[][,] boardOut = new CState[playercnt][,];
+			boardOut[0] = this.GetGridSide(playerIdx); //playerGrid
+			boardOut[1] = this.GetGridSide(enemyIdx); //enemyGrid
+			return boardOut; 
+		}
+		//Used only to help out GetPlayerGameState
+		CState[,] GetGridSide(int idx){
+			CState [,] gridOut = new CState[sizex,sizey];
+			for(int x = 0; x < this.sizex; x++){
+				for(int y = 0; y < this.sizey; y++){
+					gridOut[x,y] = this.cells[idx][x,y].state;
+				}
+			}
+			return gridOut;
+		}
+
+		public bool CheckPlayerLose(int p){
+			List<CState> s = new List<CState>(){CState.towerOffence, CState.towerDefence, CState.towerIntel};
+			Debug.Log("GameOverChecking for player: " + p.ToString());
+			bool playerlose = true;
+			for(int x = 0; x < this.sizex; x++){ //TODO replace these nested loops with a foreach (think that should work on jagged array)
+				for(int y = 0; y < this.sizey; y++){
+					if (s.Contains(this.cells[p][x,y].state)){
+						playerlose = false; // as long as they have one tower, they're still in it!
+					}
+				}
+			}
+			return playerlose;
+		}
+
+		public void ApplyActions(List<ActionReq> ars){
+			Debug.Log("PlayBoard processing Actions. Got " + ars.Count);
+			int i = 0;
+			foreach (ActionReq ar in ars){
+				Debug.Log("Handling action: " + i.ToString());
+				i++;
+				int enemyIdx = (ar.p + 1) % playercnt;
+				//Make sure that each action only exists once in these lists
+				List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower};
+				List<pAction> shootActions = new List<pAction>(){pAction.fireBasic};
+				List<pAction> scoutActions = new List<pAction>(){pAction.scout};
+				if(buildActions.Contains(ar.a)){
+					this.GetCell(ar.p, new Vector2Int((int)ar.coords[0].x,(int)ar.coords[0].y)).onBuild(ar);
+				}
+				else if (shootActions.Contains(ar.a)){
+					this.GetCell(ar.p, new Vector2Int((int)ar.coords[0].x,(int)ar.coords[0].y)).onShoot(ar);
+				}
+				else if (scoutActions.Contains(ar.a)){
+					this.GetCell(ar.p, new Vector2Int((int)ar.coords[0].x,(int)ar.coords[0].y)).onScout(ar);
+				}
+				else{
+					Debug.LogError("Unhandled Player request!  " + ar.a.ToString());
+				}
+			}
+		}
+		
+		Cell GetCell(int p, Vector2Int loc){ // TODO use this instead of 'this.cells[p][x,y]'
+			return this.cells[p][loc.x, loc.y];
+		}
+		///////////////////Public functions for Cell calls
+		public void SetCellState(int p, Vector2Int loc, CState state){
+			Debug.Log("PB: SetCell " + loc.x.ToString() + "," + loc.y.ToString() + " to " + state.ToString());
+			this.GetCell(p, loc).ChangeState(state);
+		}
+
+		public void AddCellCallback(int p, Vector2Int loc, PriorityCB cb, PCBType cbt){
+			Debug.Log("PB: AddCellCallback: loc: " + loc.ToString() + ", type: " + cbt.ToString());
+			this.GetCell(p, loc).AddCB(cb, cbt);
+		}
+		
+		//Cells will call these to add CBs to other cells
+		public void RemCellCallback(int p, Vector2Int loc, PriorityCB cb, PCBType cbt){
+			Debug.Log("PB: RemCellCallback: loc: " + loc.ToString() + ", type: " + cbt.ToString());
+			this.GetCell(p, loc).RemCB(cb, cbt);
+		}
 	}
 }

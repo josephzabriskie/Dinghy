@@ -4,21 +4,13 @@ using UnityEngine;
 using CellTypes;
 using CellUIInfo;
 
-public class GameGrid : MonoBehaviour {
+public class GameGrid2D : MonoBehaviour {
 
 	public GameObject CellPrefab;
 	public Cell2D[,] cells;
-	public PlayBoard parent = null;
+	public PlayBoard2D parent = null;
 	int sizex, sizey;
 	public bool playerOwnedGrid = false;
-
-	// Use this for initialization
-	void Start () {
-	}
-	
-	// Update is called once per frame
-	void Update () {
-	}
 
 	public void SetColor(Color c){
 		for(int x = 0; x < this.sizex; x++){
@@ -105,6 +97,7 @@ public class GameGrid : MonoBehaviour {
 	public void ClearArrayState(){
 		for(int x = 0; x < this.sizex; x++){
 			for(int y = 0; y < this.sizey; y++){
+				Debug.Log("DEBUGGING: " + x.ToString() + y.ToString() + this.cells.ToString());
 				this.cells[x,y].SetMainState(CState.hidden);
 			}
 		}

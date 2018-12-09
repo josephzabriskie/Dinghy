@@ -15,7 +15,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	public int playerId;
 	LogicCore lc = null;
 	UIController uic = null;
-	PlayBoard pb = null;
+	PlayBoard2D pb = null;
 	InputProcessor ip = null;
 	bool isReady = false;
 
@@ -41,7 +41,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			this.uic = GameObject.FindGameObjectWithTag("UIGroup").GetComponent<UIController>();
 			this.uic.DBPWrite("Player " +  this.playerId.ToString() + " joined!");
 			//Find our local playboard, and get grids
-			this.pb = GameObject.FindGameObjectWithTag("PlayBoard").GetComponent<PlayBoard>(); // Find the playboard in the scene	
+			this.pb = GameObject.FindGameObjectWithTag("PlayBoard").GetComponent<PlayBoard2D>(); // Find the playboard in the scene	
 			this.ip = GameObject.FindGameObjectWithTag("InputProcessor").GetComponent<InputProcessor>();
 			this.ip.RegisterReport(this);
 
@@ -68,7 +68,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	}
 	[Command]
 	void CmdRequestGridUpdate(){ // This guy should only be called internally on startup
-		//Debug.Log("Player '" + this.playerId.ToString() + "' requesting CmdRequestGridUpdate");
+		Debug.Log("Player '" + this.playerId.ToString() + "' requesting CmdRequestGridUpdate");
 		this.lc.ReportGridState(this.playerId); // this simply gets the logic core to call our RPC update grid
 	}
 	[Command]

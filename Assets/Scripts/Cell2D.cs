@@ -28,6 +28,8 @@ public class Cell2D : MonoBehaviour {
 	public Sprite towerTemp;
 	public Sprite destroyedTower;
 	public Sprite destroyedTerrain;
+	public Sprite wall;
+	public Sprite wallDestroyed;
 	//bgState
 	public Sprite defaultBG;
 	public Sprite selectBG;
@@ -36,7 +38,7 @@ public class Cell2D : MonoBehaviour {
 	public Vector2 coords;
 	public CState cState;
 	public SelState selState;
-	public GameGrid parentGrid;
+	public GameGrid2D parentGrid;
 	//temp
 	Color defaultBGColor;
 
@@ -119,6 +121,12 @@ public class Cell2D : MonoBehaviour {
 				this.srmain.sprite = this.towerDefence;
 				break;
 			case CState.towerIntel:
+				this.srmain.sprite = this.towerIntel;
+				break;
+			case CState.wall:
+				this.srmain.sprite = this.towerIntel;
+				break;
+			case CState.wallDestroyed:
 				this.srmain.sprite = this.towerIntel;
 				break;
 			default:

@@ -7,14 +7,18 @@ using CellTypes;
 using PlayerActions;
 using MatchSequence;
 using System.Linq;
+using PlayboardTypes;
+
+//game object represenation of the logic processor on the server. Holds a reference to the actual gameboard
 
 namespace PlayerActions{
 	public enum pAction{
 		noAction,
-		placeTower, //Should be unused, place type of tower is new action
-		placeOffenceTower,
-		placeDefenceTower,
-		placeIntelTower,
+		buildTower, //Should be unused, place type of tower is new action
+		buildOffenceTower,
+		buildDefenceTower,
+		buildIntelTower,
+		buildWall,
 		fireBasic,
 		scout,
 	}
@@ -27,20 +31,6 @@ namespace PlayerActions{
 			a=inAction;
 			coords=inCoords;
 		}
-	}
-}
-
-namespace CellTypes{
-	public enum CState{
-		hidden = 0,
-		empty,
-		towerTemp,
-		tower, // Should be unused
-		towerOffence,
-		towerDefence,
-		towerIntel,
-		destroyedTower,
-		destroyedTerrain
 	}
 }
 
@@ -67,7 +57,10 @@ namespace MatchSequence{
 
 //Logic core's job is to take action requests as inputs and then compute the new game state
 public class LogicCore : NetworkBehaviour {
+	//Need to added from scene
 	public MyNetManager mnm;
+	public PlayBoard2D pb2D;
+	//Other
 	public PlayerConnectionObj[] playersObjs;
 	public List<ActionReq> playerActions;
 	public List<bool> playerLocks;
@@ -76,18 +69,18 @@ public class LogicCore : NetworkBehaviour {
 	public MatchState currMS = MatchState.waitForPlayers;
 	public MatchState pausedMS = MatchState.placeTowers;
 	public int stateTime;
-	CState [][,] pGrid;
+	//CState [][,] pGrid;
+	PlayBoard PB;
 	bool[][,] pHidden;
 	int pNum = 2; // max player number
 	Coroutine currentCoroutine = null;
-	public PlayBoard pb = null;
 	public int sizex;
 	public int sizey;
 
 	// Use this for initialization
 	void Start () {
 		//Debug.Log("Starting Logic Core!");
-		int[] size = this.pb.GetGridSize();
+		int[] size = this.pb2D.GetGridSize();
 		this.sizex = size[0];
 		this.sizey = size[1];
 		this.playerActions = new List<ActionReq>();
@@ -96,12 +89,16 @@ public class LogicCore : NetworkBehaviour {
 		this.playerWin = new List<bool>(new bool[this.pNum]); // Defaults to false
 		this.ResetGame();
 	}
+
+	bool testcb(ActionReq ar){
+		return true;
+	}
 	
 	/////////////////////////////////
 	//Player Lock functions
 	//Call these to indicate that the player's ready with their actions
 	void ResetPlayerLocks(){
-		Debug.Log("Logic Core: Resetting all Player Locks");
+		//Debug.Log("Logic Core: Resetting all Player Locks");
 		for(int i = 0; i < this.playerLocks.Count; i++){
 			this.playerLocks[i] = false;
 			if(this.mnm.playerSlots[i]){
@@ -111,7 +108,7 @@ public class LogicCore : NetworkBehaviour {
 	}
 
 	public void SetPlayerLock(int playerNum){
-		Debug.Log("LogicCore got setPlayerLock for player " + playerNum.ToString());
+		//Debug.Log("LogicCore got setPlayerLock for player " + playerNum.ToString());
 		this.playerLocks[playerNum] = true;
 	}
 	////////////////////////////////////
@@ -119,7 +116,7 @@ public class LogicCore : NetworkBehaviour {
 	/////////////////////////////////
 	//Player response tracking functions
 	void ResetRespTrack(){
-		Debug.Log("Logic Core: reset response tracker");
+		//Debug.Log("Logic Core: reset response tracker");
 		for(int i = 0; i < this.playerResps.Count; i++){
 			this.playerResps[i] = false;
 		}
@@ -134,16 +131,17 @@ public class LogicCore : NetworkBehaviour {
 		// Set state of internal grids to default, send state to players
 		//Fill in all state arrays, default is hidden
 		this.currMS = MatchState.waitForPlayers;
-		this.pGrid = new CState[this.pNum][,];
+		//this.pGrid = new CState[this.pNum][,];
+		this.PB = new PlayBoard(this.sizex, this.sizey);
 		this.pHidden = new bool[this.pNum][,];
 		this.ResetPlayerLocks();
 		this.ResetRespTrack();
-		for (int i = 0; i < this.pNum; i++){
-			this.pGrid[i] = new CState[this.sizex, this.sizey];
-			GUtils.FillGrid(this.pGrid[i], CState.empty);
-			this.pHidden[i] = new bool[this.sizex, this.sizey];
-			GUtils.FillBoolGrid(this.pHidden[i], true);
-		}
+		// for (int i = 0; i < this.pNum; i++){
+		// 	this.pGrid[i] = new CState[this.sizex, this.sizey];
+		// 	GUtils.FillGrid(this.pGrid[i], CState.empty);
+		// 	this.pHidden[i] = new bool[this.sizex, this.sizey];
+		// 	GUtils.FillBoolGrid(this.pHidden[i], true);
+		// }
 	}
 
 	//Call this externally when we have both players connected
@@ -335,15 +333,8 @@ public class LogicCore : NetworkBehaviour {
 		List<CState> s = new List<CState>(){CState.towerOffence, CState.towerDefence, CState.towerIntel};
 		Debug.Log("GameOverChecking");
 		bool[] playerlose = {true, true};
-		for(int p = 0; p < this.pNum; p++){
-			for(int x = 0; x < this.pGrid[p].GetLength(0); x++){
-				for(int y = 0; y < this.pGrid[p].GetLength(1); y++){
-					if (s.Contains(this.pGrid[p][x,y])){
-						playerlose[p] = false; // as long as they have one tower, they're still in it!
-					}
-				}
-			}
-		}
+		playerlose[0] = this.PB.CheckPlayerLose(0);
+		playerlose[1] = this.PB.CheckPlayerLose(1);
 		for(int i = 0; i < playerlose.Length; i++){
 			if(playerlose[i]){
 				this.playerWin[(i + 1) % this.pNum] = true;
@@ -393,64 +384,21 @@ public class LogicCore : NetworkBehaviour {
 
 	public void ReportGridState(int p){
 		Debug.Log("Reporting Grid states to player '" + p + "'");
-		int enemyIdx = (p + 1) % this.pNum; // Calculate the other player index, in our case we know it's 1/0, this may have to change if more players...
-		CState[] pOwnGrid = GUtils.Serialize(this.pGrid[p]);
-		CState[] pOtherGrid = GUtils.Serialize(GUtils.ApplyHiddenMask(this.pGrid[enemyIdx], this.pHidden[enemyIdx]));
+		CState[][,] state = this.PB.GetPlayerGameState(p);
+		CState[] pOwnGrid = GUtils.Serialize(state[0]);
+		CState[] pOtherGrid = GUtils.Serialize(state[1]);
+		//CState[] pOtherGrid = GUtils.Serialize(GUtils.ApplyHiddenMask(this.pGrid[enemyIdx], this.pHidden[enemyIdx]));
 		this.mnm.playerSlots[p].RpcUpdateGrids(pOwnGrid, pOtherGrid, this.sizex, this.sizey);
 	}
 
 	void EvalActions(){
 		//Evaluate Actions
-		Debug.Log("Processing Actions. Got " + this.playerActions.Count);
-		for(int i = 0; i < this.playerActions.Count; i++){
-			Vector2 coord;
-			ActionReq currentAR = this.playerActions[i];
-			int enemyIdx = (currentAR.p + 1) % this.pNum;
-			switch(currentAR.a){
-				case pAction.noAction:
-					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'noAction' request, do nothing");
-					break;
-				case pAction.placeOffenceTower:
-					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'placeOffenceTower' request, do it");
-					coord = currentAR.coords[0];
-					this.pGrid[currentAR.p][(int)coord.x, (int)coord.y] = CState.towerOffence;
-					break;
-				case pAction.placeDefenceTower:
-					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'placeDefenceTower' request, do it");
-					coord = currentAR.coords[0];
-					this.pGrid[currentAR.p][(int)coord.x, (int)coord.y] = CState.towerDefence;
-					break;
-				case pAction.placeIntelTower:
-					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'placeIntelTower' request, do it");
-					coord = currentAR.coords[0];
-					this.pGrid[currentAR.p][(int)coord.x, (int)coord.y] = CState.towerIntel;
-					break;
-				case pAction.scout:
-					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'scout' request, do it");
-					coord = currentAR.coords[0];
-					this.pHidden[enemyIdx][(int)coord.x, (int)coord.y] = false;
-					break;
-				case pAction.fireBasic:
-					Debug.Log("Player " + currentAR.p.ToString() + " gave us a 'fireBasic' request, do it");
-					coord = currentAR.coords[0];
-					if (this.pGrid[enemyIdx][(int)coord.x,(int)coord.y] == CState.tower){
-						this.pGrid[enemyIdx][(int)coord.x,(int)coord.y] = CState.destroyedTower;
-					}
-					else{
-						this.pGrid[enemyIdx][(int)coord.x,(int)coord.y] = CState.destroyedTerrain;
-					}
-					this.pHidden[enemyIdx][(int)coord.x,(int)coord.y] = false;
-					break;
-				default:
-					Debug.LogError("Unhandled action?? " + currentAR.a.ToString());
-					break;
-			}
-		}
+		this.PB.ApplyActions(this.playerActions);
 		//Then clear Actions
 		this.playerActions.Clear();
 		//Now forward the results on to the world
 		//This would be nice to iterate over, but there's only two players for now
-		Debug.Log("Dont Processing Pushing updates to players");
+		Debug.Log("Pushing updates to players");
 		for (int i = 0; i < this.pNum; i++){
 			this.ReportGridState(i);
 		}

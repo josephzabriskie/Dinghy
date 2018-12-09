@@ -23,7 +23,7 @@ public class InputProcessor : MonoBehaviour {
 	ActionProcState apc = ActionProcState.reject;
 	pAction actionContext = pAction.noAction;
 	public UIController uic;
-	public PlayBoard pb;
+	public PlayBoard2D pb;
 
 	void Start () {
 		this.queuedActions = new List<ActionReq>();
@@ -89,7 +89,7 @@ public class InputProcessor : MonoBehaviour {
 				//Do nothing, we ignore the request
 				break;
 			case ActionProcState.multiTower:
-				List<pAction> allowedActions = new List<pAction>(){pAction.placeOffenceTower, pAction.placeDefenceTower, pAction.placeIntelTower};
+				List<pAction> allowedActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower};
 				List<CState> resultingState = new List<CState>(){CState.towerOffence, CState.towerDefence, CState.towerIntel};
 				if (!pGrid){
 					Debug.Log("Rejected input during Multitower placement, not our grid");
@@ -148,11 +148,20 @@ public class InputProcessor : MonoBehaviour {
 					this.pb.ClearSelectionState(false);
 					this.pb.SetCellBGState(pGrid, pos, SelState.select);
 					break;
-				case pAction.placeTower:
+				case pAction.buildTower:
 					if(!pGrid){
 						break; //Don't build on their side...
 					}
-					this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.placeTower, new Vector2[]{pos});
+					this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.buildTower, new Vector2[]{pos});
+					this.uic.ActionDisplayUpdate(this.queuedActions[0]);
+					this.pb.ClearSelectionState(false);
+					this.pb.SetCellBGState(pGrid, pos, SelState.select);
+					break;
+				case pAction.buildWall:
+					if(!pGrid){
+						break; // don't build wall on their side
+					}
+					this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.buildWall, new Vector2[]{pos});
 					this.uic.ActionDisplayUpdate(this.queuedActions[0]);
 					this.pb.ClearSelectionState(false);
 					this.pb.SetCellBGState(pGrid, pos, SelState.select);

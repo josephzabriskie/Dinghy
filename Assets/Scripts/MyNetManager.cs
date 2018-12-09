@@ -8,7 +8,7 @@ public class MyNetManager : NetworkManager {
 	int currentPlayers = 0;
 	public LogicCore logicCore;
 	public UIController uic;
-	public PlayBoard pb;
+	public PlayBoard2D pb;
 	public PlayerConnectionObj[] playerSlots = new PlayerConnectionObj[2];
 
 	void Awake(){

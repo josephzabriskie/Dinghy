@@ -145,6 +145,8 @@ MonoBehaviour:
   towerTemp: {fileID: 21300000, guid: bb0814bedfc59db4ca5ad25009303f56, type: 3}
   destroyedTower: {fileID: 21300000, guid: 2f33d6c69e43a6042be18cd42ba5acc6, type: 3}
   destroyedTerrain: {fileID: 21300000, guid: 06dd6cc8d80bcd14badfe36708a531b8, type: 3}
+  wall: {fileID: 21300000, guid: 019662129bae4cb45a00f6b221d6ecae, type: 3}
+  wallDestroyed: {fileID: 21300000, guid: c5e90ba7e60e6424f8539cb8d0b1bef9, type: 3}
   defaultBG: {fileID: 21300000, guid: 3469a51f0714bc44889e92b07ff33fae, type: 3}
   selectBG: {fileID: 21300000, guid: abfa7ff6220b2af4289403789b592604, type: 3}
   selectHoverBG: {fileID: 21300000, guid: 953a9dac67a8c7742ab4ec8d29637ae1, type: 3}
