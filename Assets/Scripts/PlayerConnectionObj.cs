@@ -13,6 +13,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	GameObject baseboard;
 	[SyncVar]
 	public int playerId;
+	public int enemyId;
 	LogicCore lc = null;
 	UIController uic = null;
 	PlayBoard2D pb = null;

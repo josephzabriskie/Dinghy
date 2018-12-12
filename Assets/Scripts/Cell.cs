@@ -87,6 +87,12 @@ namespace CellTypes{
 				this.buildDef = new PriorityCB(0, DefBuiltCB);
 				this.scoutDef = new PriorityCB(0, DefShotCB);
 				break;
+			case CState.destroyedTerrain:
+			case CState.destroyedTower:
+				this.shootDef = new PriorityCB(0, NullCB);
+				this.buildDef = new PriorityCB(0, NullCB);
+				this.scoutDef = new PriorityCB(0, NullCB);
+				break;
 			default:
 				Debug.LogError("SetDefaultCB unhandled Case: " + this.state.ToString());
 				break;
@@ -189,13 +195,13 @@ namespace CellTypes{
 
 		/////////////Callbacks
 		bool WallCB(ActionReq ar){
-			Debug.Log("I'm just here to test the context: loc" + this.loc.ToString());
-			this.PrintSelfInfo();
+			Debug.Log("CB handler: WallCB loc" + this.loc.ToString());
+			this.ChangeState(CState.wallDestroyed);
 			return true;
 		}
 
 		bool DefBuiltCB(ActionReq ar){
-			Debug.Log("Handling build at location " + this.loc.ToString());
+			Debug.Log("CB handler: DefBuiltCB loc " + this.loc.ToString());
 			switch(ar.a){
 			case pAction.buildOffenceTower:
 				this.ChangeState(CState.towerOffence);
@@ -217,7 +223,7 @@ namespace CellTypes{
 		}
 
 		bool DefShotCB(ActionReq ar){
-			Debug.Log("Handling getting shot at location " + this.loc.ToString());
+			Debug.Log("CB handler: DefShotCB loc " + this.loc.ToString());
 			if (new List<CState>(){CState.towerDefence, CState.towerOffence, CState.towerIntel}.Contains(this.state)){
 			this.ChangeState(CState.destroyedTower);
 			}
@@ -226,9 +232,15 @@ namespace CellTypes{
 			return true;
 		}
 
+		//TODO dos this need to be unique for shot,built,scouted?
+		bool NullCB(ActionReq ar){
+			Debug.Log("CB handler: NullCB loc " + this.loc.ToString() + ". Do nothing. State: " + this.state.ToString());
+			return true;
+		}
+
 		bool DefScoutedCB(ActionReq ar){
-			//Debug.Log("Handling getting scouted at location " + this.loc.ToString());
-			Debug.LogWarning("DefScoutedCB Warning: not implemented");
+			//Debug.Log("Handling getting scouted at loc " + this.loc.ToString());
+			Debug.LogWarning("CB handler: DefScoutedCB. Warning: not implemented");
 			return true;
 		}
 	}

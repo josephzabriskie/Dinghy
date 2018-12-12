@@ -124,10 +124,10 @@ public class Cell2D : MonoBehaviour {
 				this.srmain.sprite = this.towerIntel;
 				break;
 			case CState.wall:
-				this.srmain.sprite = this.towerIntel;
+				this.srmain.sprite = this.wall;
 				break;
 			case CState.wallDestroyed:
-				this.srmain.sprite = this.towerIntel;
+				this.srmain.sprite = this.wallDestroyed;
 				break;
 			default:
 				Debug.LogError("Unhandled state: " + this.cState.ToString());

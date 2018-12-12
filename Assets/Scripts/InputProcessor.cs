@@ -46,14 +46,14 @@ public class InputProcessor : MonoBehaviour {
 		case ActionProcState.multiTower:
 			this.queuedActions.Clear();
 			this.queuedActions.AddRange(new List<ActionReq>{ // currently hold 3. 1 for each initial tower allowed to place
-				new ActionReq(this.report.playerId, pAction.noAction, null),
-				new ActionReq(this.report.playerId, pAction.noAction, null),
-				new ActionReq(this.report.playerId, pAction.noAction, null)});
+				new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null),
+				new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null),
+				new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null)});
 			this.uic.ActionDisplayUpdate(this.queuedActions[0]);
 			break;
 		case ActionProcState.singleAction:
 			this.queuedActions.Clear();
-			this.queuedActions.AddRange(new List<ActionReq> {new ActionReq(this.report.playerId, pAction.noAction, null)});
+			this.queuedActions.AddRange(new List<ActionReq> {new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null)});
 			this.uic.ActionDisplayUpdate(this.queuedActions[0]);
 			break;
 		default:
@@ -104,7 +104,7 @@ public class InputProcessor : MonoBehaviour {
 				//Debug.Log("APC multitower: check for dup result " + idx.ToString());
 				if (idx >=0 ){ // We've already got this guy selected, deselect it
 					//Debug.Log("APC multitower: Already got this one, toggle off");
-					this.queuedActions[idx] = new ActionReq(this.report.playerId, pAction.noAction, null);
+					this.queuedActions[idx] = new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null);
 					this.pb.SetCellMainState(true, pos, CState.empty);
 					break;
 				}
@@ -118,7 +118,7 @@ public class InputProcessor : MonoBehaviour {
 				//Debug.Log("APC multitower: check for open result " + idx.ToString());
 				if(idx >=0){ // We've still have room for a new request
 					//Debug.Log("APC multitower: we have room at idx " + idx.ToString());
-					this.queuedActions[idx] = new ActionReq(this.report.playerId, this.actionContext, new Vector2[]{pos});
+					this.queuedActions[idx] = new ActionReq(this.report.playerId, this.report.playerId, this.actionContext, new Vector2[]{pos});
 					CState s = resultingState[allowedActions.IndexOf(this.actionContext)];
 					this.pb.SetCellMainState(true, pos, s);
 				}
@@ -127,6 +127,7 @@ public class InputProcessor : MonoBehaviour {
 				}
 				break;
 			case ActionProcState.singleAction:
+				bool updateDisplay = false;
 				switch(this.actionContext){
 				case pAction.noAction:
 					break; // don't do nuthin if no action context
@@ -134,41 +135,43 @@ public class InputProcessor : MonoBehaviour {
 					if(pGrid){
 						break; //Don't want to shoot yourself...or do you?
 					}
-					this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.fireBasic, new Vector2[]{pos});
-					this.uic.ActionDisplayUpdate(this.queuedActions[0]);
-					this.pb.ClearSelectionState(false);
-					this.pb.SetCellBGState(pGrid, pos, SelState.select);
+					this.queuedActions[0] = new ActionReq(this.report.playerId, this.report.enemyId, pAction.fireBasic, new Vector2[]{pos});
+					 //TODO this assumption that we hardcode shoot enemy's ID. If I forget to check the side, an input on the wrong side could
+					 //be switched over very easily if I'm not paying attention. We should check grid.owner == player.playerId
+					updateDisplay = true;
 					break;
 				case pAction.scout:
 					if (pGrid){
 						break; //Don't scout yourself...
 					}
-					this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.scout, new Vector2[]{pos});
-					this.uic.ActionDisplayUpdate(this.queuedActions[0]);
-					this.pb.ClearSelectionState(false);
-					this.pb.SetCellBGState(pGrid, pos, SelState.select);
+					this.queuedActions[0] = new ActionReq(this.report.playerId, this.report.enemyId, pAction.scout, new Vector2[]{pos});
+					updateDisplay = true;
 					break;
 				case pAction.buildTower:
+				case pAction.buildDefenceTower:
+				case pAction.buildOffenceTower:
+				case pAction.buildIntelTower:
 					if(!pGrid){
 						break; //Don't build on their side...
 					}
-					this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.buildTower, new Vector2[]{pos});
-					this.uic.ActionDisplayUpdate(this.queuedActions[0]);
-					this.pb.ClearSelectionState(false);
-					this.pb.SetCellBGState(pGrid, pos, SelState.select);
+					this.queuedActions[0] = new ActionReq(this.report.playerId, this.report.playerId, this.actionContext, new Vector2[]{pos});
+					updateDisplay = true;
 					break;
 				case pAction.buildWall:
 					if(!pGrid){
 						break; // don't build wall on their side
 					}
-					this.queuedActions[0] = new ActionReq(this.report.playerId, pAction.buildWall, new Vector2[]{pos});
-					this.uic.ActionDisplayUpdate(this.queuedActions[0]);
-					this.pb.ClearSelectionState(false);
-					this.pb.SetCellBGState(pGrid, pos, SelState.select);
+					this.queuedActions[0] = new ActionReq(this.report.playerId, this.report.playerId, pAction.buildWall, new Vector2[]{pos});
+					updateDisplay = true;
 					break;
 				default:
 					Debug.LogError("Input processor unhandled actionContext: " + this.actionContext.ToString());	
 					break;
+				}
+				if (updateDisplay){
+					this.uic.ActionDisplayUpdate(this.queuedActions[0]);
+					this.pb.ClearSelectionState(false);
+					this.pb.SetCellBGState(pGrid, pos, SelState.select);
 				}
 				break;
 			default:

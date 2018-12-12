@@ -24,10 +24,12 @@ namespace PlayerActions{
 	}
 	public struct ActionReq	{
 		public int p; //player number
+		public int t; //target player number
 		public pAction a;
 		public Vector2[] coords;
-		public ActionReq(int inPlayer, pAction inAction, Vector2[] inCoords){
+		public ActionReq(int inPlayer, int targetPlayer, pAction inAction, Vector2[] inCoords){
 			p=inPlayer;
+			t=targetPlayer;
 			a=inAction;
 			coords=inCoords;
 		}

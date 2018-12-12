@@ -29,6 +29,7 @@ public class MyNetManager : NetworkManager {
 
 				Debug.Log("Server adding player. ID: " + slot.ToString());
 				player.playerId = slot;
+				player.enemyId = (slot + 1) % maxPlayers;
 				playerSlots[slot] = player;
 
 				NetworkServer.AddPlayerForConnection(conn, playerObj, playerControllerId);
