@@ -52,13 +52,14 @@ namespace CellTypes{
 		List<PriorityCB> shootCBs;
 		List<PriorityCB> buildCBs;
 		List<PriorityCB> scoutCBs;
+		public bool vis; // visible to Enemy
         public int duration;
-		public bool visible; //Needed?
 
-		public Cell(CState state, int pNum, Vector2Int loc, PlayBoard pb){
+		public Cell(CState state, int pNum, Vector2Int loc, PlayBoard pb, bool visibleToEnemy){
 			this.pb = pb; // This will never change
 			this.pNum = pNum;
 			this.loc = loc;
+			this.vis = visibleToEnemy;
 			this.shootCBs = new List<PriorityCB>();
 			this.buildCBs = new List<PriorityCB>();
 			this.scoutCBs = new List<PriorityCB>();
@@ -156,6 +157,20 @@ namespace CellTypes{
 
 		void SetStateParams(CState newState){
 			this.state = newState;
+			switch(this.state){
+			case CState.destroyedTerrain:
+			case CState.wallDestroyed:
+			case CState.destroyedTower:
+				Debug.Log("SetStateParams: Since we're destoryed, reveal us: " + this.state.ToString());
+				this.vis = true;
+				break;
+			case CState.hidden:
+				Debug.LogError("SetStateParams: Don't ever expect to be in this state: " + this.state.ToString());
+				break;
+			default:
+				Debug.Log("SetStateParams: No new state params for incoming state: " + this.state.ToString());
+				break;
+			}
 			//May need more here in the future...
 		}
 		
@@ -225,10 +240,11 @@ namespace CellTypes{
 		bool DefShotCB(ActionReq ar){
 			Debug.Log("CB handler: DefShotCB loc " + this.loc.ToString());
 			if (new List<CState>(){CState.towerDefence, CState.towerOffence, CState.towerIntel}.Contains(this.state)){
-			this.ChangeState(CState.destroyedTower);
+				this.ChangeState(CState.destroyedTower);
 			}
-			else if (this.state == CState.empty);
-			this.ChangeState(CState.destroyedTerrain);
+			else if (this.state == CState.empty){
+				this.ChangeState(CState.destroyedTerrain);
+			}
 			return true;
 		}
 

@@ -26,7 +26,7 @@ namespace PlayboardTypes{
 				this.cells[p] = new Cell[this.sizex, this.sizey];
 				for(int x = 0; x < this.sizex; x++){
 					for(int y = 0; y < this.sizey; y++){
-						this.cells[p][x,y] = new Cell(CState.empty, p, new Vector2Int(x,y), this);
+						this.cells[p][x,y] = new Cell(CState.empty, p, new Vector2Int(x,y), this, false);
 					}
 				}
 			}
@@ -36,16 +36,21 @@ namespace PlayboardTypes{
 		public CState[][,] GetPlayerGameState(int playerIdx){
 			int enemyIdx = (playerIdx + 1) % playercnt;
 			CState[][,] boardOut = new CState[playercnt][,];
-			boardOut[0] = this.GetGridSide(playerIdx); //playerGrid
+			boardOut[0] = this.GetGridSide(playerIdx, showall:true); //playerGrid
 			boardOut[1] = this.GetGridSide(enemyIdx); //enemyGrid
 			return boardOut; 
 		}
 		//Used only to help out GetPlayerGameState
-		CState[,] GetGridSide(int idx){
+		CState[,] GetGridSide(int idx, bool showall=false){
 			CState [,] gridOut = new CState[sizex,sizey];
 			for(int x = 0; x < this.sizex; x++){
 				for(int y = 0; y < this.sizey; y++){
-					gridOut[x,y] = this.cells[idx][x,y].state;
+					if(showall || this.cells[idx][x,y].vis){
+						gridOut[x,y] = this.cells[idx][x,y].state;
+					}
+					else{
+						gridOut[x,y] = CState.hidden;
+					}
 				}
 			}
 			return gridOut;
