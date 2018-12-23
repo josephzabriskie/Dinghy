@@ -12,7 +12,7 @@ namespace ActionProc{
 	public enum ActionProcState{ // How do we process input at differnt times?
 		reject, // Default reject input, don't save, don't send
 		multiTower, // This is multi selection mode at start of game. Save up to 3, send 3
-		singleAction, // Here we store only one action in first index. Save 1 send 1
+		basicActions, // Here we store only one action in first index. Save 1 send 1
 	}
 }
 
@@ -24,9 +24,11 @@ public class InputProcessor : MonoBehaviour {
 	pAction actionContext = pAction.noAction;
 	public UIController uic;
 	public PlayBoard2D pb;
+	Validator v;
 
 	void Start () {
 		this.queuedActions = new List<ActionReq>();
+		this.v = new Validator(ActionProcState.reject);
 	}
 
 	public void RegisterReport(PlayerConnectionObj r){
@@ -39,6 +41,7 @@ public class InputProcessor : MonoBehaviour {
 
 	public void SetActionProcState(ActionProcState s){
 		this.apc = s;
+		this.v.SetAPC(s);
 		switch(s){
 		case ActionProcState.reject:
 			this.queuedActions.Clear();
@@ -49,12 +52,15 @@ public class InputProcessor : MonoBehaviour {
 				new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null),
 				new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null),
 				new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null)});
-			this.uic.ActionDisplayUpdate(this.queuedActions[0]);
+			this.uic.ActionDisplayClear();
 			break;
-		case ActionProcState.singleAction:
+		case ActionProcState.basicActions:
 			this.queuedActions.Clear();
-			this.queuedActions.AddRange(new List<ActionReq> {new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null)});
-			this.uic.ActionDisplayUpdate(this.queuedActions[0]);
+			this.queuedActions.AddRange(new List<ActionReq> {
+				new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null),
+				new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null)});
+			this.uic.ActionDisplayUpdateShoot(this.queuedActions[0]);
+			this.uic.ActionDisplayUpdateAction(this.queuedActions[1]);
 			break;
 		default:
 			Debug.LogError("SetActionProcState: Unhandled!!! What? Got: " + s.ToString());
@@ -63,7 +69,16 @@ public class InputProcessor : MonoBehaviour {
 	}
 
 	public List<ActionReq> GetQueuedActions(){
-		return this.queuedActions;
+		List<ActionReq> retList = new List<ActionReq>{};
+		foreach(ActionReq ar in this.queuedActions){
+			if(this.v.Validate(ar, this.report.latestPlayerGrid, this.report.latestEnemyGrid, new Vector2(pb.sizex, pb.sizey))){
+				retList.Add(ar);
+			}
+			else{
+				Debug.LogWarning("Validation failed! Don't send AR: " + ar.ToString());
+			}
+		}
+		return retList;
 	}
 
 	public void ClearQueuedActions(){
@@ -73,7 +88,7 @@ public class InputProcessor : MonoBehaviour {
 	public void RXInput(bool pGrid, InputType it, Vector2 pos, CState state, SelState selstate){
 		//Don't need to ensure local player, grid only assigned to localplayer
 		if (this.actionLocked){
-			Debug.Log("Got input, but we're already locked... ignoring");
+			//Debug.Log("Got input, but we're already locked... ignoring");
 			return;
 		}
 		if(it == InputType.hover){ // Handle hover input. Probably will depend on current action context, don't worry about that now
@@ -89,89 +104,71 @@ public class InputProcessor : MonoBehaviour {
 				//Do nothing, we ignore the request
 				break;
 			case ActionProcState.multiTower:
-				List<pAction> allowedActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower};
-				List<CState> resultingState = new List<CState>(){CState.towerOffence, CState.towerDefence, CState.towerIntel};
-				if (!pGrid){
-					Debug.Log("Rejected input during Multitower placement, not our grid");
-					break; // do nothing if not our grid, do nothing if no action selected
+				if (!pGrid){ // Only build on our side
+					break; // Our validator would catch this, but we do some more logic below that relies on this assumption
 				}
- 				if(!allowedActions.Contains(this.actionContext)){
-					Debug.Log("Rejected input during Multitower placement, bad context: " + this.actionContext.ToString());
-					break; // do nothing if not our grid, do nothing if no action selected
+				int idx;
+				Dictionary<pAction, CState> buildDict = new Dictionary<pAction, CState>{
+					{pAction.buildOffenceTower, CState.towerOffence},
+					{pAction.buildDefenceTower, CState.towerDefence},
+					{pAction.buildIntelTower, CState.towerIntel}};
+				CState[][,] currentGrids = this.pb.GetGridStates();
+				ActionReq MultiTowerAR = new ActionReq(this.report.playerId, this.report.playerId, this.actionContext, new Vector2[]{pos});
+				if(this.v.Validate(MultiTowerAR, currentGrids[0], currentGrids[1], new Vector2(pb.sizex, pb.sizey))){
+					idx = this.queuedActions.FindIndex(x => x.a == pAction.noAction);
+					if(idx >=0){
+						Debug.Log("Input processor: Valid Move: Add new AR at " + idx.ToString() + ", ar: " + MultiTowerAR.ToString());
+						this.queuedActions[idx] = MultiTowerAR;
+						this.pb.SetCellMainState(true, pos, buildDict[this.actionContext]);
+						break;
+					}
 				}
-				//Does this location already exist within our queuedactions?
-				int idx = this.queuedActions.FindIndex(x => allowedActions.Contains(x.a) && x.coords[0] == pos);
-				//Debug.Log("APC multitower: check for dup result " + idx.ToString());
-				if (idx >=0 ){ // We've already got this guy selected, deselect it
-					//Debug.Log("APC multitower: Already got this one, toggle off");
-					this.queuedActions[idx] = new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null);
-					this.pb.SetCellMainState(true, pos, CState.empty);
-					break;
+				else{
+					Debug.Log("Input processor: Invalid request, don't add to list");
 				}
-				//Do we already have a tower of this type?
-				idx = this.queuedActions.FindIndex(x => x.a == this.actionContext);
-				if (idx >= 0){
-					Debug.Log("multiTower proc: Already have a " + this.actionContext.ToString());
-					break;
-				}
-				idx = this.queuedActions.FindIndex(x => x.a == pAction.noAction);
-				//Debug.Log("APC multitower: check for open result " + idx.ToString());
-				if(idx >=0){ // We've still have room for a new request
-					//Debug.Log("APC multitower: we have room at idx " + idx.ToString());
-					this.queuedActions[idx] = new ActionReq(this.report.playerId, this.report.playerId, this.actionContext, new Vector2[]{pos});
-					CState s = resultingState[allowedActions.IndexOf(this.actionContext)];
-					this.pb.SetCellMainState(true, pos, s);
-				}
-				else{ // No room for another tower selection, ignore
-					//Debug.Log(" APC multitower: no room left! ignoring");
+				if (this.v.StateIn(currentGrids[0], pos, buildDict.Values.ToList(), new Vector2(pb.sizex, pb.sizey))){ // Now, if there is a tower here already, remove it
+					idx = this.queuedActions.FindIndex(x => buildDict.Keys.ToList().Contains(x.a) && x.loc != null && x.loc[0] == pos);
+					if(idx >= 0){
+						Debug.Log("Input processor: Removing AR that is in this place");
+						this.queuedActions[idx] = new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null);
+						this.pb.SetCellMainState(true, pos, CState.empty);
+					}
 				}
 				break;
-			case ActionProcState.singleAction:
-				bool updateDisplay = false;
-				switch(this.actionContext){
+			case ActionProcState.basicActions:
+				ActionReq singleAR = new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null); // NoAction should always fail eval
+				switch(this.actionContext){ // May not need this to be a switch statement after refactor... lol TODO
 				case pAction.noAction:
 					break; // don't do nuthin if no action context
-				case pAction.fireBasic:
-					if(pGrid){
-						break; //Don't want to shoot yourself...or do you?
-					}
-					this.queuedActions[0] = new ActionReq(this.report.playerId, this.report.enemyId, pAction.fireBasic, new Vector2[]{pos});
-					 //TODO this assumption that we hardcode shoot enemy's ID. If I forget to check the side, an input on the wrong side could
-					 //be switched over very easily if I'm not paying attention. We should check grid.owner == player.playerId
-					updateDisplay = true;
-					break;
-				case pAction.scout:
-					if (pGrid){
-						break; //Don't scout yourself...
-					}
-					this.queuedActions[0] = new ActionReq(this.report.playerId, this.report.enemyId, pAction.scout, new Vector2[]{pos});
-					updateDisplay = true;
-					break;
+				case pAction.fireBasic: // All of these single targeted actions can be handled the same way
+				case pAction.scout: // All differences in placement rules are handled by the validator
 				case pAction.buildTower:
 				case pAction.buildDefenceTower:
 				case pAction.buildOffenceTower:
 				case pAction.buildIntelTower:
-					if(!pGrid){
-						break; //Don't build on their side...
-					}
-					this.queuedActions[0] = new ActionReq(this.report.playerId, this.report.playerId, this.actionContext, new Vector2[]{pos});
-					updateDisplay = true;
-					break;
 				case pAction.buildWall:
-					if(!pGrid){
-						break; // don't build wall on their side
-					}
-					this.queuedActions[0] = new ActionReq(this.report.playerId, this.report.playerId, pAction.buildWall, new Vector2[]{pos});
-					updateDisplay = true;
+					int target = pGrid ? this.report.playerId : this.report.enemyId;
+					singleAR = new ActionReq(this.report.playerId, target, this.actionContext, new Vector2[]{pos});
 					break;
 				default:
 					Debug.LogError("Input processor unhandled actionContext: " + this.actionContext.ToString());	
 					break;
 				}
-				if (updateDisplay){
-					this.uic.ActionDisplayUpdate(this.queuedActions[0]);
+				if(this.v.Validate(singleAR, this.report.latestPlayerGrid, this.report.latestEnemyGrid, new Vector2(pb.sizex, pb.sizey))){
+					Debug.Log("Validated action: " + singleAR.ToString());
+					if(singleAR.a == pAction.fireBasic){
+						this.queuedActions[0] = singleAR;
+						this.uic.ActionDisplayUpdateShoot(singleAR);
+					}
+					else{
+						this.queuedActions[1] = singleAR;
+						this.uic.ActionDisplayUpdateAction(singleAR);
+					}
 					this.pb.ClearSelectionState(false);
 					this.pb.SetCellBGState(pGrid, pos, SelState.select);
+				}
+				else{
+					Debug.Log("Bad action: " + singleAR.ToString());
 				}
 				break;
 			default:
@@ -187,7 +184,7 @@ public class InputProcessor : MonoBehaviour {
 	////////////////Lock Stuff
 	public void LockAction(){
 		if (this.queuedActions.Any(req => req.a != pAction.noAction)){
-			Debug.Log("LockactionPressed pid: " + this.report.playerId.ToString());
+			//Debug.Log("LockactionPressed pid: " + this.report.playerId.ToString());
 			this.actionLocked = true;
 			this.uic.LockButtonEnabled(false);
 			this.report.CmdSendPlayerLock();

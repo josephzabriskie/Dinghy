@@ -6,22 +6,28 @@ using UnityEngine.UI;
 
 public class ActionDisplay : MonoBehaviour {
 
-	Text txt;
+	public Text shoottxt;
+	public Text actiontxt;
 
-	void Start () {
-		this.txt = GetComponentInChildren<Text>();
-	}
-
-	public void UpdateAction(ActionReq newAR){
+	public void UpdateShoottxt(ActionReq newAR){
 		if (newAR.a == pAction.noAction){
-			this.ClearAction();
+			this.Clear();
 		}
 		else {
-			this.txt.text = "Action: " + newAR.a.ToString() + " at " + newAR.coords[0].ToString();
+			this.shoottxt.text = "Shoot: " + newAR.a.ToString() + " at " + newAR.loc[0].ToString();
+		}
+	}
+	public void UpdateActiontxt(ActionReq newAR){
+		if (newAR.a == pAction.noAction){
+			this.Clear();
+		}
+		else {
+			this.actiontxt.text = "Action: " + newAR.a.ToString() + " at " + newAR.loc[0].ToString();
 		}
 	}
 
-	public void ClearAction(){
-		this.txt.text = "No Action";
+	public void Clear(){
+		this.shoottxt.text = "No shoot";
+		this.actiontxt.text = "No action";
 	}
 }

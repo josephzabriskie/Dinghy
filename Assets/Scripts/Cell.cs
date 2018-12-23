@@ -34,12 +34,11 @@ namespace CellTypes{
 		}
 		public int p; // priority
 		public cellCallback f; //callback function
-	}
 
-	// public class WallPrimary : PriorityCallback{
-	// 	public WallPrimary(int priority, cellCallback cb, Vector2Int basecell) : base(priority, cb, basecell){
-	// 	}
-	// }
+		public override string ToString(){
+        	return "PriorityCallback: p: " + p.ToString() + ", f: " + f.GetInvocationList().ToString();
+    	}
+	}
 
     public class Cell{
 		public CState state;
@@ -86,16 +85,20 @@ namespace CellTypes{
 			case CState.towerIntel:
 				this.shootDef = new PriorityCB(0, DefShotCB);
 				this.buildDef = new PriorityCB(0, DefBuiltCB);
-				this.scoutDef = new PriorityCB(0, DefShotCB);
+				this.scoutDef = new PriorityCB(0, DefScoutedCB);
 				break;
 			case CState.destroyedTerrain:
 			case CState.destroyedTower:
+			case CState.wallDestroyed:
 				this.shootDef = new PriorityCB(0, NullCB);
 				this.buildDef = new PriorityCB(0, NullCB);
 				this.scoutDef = new PriorityCB(0, NullCB);
 				break;
 			default:
-				Debug.LogError("SetDefaultCB unhandled Case: " + this.state.ToString());
+				Debug.LogError("SetDefaultCB unhandled Case: " + this.state.ToString() + ", setting CB's to null");
+				this.shootDef = new PriorityCB(0, NullCB);
+				this.buildDef = new PriorityCB(0, NullCB);
+				this.scoutDef = new PriorityCB(0, NullCB);
 				break;
 			}
 		}
@@ -103,7 +106,7 @@ namespace CellTypes{
 		//Add special CBs to other cells
 		void SetupSpecialCBs(){
 			if(this.state == CState.wall){
-				Debug.Log("Adding the wall's special callbacks");
+				//Debug.Log("Adding the wall's special callbacks");
 				this.pb.AddCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -1), new PriorityCB(5, this.WallCB), PCBType.shoot);
 				this.pb.AddCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -2), new PriorityCB(6, this.WallCB), PCBType.shoot);
 			}
@@ -111,14 +114,14 @@ namespace CellTypes{
 
 		void TearDownSpecialCbs(){
 			if(this.state == CState.wall){
-				Debug.Log("removing the wall's special callbacks");
+				//Debug.Log("removing the wall's special callbacks");
 				this.pb.RemCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -1), new PriorityCB(5, this.WallCB), PCBType.shoot);
 				this.pb.RemCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -2), new PriorityCB(6, this.WallCB), PCBType.shoot);
 			}
 		}
 
 		public bool AddCB(PriorityCB cb, PCBType cbt){
-			Debug.Log("Cell " + this.loc.ToString() + " adding CB!");
+			//Debug.Log("Cell " + this.loc.ToString() + " adding CB!");
 			switch(cbt){
 			case PCBType.shoot:
 				this.shootCBs.Add(cb);
@@ -137,19 +140,21 @@ namespace CellTypes{
 		}
 
 		public bool RemCB(PriorityCB cb, PCBType cbt){
-			Debug.Log("Cell " + this.loc.ToString() + " removing CB!");
-			switch(cbt){
-			case PCBType.shoot:
-				this.shootCBs.Remove(cb);
-				break;
-			case PCBType.build:
-				this.buildCBs.Remove(cb);
-				break;
-			case PCBType.scout:
-				this.scoutCBs.Remove(cb);
-				break;
-			default:
-				Debug.LogError("Cell rem   nbCB: Unhandled state! " + cbt.ToString());
+			//Debug.Log("Cell " + this.loc.ToString() + " removing CB type " + cbt.ToString());
+			List<PriorityCB> lst = null;
+			if(cbt == PCBType.shoot){ lst = this.shootCBs; } // Avante Garde Formatting
+			else if(cbt == PCBType.build){ lst = this.buildCBs; }
+			else if(cbt == PCBType.scout){ lst = this.scoutCBs; }
+			else{
+				Debug.LogError("Cell rem nbCB: Unhandled state! " + cbt.ToString());
+				return false;
+			}
+			PriorityCB rem = lst.SingleOrDefault(i => i.p == cb.p && i.f == cb.f);
+			if(rem != null){
+				lst.Remove(rem);
+			}
+			else{
+				Debug.LogError("Found none or more than 1 matching item to remove");
 				return false;
 			}
 			return true;
@@ -161,37 +166,36 @@ namespace CellTypes{
 			case CState.destroyedTerrain:
 			case CState.wallDestroyed:
 			case CState.destroyedTower:
-				Debug.Log("SetStateParams: Since we're destoryed, reveal us: " + this.state.ToString());
+				//Debug.Log("SetStateParams: Since we're destoryed, reveal us: " + this.state.ToString());
 				this.vis = true;
 				break;
 			case CState.hidden:
 				Debug.LogError("SetStateParams: Don't ever expect to be in this state: " + this.state.ToString());
 				break;
 			default:
-				Debug.Log("SetStateParams: No new state params for incoming state: " + this.state.ToString());
+				//Debug.Log("SetStateParams: No new state params for incoming state: " + this.state.ToString());
 				break;
 			}
-			//May need more here in the future...
 		}
 		
 		//Public calls for basic actions
         public void onShoot(ActionReq ar){
-			Debug.Log("Cell: " + this.loc.ToString() + " OnShoot");
+			//Debug.Log("Cell: " + this.loc.ToString() + " OnShoot");
 			this.ExecPriorityList(this.shootCBs, this.shootDef, ar);
 		}
 
 		public void onBuild(ActionReq ar){
-			Debug.Log("Cell: " + this.loc.ToString() + " onBuild");
+			//Debug.Log("Cell: " + this.loc.ToString() + " onBuild");
 			this.ExecPriorityList(this.buildCBs, this.buildDef, ar);
 		}
 
 		public void onScout(ActionReq ar){
-			Debug.Log("Cell: " + this.loc.ToString() + " onScout");
+			//Debug.Log("Cell: " + this.loc.ToString() + " onScout");
 			this.ExecPriorityList(this.scoutCBs, this.scoutDef, ar);
 		}
 
 		void ExecPriorityList(List<PriorityCB> pcbl, PriorityCB def, ActionReq ar){
-			Debug.Log("Cell: Executing priorty list. " + pcbl.Count().ToString());
+			//Debug.Log("Cell: Executing priorty list. " + pcbl.Count().ToString());
 			List<PriorityCB> list = new List<PriorityCB>();
 			list.AddRange(pcbl); // Add special callbacks
 			list.Add(def); // Add default callback
@@ -210,13 +214,13 @@ namespace CellTypes{
 
 		/////////////Callbacks
 		bool WallCB(ActionReq ar){
-			Debug.Log("CB handler: WallCB loc" + this.loc.ToString());
+			//Debug.Log("CB handler: WallCB loc" + this.loc.ToString());
 			this.ChangeState(CState.wallDestroyed);
 			return true;
 		}
 
 		bool DefBuiltCB(ActionReq ar){
-			Debug.Log("CB handler: DefBuiltCB loc " + this.loc.ToString());
+			//Debug.Log("CB handler: DefBuiltCB loc " + this.loc.ToString());
 			switch(ar.a){
 			case pAction.buildOffenceTower:
 				this.ChangeState(CState.towerOffence);
@@ -238,7 +242,7 @@ namespace CellTypes{
 		}
 
 		bool DefShotCB(ActionReq ar){
-			Debug.Log("CB handler: DefShotCB loc " + this.loc.ToString());
+			//Debug.Log("CB handler: DefShotCB loc " + this.loc.ToString());
 			if (new List<CState>(){CState.towerDefence, CState.towerOffence, CState.towerIntel}.Contains(this.state)){
 				this.ChangeState(CState.destroyedTower);
 			}
@@ -250,7 +254,7 @@ namespace CellTypes{
 
 		//TODO dos this need to be unique for shot,built,scouted?
 		bool NullCB(ActionReq ar){
-			Debug.Log("CB handler: NullCB loc " + this.loc.ToString() + ". Do nothing. State: " + this.state.ToString());
+			//Debug.Log("CB handler: NullCB loc " + this.loc.ToString() + ". Do nothing. State: " + this.state.ToString());
 			return true;
 		}
 

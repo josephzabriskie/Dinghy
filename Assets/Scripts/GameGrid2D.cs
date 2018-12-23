@@ -97,7 +97,6 @@ public class GameGrid2D : MonoBehaviour {
 	public void ClearArrayState(){
 		for(int x = 0; x < this.sizex; x++){
 			for(int y = 0; y < this.sizey; y++){
-				Debug.Log("DEBUGGING: " + x.ToString() + y.ToString() + this.cells.ToString());
 				this.cells[x,y].SetMainState(CState.hidden);
 			}
 		}

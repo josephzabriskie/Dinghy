@@ -18,10 +18,13 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	UIController uic = null;
 	PlayBoard2D pb = null;
 	InputProcessor ip = null;
+	public CState[,] latestPlayerGrid;
+	public CState[,] latestEnemyGrid;
+
 	bool isReady = false;
 
 	void Start () {
-		Debug.Log("PlayerConnectionObj Start. Local: " + isLocalPlayer.ToString());
+		//Debug.Log("PlayerConnectionObj Start. Local: " + isLocalPlayer.ToString());
 		this.uic = GameObject.FindGameObjectWithTag("UIGroup").GetComponent<UIController>();
 		this.uic.DBPWrite("Player " +  this.playerId.ToString() + " joined!");
 		if (isServer){ //We're the object on the server, need to link up to logic core
@@ -35,7 +38,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 				//Debug.Log("pco init: Found no logic Core server instance of player");
 		}
 		if (isLocalPlayer){ // We're the local player, need to grab out grids, set their owner, set color
-			Debug.Log("pco init: This is the local player");
+			//Debug.Log("pco init: This is the local player");
 			//distinguish name? bad idea?
 			gameObject.name = gameObject.name + "Local";
 			//Find our UIC and do it's setup
@@ -61,15 +64,15 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	[Command]
 	void CmdSendPlayerActions( ActionReq[] qa){
 		//Debug.Log("Player '" + this.playerId.ToString() + "' obj on server sending RX action to logic core!");
-		Debug.Log("CmdSendPlayerActions on server player " + this.playerId.ToString());
+		//Debug.Log("CmdSendPlayerActions on server player " + this.playerId.ToString());
 		// for(int i =0; i < qa.Count(); i ++){
 		// 	Debug.Log("Got " + i.ToString() + ": " + qa[i].coords[0].ToString());
 		// }
-		this.lc.RXActionReq(new List<ActionReq>(qa));
+		this.lc.RXActionReq(this.playerId, new List<ActionReq>(qa));
 	}
 	[Command]
 	void CmdRequestGridUpdate(){ // This guy should only be called internally on startup
-		Debug.Log("Player '" + this.playerId.ToString() + "' requesting CmdRequestGridUpdate");
+		//Debug.Log("Player '" + this.playerId.ToString() + "' requesting CmdRequestGridUpdate");
 		this.lc.ReportGridState(this.playerId); // this simply gets the logic core to call our RPC update grid
 	}
 	[Command]
@@ -79,7 +82,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	}
 	[Command]
 	public void CmdSendPlayerLock(){ //Public so that Input processor can call it
-		Debug.Log("Sending action lock in for player " + this.playerId);
+		//Debug.Log("Sending action lock in for player " + this.playerId);
 		this.lc.SetPlayerLock(this.playerId);
 	}
 
@@ -101,7 +104,9 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		}
 		//Debug.Log("Player: " + this.playerId + " got update to our grids.");
 		//Debug.Log("Ours: " + our.Length.ToString() + " :: Theirs: "  + other.Length.ToString());
-		this.pb.SetGridStates(GUtils.Deserialize(our, dim1, dim2), GUtils.Deserialize(other, dim1, dim2));
+		this.latestPlayerGrid = GUtils.Deserialize(our, dim1, dim2);
+		this.latestEnemyGrid =  GUtils.Deserialize(other, dim1, dim2);
+		this.pb.SetGridStates(this.latestPlayerGrid, this.latestEnemyGrid);
 	}
 
 	[ClientRpc]
@@ -125,7 +130,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			break;
 		case MatchState.actionSelect:
 			Debug.Log("RPC Game state: actionSelect");
-			this.ip.SetActionProcState(ActionProcState.singleAction);
+			this.ip.SetActionProcState(ActionProcState.basicActions);
 			this.uic.GameStateUpdate("Now you just enter an action every 30s");
 			this.uic.TimerStart(si.time);
 			this.uic.ActionSelectButtonsEnable(true);
@@ -170,7 +175,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		if(!isLocalPlayer || !this.ReadyGuard()){
 			return;
 		}
-		Debug.Log("RpcResetPlayerLock id: " + this.playerId.ToString());
+		//Debug.Log("RpcResetPlayerLock id: " + this.playerId.ToString());
 		this.ip.UnlockAction();
 	}
 	

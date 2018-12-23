@@ -150,7 +150,7 @@ public class Cell2D : MonoBehaviour {
 		}
 	}
 
-	public CState getState(){
+	public CState GetMainState(){
 		return this.cState;
 	}
 }

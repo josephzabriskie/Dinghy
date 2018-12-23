@@ -8,6 +8,7 @@ using PlayerActions;
 using MatchSequence;
 using System.Linq;
 using PlayboardTypes;
+using ActionProc;
 
 //game object represenation of the logic processor on the server. Holds a reference to the actual gameboard
 
@@ -19,20 +20,24 @@ namespace PlayerActions{
 		buildDefenceTower,
 		buildIntelTower,
 		buildWall,
-		fireBasic,
+		fireBasic, // Our every-round shot
 		scout,
 	}
 	public struct ActionReq	{
 		public int p; //player number
 		public int t; //target player number
 		public pAction a;
-		public Vector2[] coords;
+		public Vector2[] loc;
 		public ActionReq(int inPlayer, int targetPlayer, pAction inAction, Vector2[] inCoords){
 			p=inPlayer;
 			t=targetPlayer;
 			a=inAction;
-			coords=inCoords;
+			loc=inCoords;
 		}
+		public override string ToString()
+    	{
+        	return "P: " + p + " T: " + t + " A: " + a + " loc: " + loc;
+    	}
 	}
 }
 
@@ -71,9 +76,7 @@ public class LogicCore : NetworkBehaviour {
 	public MatchState currMS = MatchState.waitForPlayers;
 	public MatchState pausedMS = MatchState.placeTowers;
 	public int stateTime;
-	//CState [][,] pGrid;
 	PlayBoard PB;
-	bool[][,] pHidden;
 	int pNum = 2; // max player number
 	Coroutine currentCoroutine = null;
 	public int sizex;
@@ -133,17 +136,9 @@ public class LogicCore : NetworkBehaviour {
 		// Set state of internal grids to default, send state to players
 		//Fill in all state arrays, default is hidden
 		this.currMS = MatchState.waitForPlayers;
-		//this.pGrid = new CState[this.pNum][,];
 		this.PB = new PlayBoard(this.sizex, this.sizey);
-		this.pHidden = new bool[this.pNum][,];
 		this.ResetPlayerLocks();
 		this.ResetRespTrack();
-		// for (int i = 0; i < this.pNum; i++){
-		// 	this.pGrid[i] = new CState[this.sizex, this.sizey];
-		// 	GUtils.FillGrid(this.pGrid[i], CState.empty);
-		// 	this.pHidden[i] = new bool[this.sizex, this.sizey];
-		// 	GUtils.FillBoolGrid(this.pHidden[i], true);
-		// }
 	}
 
 	//Call this externally when we have both players connected
@@ -176,6 +171,7 @@ public class LogicCore : NetworkBehaviour {
 		case MatchState.placeTowers:
 			Debug.Log("We're entering PlaceTowers state!");
 			this.stateTime = 60;
+			this.PB.validator.SetAPC(ActionProcState.multiTower);
 			this.ClearCurrentCoroutine();
 			this.UpdatePlayersGameState();
 			this.ResetRespTrack();
@@ -185,6 +181,7 @@ public class LogicCore : NetworkBehaviour {
 		case MatchState.actionSelect:
 			Debug.Log("We're entering actionSelect state!");
 			this.stateTime = 30;
+			this.PB.validator.SetAPC(ActionProcState.basicActions);
 			this.ClearCurrentCoroutine();
 			this.UpdatePlayersGameState();
 			this.ResetRespTrack();
@@ -332,7 +329,6 @@ public class LogicCore : NetworkBehaviour {
 	////////////////////////////////////////////////End state IEs
 
 	bool GameOverCheck(){
-		List<CState> s = new List<CState>(){CState.towerOffence, CState.towerDefence, CState.towerIntel};
 		Debug.Log("GameOverChecking");
 		bool[] playerlose = {true, true};
 		playerlose[0] = this.PB.CheckPlayerLose(0);
@@ -359,27 +355,28 @@ public class LogicCore : NetworkBehaviour {
 		}
 	}
 
-	public void RXActionReq(List<ActionReq> reqs){
+	//TODO how do we verify that this request set actually came from player x?
+	public void RXActionReq(int playerId, List<ActionReq> reqs){
 		Debug.Log("LogicCore RXActionReq: Got input action reqs");
 		// for(int i =0; i < reqs.Count; i ++){
 		// 	Debug.Log("Gotem " + i.ToString() + ": " + reqs[i].coords[0].ToString());
 		// }
-		//First verify that there's any requests to add
+		//Allow the player to input no actions, but don' process
 		if (!(reqs.Count > 0)){ // boom, we've got at least 1 req
-			Debug.LogError("RXActionReq: We recieved an empty request list");
+			Debug.LogWarning("RXActionReq: We recieved an empty request list");
+			this.SetRespTrack(playerId);
 			return;
 		}
-		int playernum = reqs[0].p;
-		if (!reqs.All(x => x.p == playernum)){ // Verify that all player reqs are for the same player
-			Debug.LogError("RXActionReq: Not all requests match player num: " + playernum.ToString());
+		if (!reqs.All(x => x.p == playerId)){ // Verify that all player reqs are for the same player
+			Debug.LogError("RXActionReq: Not all requests match player num: " + playerId.ToString());
 			return;
 		}
-		if(this.playerResps[playernum]){
-			Debug.Log("RXActionReq: Player input already recieved, ignore: " + playernum.ToString());
+		if(this.playerResps[playerId]){
+			Debug.Log("RXActionReq: Player input already recieved, ignore: " + playerId.ToString());
 			return;
 		}
 		//At this point we're satisfied, say we've recieved a player responses and add them
-		this.SetRespTrack(playernum);
+		this.SetRespTrack(playerId);
 		this.playerActions.AddRange(reqs);
 		Debug.Log("Added to playerActions. Count now " + this.playerActions.Count);
 	}
@@ -389,7 +386,6 @@ public class LogicCore : NetworkBehaviour {
 		CState[][,] state = this.PB.GetPlayerGameState(p);
 		CState[] pOwnGrid = GUtils.Serialize(state[0]);
 		CState[] pOtherGrid = GUtils.Serialize(state[1]);
-		//CState[] pOtherGrid = GUtils.Serialize(GUtils.ApplyHiddenMask(this.pGrid[enemyIdx], this.pHidden[enemyIdx]));
 		this.mnm.playerSlots[p].RpcUpdateGrids(pOwnGrid, pOtherGrid, this.sizex, this.sizey);
 	}
 

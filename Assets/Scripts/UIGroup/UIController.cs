@@ -65,12 +65,16 @@ public class UIController : MonoBehaviour {
 	//#############################################
 	//Functions to control our Action Display
 	//UpdateAction
-	public void ActionDisplayUpdate(ActionReq ar){
-		this.ad.UpdateAction(ar);
+	public void ActionDisplayUpdateAction(ActionReq ar){
+		this.ad.UpdateActiontxt(ar);
+	}
+	//UpdateShoot
+	public void ActionDisplayUpdateShoot(ActionReq ar){
+		this.ad.UpdateShoottxt(ar);
 	}
 	//ClearAction
 	public void ActionDisplayClear(){
-		this.ad.ClearAction();
+		this.ad.Clear();
 	}
 	//#############################################
 	//Functions to control our lock button

@@ -13,8 +13,8 @@ public class PlayBoard2D : MonoBehaviour {
 	GameGrid2D playerGrid = null;
 	GameGrid2D enemyGrid = null;
 	public InputProcessor ip = null; // Link up the guy that will process our grid clicks
-	int sizex;
-	int sizey;
+	public int sizex;
+	public int sizey;
 
 	void Start(){
 		this.InstantiateGrids();
@@ -51,6 +51,13 @@ public class PlayBoard2D : MonoBehaviour {
 
 	public int[] GetGridSize(){
 		int[] ret = {this.sizex, this.sizey};
+		return ret;
+	}
+
+	public CState[][,] GetGridStates(){
+		CState [][,] ret = new CState[2][,];
+		ret[0] = this.playerGrid.GetArrayState(); // player's grid always idx 0
+		ret[1] = this.enemyGrid.GetArrayState(); // enemy's grid always idx 1
 		return ret;
 	}
 
