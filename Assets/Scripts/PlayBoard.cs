@@ -193,16 +193,16 @@ namespace PlayboardTypes{
 		public CState[][,] GetPlayerGameState(int playerIdx){
 			int enemyIdx = (playerIdx + 1) % playercnt;
 			CState[][,] boardOut = new CState[playercnt][,];
-			boardOut[0] = this.GetGridSide(playerIdx, showall:true); //playerGrid
+			boardOut[0] = this.GetGridSide(playerIdx, showAll:true); //playerGrid
 			boardOut[1] = this.GetGridSide(enemyIdx); //enemyGrid
 			return boardOut; 
 		}
 		//Used only to help out GetPlayerGameState
-		CState[,] GetGridSide(int idx, bool showall=false){
+		CState[,] GetGridSide(int idx, bool showAll=false){
 			CState [,] gridOut = new CState[sizex,sizey];
 			for(int x = 0; x < this.sizex; x++){
 				for(int y = 0; y < this.sizey; y++){
-					gridOut[x,y] = showall || this.cells[idx][x,y].vis ? this.cells[idx][x,y].state : CState.hidden;
+					gridOut[x,y] = cells[idx][x,y].GetState(showAll:showAll);
 				}
 			}
 			return gridOut;
@@ -214,7 +214,7 @@ namespace PlayboardTypes{
 			bool playerlose = true;
 			for(int x = 0; x < this.sizex; x++){ //TODO replace these nested loops with a foreach (think that should work on jagged array)
 				for(int y = 0; y < this.sizey; y++){
-					if (s.Contains(this.cells[p][x,y].state)){
+					if (s.Contains(this.cells[p][x,y].GetState(showAll:true))){
 						playerlose = false; // as long as they have one tower, they're still in it!
 					}
 				}
@@ -223,14 +223,26 @@ namespace PlayboardTypes{
 		}
 
 		public List<ActionAvail> GetActionAvailable(int playerId){
-			return this.pats[playerId].GetActionAvailibility(this.GetGridSide(playerId, showall:true));
+			return this.pats[playerId].GetActionAvailibility(this.GetGridSide(playerId, showAll:true));
 		}
 
+		void IncrementCellCounters(){
+			for(int p = 0; p < playercnt; p++){
+				for(int x = 0; x < this.sizex; x++){
+					for(int y = 0; y < this.sizey; y++){
+						this.cells[p][x,y].IncrementCounters();
+					}
+				}
+			}
+		}
+
+
+		//We expect this to be called once per round. We'll update the ticking elements at the end of this func
 		public void ApplyActions(List<ActionReq> ars){
 			Debug.Log("PlayBoard processing Actions. Got " + ars.Count);
 			List<ActionReq> validARs = new List<ActionReq>();
 			foreach(ActionReq ar in ars){ // Trust no one, validate it allllll
-				if (this.validator.Validate(ar, this.GetGridSide(ar.p, showall:true), this.GetGridSide((ar.p + 1) % playercnt), new Vector2(sizex, sizey))){
+				if (this.validator.Validate(ar, this.GetGridSide(ar.p, showAll:true), this.GetGridSide((ar.p + 1) % playercnt), new Vector2(sizex, sizey))){
 					validARs.Add(ar);
 					Debug.Log("validated ar! :) " + ar.ToString());
 				}
@@ -243,8 +255,8 @@ namespace PlayboardTypes{
 			//Doing this for each player is kinda clunky, TODO revisit this section
 			List<ActionReq> player0ARs = ars.Where(ar => ar.p == 0).ToList();
 			List<ActionReq> player1ARs = ars.Where(ar => ar.p == 1).ToList();
-			player0ARs = this.pats[0].ValidateAndTrackActions(player0ARs, this.GetGridSide(0, showall:true));
-			player1ARs = this.pats[1].ValidateAndTrackActions(player1ARs, this.GetGridSide(1, showall:true));
+			player0ARs = this.pats[0].ValidateAndTrackActions(player0ARs, this.GetGridSide(0, showAll:true));
+			player1ARs = this.pats[1].ValidateAndTrackActions(player1ARs, this.GetGridSide(1, showAll:true));
 			ars.Clear();
 			ars.AddRange(player0ARs);
 			ars.AddRange(player1ARs);
@@ -272,6 +284,8 @@ namespace PlayboardTypes{
 					Debug.LogError("Unhandled Player request!  " + ar.a.ToString());
 				}
 			}
+			//Now update the timed parameters of each cell
+			this.IncrementCellCounters();
 		}
 		
 		Cell GetCell(int targetPlayer, Vector2Int loc){ // TODO use this instead of 'this.cells[p][x,y]'

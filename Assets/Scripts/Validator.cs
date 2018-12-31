@@ -41,7 +41,9 @@ public class Validator {
             case pAction.buildWall:
                 return DefBuildValid(ar, pGrid, gridSize);
             case pAction.fireBasic:
-                return AttackValid(ar, pGrid, eGrid, gridSize);
+                return AttackValid(ar, eGrid, gridSize);
+            case pAction.scout:
+                return ScoutValid(ar, eGrid, gridSize);
             case pAction.noAction:
                 return false;
             default:
@@ -87,13 +89,21 @@ public class Validator {
         return resl;
     }
 
-    bool AttackValid(ActionReq ar, CState[,] pGrid, CState[,] eGrid, Vector2 gridSize){
+    bool AttackValid(ActionReq ar, CState[,] eGrid, Vector2 gridSize){
         //Checks that player not targeting self,  only one loc specified, terrain isn't already destroyed
         List<CState> invalidStates = new List<CState>{CState.destroyedTerrain, CState.destroyedTower, CState.wallDestroyed};
         bool resl = !TargetsSelf(ar) && LocCountEq(ar, 1) && !StateIn(eGrid, ar.loc[0], invalidStates, gridSize);
         //Debug.Log("Attack Valid returned " + resl.ToString());
         return resl;
     }
+
+    bool ScoutValid(ActionReq ar, CState[,] eGrid, Vector2 gridSize){
+        //Checks: target enemy, has only 1 loc, target is hidden
+        bool resl = !TargetsSelf(ar) && LocCountEq(ar, 1) && StateIs(eGrid, ar.loc[0], CState.hidden, gridSize);
+        //Debug.Log("ScoutValid returned " + resl.ToString());
+        return resl;
+    }
+
 
     //////////////////////////////
     // Library of validators

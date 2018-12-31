@@ -41,7 +41,7 @@ namespace CellTypes{
 	}
 
     public class Cell{
-		public CState state;
+		CState state;
 		public PlayBoard pb;
 		public int pNum;
 		public Vector2Int loc;
@@ -51,8 +51,23 @@ namespace CellTypes{
 		List<PriorityCB> shootCBs;
 		List<PriorityCB> buildCBs;
 		List<PriorityCB> scoutCBs;
-		public bool vis; // visible to Enemy
-        public int duration;
+		bool vis; // visible to Enemy
+		bool scouted;
+        public int scoutDuration; // How long visible to enemy
+
+		//Called externally to decrement/increment counting elements on each turn
+		//Take action here if needed
+		public void IncrementCounters(){
+			//Scouted Counters
+			scoutDuration--;
+			if(scoutDuration <=0){ // Scouting worn off
+				this.scouted = false;
+			}
+		}
+
+		public CState GetState(bool showAll=false){
+			return showAll || this.vis || this.scouted ? this.state : CState.hidden;
+		}
 
 		public Cell(CState state, int pNum, Vector2Int loc, PlayBoard pb, bool visibleToEnemy){
 			this.pb = pb; // This will never change
@@ -252,15 +267,17 @@ namespace CellTypes{
 			return true;
 		}
 
-		//TODO dos this need to be unique for shot,built,scouted?
-		bool NullCB(ActionReq ar){
-			//Debug.Log("CB handler: NullCB loc " + this.loc.ToString() + ". Do nothing. State: " + this.state.ToString());
+		bool DefScoutedCB(ActionReq ar){
+			const int maxDuration = 4;
+			Debug.Log("Handling getting scouted at loc " + this.loc.ToString());
+			this.scouted = true;
+			this.scoutDuration = maxDuration;
 			return true;
 		}
 
-		bool DefScoutedCB(ActionReq ar){
-			//Debug.Log("Handling getting scouted at loc " + this.loc.ToString());
-			Debug.LogWarning("CB handler: DefScoutedCB. Warning: not implemented");
+		//TODO does this need to be unique for shot,built,scouted?
+		bool NullCB(ActionReq ar){
+			//Debug.Log("CB handler: NullCB loc " + this.loc.ToString() + ". Do nothing. State: " + this.state.ToString());
 			return true;
 		}
 	}
