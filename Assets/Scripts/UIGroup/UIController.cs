@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using PlayerActions;
+using PlayboardTypes;
 
 //Class handles player requests for modifications to the UI
 public class UIController : MonoBehaviour {
@@ -41,12 +42,19 @@ public class UIController : MonoBehaviour {
 	// 	this.asg.RegisterCallbacks(pobj);
 	// }
 	//Deregister
-	public void ActionSelectButtonsDeregister(){
+	public void ActionSelectGroupDeregister(){
 		this.asg.DeregisterCallbacks();
 	}
 	//Enable/disable
-	public void ActionSelectButtonsEnable(bool en){
+	public void ActionSelectGroupEnable(bool en){
 		this.asg.SetButtonEnabled(en);
+	}
+	//Update ActionInfo
+	public void ActionSelectGroupUpdateActionInfo(List<ActionAvail> aaList){
+		this.asg.UpdateActionInfo(aaList);
+	}
+	public void ActionSelectGroupHighlightPanel(pAction highlight){
+		this.asg.HighlightPanel(highlight);
 	}
 	//#############################################
 	//Functions to control our timer UI

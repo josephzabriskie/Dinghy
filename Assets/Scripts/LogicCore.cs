@@ -54,10 +54,10 @@ namespace MatchSequence{
 		public MatchState ms;
 		public int time; // Time
 		public bool won; // Winner
-		public StateInfo(MatchState state, int time, bool winner){
-			ms = state;
+		public StateInfo(MatchState ms, int time, bool won){
+			this.ms = ms;
 			this.time = time;
-			won = winner;
+			this.won = won;
 		}
 	}
 }
@@ -223,14 +223,6 @@ public class LogicCore : NetworkBehaviour {
 		}
 	}
 
-	//This guy is public for a reason (unlike most of my public stuff...) Player objs can request the game state
-	public void ReportGameState(int p){
-		Debug.Log("Reporting game state to player " + p.ToString());
-		if (this.mnm.playerSlots[p]){
-			this.mnm.playerSlots[p].RpcUpdateGameState(new StateInfo(this.currMS, this.stateTime, this.playerWin[p]));
-		}
-	}
-
 	///////////////////////////////////////////////////State IE's
 	//These State IE's control the logic core's states. Each state transition should clear and then
 	//kick off a new IE that will later pump GameProcess()
@@ -381,12 +373,24 @@ public class LogicCore : NetworkBehaviour {
 		Debug.Log("Added to playerActions. Count now " + this.playerActions.Count);
 	}
 
+	//Called by logic core after eval actions
+	//Called by pcobj on start
 	public void ReportGridState(int p){
 		Debug.Log("Reporting Grid states to player '" + p + "'");
 		CState[][,] state = this.PB.GetPlayerGameState(p);
 		CState[] pOwnGrid = GUtils.Serialize(state[0]);
 		CState[] pOtherGrid = GUtils.Serialize(state[1]);
-		this.mnm.playerSlots[p].RpcUpdateGrids(pOwnGrid, pOtherGrid, this.sizex, this.sizey);
+		List<ActionAvail> aaList=  this.PB.GetActionAvailable(p);
+		this.mnm.playerSlots[p].RpcUpdateGrids(pOwnGrid, pOtherGrid, this.sizex, this.sizey, aaList.ToArray());
+	}
+
+	//This guy is public for a reason (unlike most of my public stuff...) Player objs can request the game state
+	//Called by
+	public void ReportGameState(int p){
+		Debug.Log("Reporting game state to player " + p.ToString());
+		if (this.mnm.playerSlots[p]){
+			this.mnm.playerSlots[p].RpcUpdateGameState(new StateInfo(this.currMS, this.stateTime, this.playerWin[p]));
+		}
 	}
 
 	void EvalActions(){

@@ -37,6 +37,11 @@ public class InputProcessor : MonoBehaviour {
 
 	public void SetActionContext(pAction pa){
 		this.actionContext = pa;
+		this.uic.ActionSelectGroupHighlightPanel(pa);
+	}
+
+	public void ClearActionContext(){
+		this.SetActionContext(pAction.noAction);
 	}
 
 	public void SetActionProcState(ActionProcState s){

@@ -1,12 +1,163 @@
 ﻿using CellTypes;
 using PlayerActions;
 using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using ActionProc;
 
 namespace PlayboardTypes{
+
+	public struct ActionParam{
+		public int offenceCost; // offenceCost
+		public int defenceCost; // defenceCost
+		public int intelCost; // intelCost
+		public int cooldown; // cooldown
+		public int maxUses; // max uses
+		public ActionParam(int offenceCost, int defenceCost, int intelCost, int cooldown, int maxUses){
+			this.offenceCost = offenceCost;
+			this.defenceCost = defenceCost;
+			this.intelCost = intelCost;
+			this.cooldown = cooldown; // 0 means no cooldown
+			this.maxUses = maxUses; // 0 means no more uses, -1 means no limit
+		}
+		public override string ToString(){
+			return String.Format("APM: o:{0}, d:{1}, i:{2}, cd:{3}, mu: {4}",
+				this.offenceCost, this.defenceCost, this.intelCost, this.cooldown, this.maxUses);
+		}
+	}
+
+	//This can be requested by a player so they know what the server thinks they can do.
+	public struct ActionAvail{
+		public pAction action;
+		public bool available;
+		public bool costsMet;
+		public int cooldown;
+		public int usesLeft;
+		public ActionParam actionParam;
+		public ActionAvail(pAction action, bool costsMet, int cooldown, int usesLeft, ActionParam actionParam){
+			this.action = action;
+			this.available = costsMet && cooldown == 0 && usesLeft != 0; //Just cal this for the player
+			this.costsMet = costsMet;
+			this.cooldown = cooldown;
+			this.usesLeft = usesLeft;
+			this.actionParam = actionParam;
+		}
+		public override string ToString(){
+			return String.Format("Action Avail: a:{0}, av: {4} cm:{1}, cd: {2}, ul: {3}. APM {5}",
+				this.action, this.costsMet, this.cooldown, this.usesLeft, this.available, this.actionParam);
+		}
+	}
+
+	public class PlayerActionTracker{
+		static List<pAction> allActions = ((pAction[])Enum.GetValues(typeof(pAction))).ToList(); // How to get all pActions defined in the enum!
+		static Dictionary<pAction, ActionParam> actionParams = new Dictionary<pAction, ActionParam>{
+										//	ActionParam(costs..cd..uses)
+			{pAction.noAction, 			new ActionParam(0,0,0, 0, -1)},
+			{pAction.buildTower, 		new ActionParam(0,0,0, 0, -1)},
+			{pAction.buildOffenceTower, new ActionParam(0,0,0, 0, 7)},
+			{pAction.buildDefenceTower, new ActionParam(0,0,0, 0, 7)},
+			{pAction.buildIntelTower, 	new ActionParam(0,0,0, 0, 7)},
+			{pAction.buildWall, 		new ActionParam(0,2,0, 2, -1)},
+			{pAction.fireBasic, 		new ActionParam(0,0,0, 0, -1)},
+			{pAction.scout, 			new ActionParam(0,0,2, 0, -1)}
+		};
+		Dictionary<pAction, int> actionCooldowns; //Use for tracking cooldowns
+		List<pAction> actionHistory; //Use for counting uses
+
+		//Constructor
+		public PlayerActionTracker(){
+			foreach(pAction action in allActions){
+				if(!actionParams.ContainsKey(action)){
+					Debug.LogError("Action Param missing pAction: " + action.ToString());
+				}
+			}
+			this.actionCooldowns = new Dictionary<pAction, int>();
+			foreach(pAction action in allActions){
+				this.actionCooldowns.Add(action, 0);
+			}
+			this.actionHistory = new List<pAction>();
+		}
+
+		static List<pAction> CheckCostsMet(CState[,] pGrid){
+			int offenceCount = GUtils.Serialize(pGrid).Count(s => s == CState.towerOffence);
+			int defenceCount = GUtils.Serialize(pGrid).Count(s => s == CState.towerDefence);
+			int intelCount = GUtils.Serialize(pGrid).Count(s => s == CState.towerIntel);
+			List<pAction> retList = new List<pAction>();
+			foreach(pAction action in actionParams.Keys){
+				ActionParam apm = actionParams[action];
+				if(apm.offenceCost <= offenceCount && apm.defenceCost <= defenceCount && apm.intelCost <= intelCount){
+					retList.Add(action);
+				}
+			}
+			return retList;
+		}
+
+		int GetUseCount(pAction action){
+			return this.actionHistory.Count(a => a == action);
+		}
+
+		int GetUsesLeft(pAction action){
+			int actionUses = this.GetUseCount(action);
+			if(actionParams[action].maxUses >= 0 && actionParams[action].maxUses < actionUses){
+				Debug.LogError("Player used action: " + action.ToString() + " " + actionUses.ToString() + " times when max was " + actionParams[action].maxUses.ToString());
+			}
+			return actionParams[action].maxUses <= 0 ? -1 : actionParams[action].maxUses - actionUses; //Calc uses left (-1 means unlimited)
+		}
+
+		public bool HasUsesLeft(pAction action){
+			int usesLeft = this.GetUsesLeft(action);
+			return usesLeft != 0; // Less than zero we ignore, more than 0 means uses are left
+		}
+		
+		public List<ActionAvail> GetActionAvailibility(CState[,] pGrid){
+			List<ActionAvail> retList = new List<ActionAvail>();
+			List<pAction> costsMetActions = CheckCostsMet(pGrid); // Check cost of actions met
+			foreach(pAction action in allActions){
+				retList.Add(new ActionAvail(action, costsMetActions.Contains(action), this.actionCooldowns[action], this.GetUsesLeft(action), actionParams[action]));
+			}
+			return retList;
+		}
+
+		//Validate Actions = input action list, output actionlist that meet costs, off cooldown, not over max use
+		List<ActionReq> ValidateActions(List<ActionReq> inList, CState[,] pGrid){
+			List<ActionReq> retList = new List<ActionReq>();
+			List<pAction> costsMetActions = CheckCostsMet(pGrid); // Check cost of actions met
+			foreach(ActionReq ar in inList){
+				//Is cooldown 0, Is cost met, max uses not met yet?
+				if (this.actionCooldowns[ar.a] == 0 && costsMetActions.Contains(ar.a) && this.HasUsesLeft(ar.a)){
+					retList.Add(ar);
+				}
+				else{
+					Debug.LogWarning("Action validation by tracker failed: " + ar.ToString());
+				}
+			}
+			return retList;
+		}
+
+		//TrackActions = take list of action requests, record them (so we can see usage), update cooldowns
+		void TrackActions(List<ActionReq> inList){
+			List<pAction> keys = this.actionCooldowns.Keys.ToList();
+			foreach(pAction action in keys){ //Update cooldowns first (had to do it this way since C# doesn't like any modification of list while iterating over keys)
+				if (this.actionCooldowns[action] > 0){
+					this.actionCooldowns[action] -= 1;
+				}
+			}
+			foreach(ActionReq ar in inList){ //Track the action and set cooldown
+				this.actionHistory.Add(ar.a);
+				this.actionCooldowns[ar.a] = actionParams[ar.a].cooldown;
+			}
+		}
+
+		//Validate and track actions = Just do the validate then track in sequence
+		public List<ActionReq> ValidateAndTrackActions(List<ActionReq> inList, CState[,] pGrid){
+			List<ActionReq> valActions = this.ValidateActions(inList, pGrid);
+			this.TrackActions(valActions);
+			return valActions;
+		}
+	}
+
 	public class PlayBoard {
 
 		const int playercnt = 2; //So far we're only designing for 2 players
@@ -14,6 +165,7 @@ namespace PlayboardTypes{
 		int sizex;
 		int sizey;
 		public Validator validator;
+		PlayerActionTracker[] pats;
 		
 		public PlayBoard(int sizex, int sizey){
 			//Debug.Log("Hey, I'm making a Playboard: " + sizex.ToString() + "X" + sizey.ToString());
@@ -21,6 +173,7 @@ namespace PlayboardTypes{
 			this.sizey = sizey;
 			this.InitializeCells();
 			validator = new Validator(ActionProcState.reject);
+			pats = new PlayerActionTracker[playercnt]{new PlayerActionTracker(), new PlayerActionTracker()};
 		}
 
 		void InitializeCells(){
@@ -49,12 +202,7 @@ namespace PlayboardTypes{
 			CState [,] gridOut = new CState[sizex,sizey];
 			for(int x = 0; x < this.sizex; x++){
 				for(int y = 0; y < this.sizey; y++){
-					if(showall || this.cells[idx][x,y].vis){
-						gridOut[x,y] = this.cells[idx][x,y].state;
-					}
-					else{
-						gridOut[x,y] = CState.hidden;
-					}
+					gridOut[x,y] = showall || this.cells[idx][x,y].vis ? this.cells[idx][x,y].state : CState.hidden;
 				}
 			}
 			return gridOut;
@@ -74,6 +222,10 @@ namespace PlayboardTypes{
 			return playerlose;
 		}
 
+		public List<ActionAvail> GetActionAvailable(int playerId){
+			return this.pats[playerId].GetActionAvailibility(this.GetGridSide(playerId, showall:true));
+		}
+
 		public void ApplyActions(List<ActionReq> ars){
 			Debug.Log("PlayBoard processing Actions. Got " + ars.Count);
 			List<ActionReq> validARs = new List<ActionReq>();
@@ -87,7 +239,16 @@ namespace PlayboardTypes{
 				}
 			}
 			ars = validARs;
-			//Make sure that each action only exists once in these lists
+			//Give the action tracker these actions! It can remove actions that it deems illegal as well
+			//Doing this for each player is kinda clunky, TODO revisit this section
+			List<ActionReq> player0ARs = ars.Where(ar => ar.p == 0).ToList();
+			List<ActionReq> player1ARs = ars.Where(ar => ar.p == 1).ToList();
+			player0ARs = this.pats[0].ValidateAndTrackActions(player0ARs, this.GetGridSide(0, showall:true));
+			player1ARs = this.pats[1].ValidateAndTrackActions(player1ARs, this.GetGridSide(1, showall:true));
+			ars.Clear();
+			ars.AddRange(player0ARs);
+			ars.AddRange(player1ARs);
+			//To CodeMonkey: each action must appear no more than once in these lists
 			List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower, pAction.buildWall};
 			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic};
 			List<pAction> scoutActions = new List<pAction>(){pAction.scout};

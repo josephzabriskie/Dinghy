@@ -8,6 +8,7 @@ using MatchSequence;
 using UnityEngine.UI;
 using System.Linq;
 using ActionProc;
+using PlayboardTypes;
 
 public class PlayerConnectionObj : NetworkBehaviour {
 	GameObject baseboard;
@@ -20,6 +21,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	InputProcessor ip = null;
 	public CState[,] latestPlayerGrid;
 	public CState[,] latestEnemyGrid;
+	ActionAvail latestActionAvail;
 
 	bool isReady = false;
 
@@ -98,12 +100,14 @@ public class PlayerConnectionObj : NetworkBehaviour {
 
 	//Serialized RPC with ours and other's grid state
 	[ClientRpc]
-	public void RpcUpdateGrids(CState[] our, CState[] other, int dim1, int dim2){
+	public void RpcUpdateGrids(CState[] our, CState[] other, int dim1, int dim2, ActionAvail[] aaArray){
 		if (!isLocalPlayer || !this.ReadyGuard()){// Ignore info if not local or Start not called yet
 			return;
 		}
-		//Debug.Log("Player: " + this.playerId + " got update to our grids.");
+		Debug.Log("Player: " + this.playerId + " got update to our grids.");
 		//Debug.Log("Ours: " + our.Length.ToString() + " :: Theirs: "  + other.Length.ToString());
+		Debug.Log("Got AA list: " + aaArray.Count().ToString());
+		this.uic.ActionSelectGroupUpdateActionInfo(aaArray.ToList());
 		this.latestPlayerGrid = GUtils.Deserialize(our, dim1, dim2);
 		this.latestEnemyGrid =  GUtils.Deserialize(other, dim1, dim2);
 		this.pb.SetGridStates(this.latestPlayerGrid, this.latestEnemyGrid);
@@ -133,22 +137,23 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			this.ip.SetActionProcState(ActionProcState.basicActions);
 			this.uic.GameStateUpdate("Now you just enter an action every 30s");
 			this.uic.TimerStart(si.time);
-			this.uic.ActionSelectButtonsEnable(true);
+			this.uic.ActionSelectGroupEnable(true);
 			break;
 		case MatchState.resolveState:
 			Debug.Log("RPC Game state: resolveState");
 			this.ip.SetActionProcState(ActionProcState.reject);
 			this.ip.pb.ClearSelectionState(false); // Clear selected squares while resolving
+			this.ip.ClearActionContext();
 			this.uic.TimerClear();
 			this.uic.GameStateUpdate("Hey we're resolving real quick");
-			this.uic.ActionSelectButtonsEnable(false);
+			this.uic.ActionSelectGroupEnable(false);
 			break;
 		case MatchState.gameEnd:
 			Debug.Log("Rpc Game state: gameEnd");
 			this.ip.SetActionProcState(ActionProcState.reject);
 			this.uic.TimerClear();
 			this.uic.GameStateUpdate("Game Over!");
-			this.uic.ActionSelectButtonsEnable(false);
+			this.uic.ActionSelectGroupEnable(false);
 			this.uic.GameOverDisplayShow(si.won);
 			break;
 		default:
