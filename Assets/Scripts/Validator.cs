@@ -41,6 +41,7 @@ public class Validator {
             case pAction.buildWall:
                 return DefBuildValid(ar, pGrid, gridSize);
             case pAction.fireBasic:
+            case pAction.fireAgain:
                 return AttackValid(ar, eGrid, gridSize);
             case pAction.scout:
                 return ScoutValid(ar, eGrid, gridSize);

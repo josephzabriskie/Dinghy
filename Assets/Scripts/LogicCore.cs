@@ -11,36 +11,6 @@ using PlayboardTypes;
 using ActionProc;
 
 //game object represenation of the logic processor on the server. Holds a reference to the actual gameboard
-
-namespace PlayerActions{
-	public enum pAction{
-		noAction,
-		buildTower, //Should be unused, place type of tower is new action
-		buildOffenceTower,
-		buildDefenceTower,
-		buildIntelTower,
-		buildWall,
-		fireBasic, // Our every-round shot
-		scout,
-	}
-	public struct ActionReq	{
-		public int p; //player number
-		public int t; //target player number
-		public pAction a;
-		public Vector2[] loc;
-		public ActionReq(int inPlayer, int targetPlayer, pAction inAction, Vector2[] inCoords){
-			p=inPlayer;
-			t=targetPlayer;
-			a=inAction;
-			loc=inCoords;
-		}
-		public override string ToString()
-    	{
-        	return "P: " + p + " T: " + t + " A: " + a + " loc: " + loc;
-    	}
-	}
-}
-
 namespace MatchSequence{
 	//Feel free to divide these down as needed (like place towers in to pre, mid, post place towers)
 	public enum MatchState{

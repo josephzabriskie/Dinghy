@@ -1,0 +1,7 @@
+Adding a new action
+ - Add to enum 'pAction'
+ - Add to dict 'actionParams' in class 'PlayerActionTracker'
+ - Add a validator for placement of action
+ - Add action to list of build/shoot/scout actions to be handled appropriately in 'ApplyActions()', part of 'playboard'
+ - Add action to input processor 'RXInput()', you may add extra UI display here
+ - Finally add new actionSelectPanel with the action set to your new action

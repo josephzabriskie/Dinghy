@@ -31,6 +31,9 @@ public class ActionSelectPanel : MonoBehaviour {
 		if (this.started){
 			return;
 		}
+		if(this.action == pAction.noAction){
+			Debug.LogError("You should know that this button's set to 'noAction'");
+		}
 		this.panelImage = GetComponent<Image>();
 		this.button = GetComponentInChildren<Button>();
 		Text[] texts = GetComponentsInChildren<Text>();

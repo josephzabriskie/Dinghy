@@ -7,6 +7,36 @@ using System.Collections.Generic;
 using System.Linq;
 using ActionProc;
 
+namespace PlayerActions{
+	public enum pAction{
+		noAction,
+		buildTower, //Should be unused, place type of tower is new action
+		buildOffenceTower,
+		buildDefenceTower,
+		buildIntelTower,
+		buildWall,
+		fireBasic, // Our every-round shot
+		scout,
+		fireAgain, // Our second shot (different reqs)
+	}
+	public struct ActionReq	{
+		public int p; //player number
+		public int t; //target player number
+		public pAction a;
+		public Vector2[] loc;
+		public ActionReq(int inPlayer, int targetPlayer, pAction inAction, Vector2[] inCoords){
+			p=inPlayer;
+			t=targetPlayer;
+			a=inAction;
+			loc=inCoords;
+		}
+		public override string ToString()
+    	{
+        	return "P: " + p + " T: " + t + " A: " + a + " loc: " + loc;
+    	}
+	}
+}
+
 namespace PlayboardTypes{
 
 	public struct ActionParam{
@@ -53,7 +83,7 @@ namespace PlayboardTypes{
 	public class PlayerActionTracker{
 		static List<pAction> allActions = ((pAction[])Enum.GetValues(typeof(pAction))).ToList(); // How to get all pActions defined in the enum!
 		static Dictionary<pAction, ActionParam> actionParams = new Dictionary<pAction, ActionParam>{
-										//	ActionParam(costs..cd..uses)
+										//	ActionParam(costs..cd..uses) Note: you can set uses to 0 if you want disabled
 			{pAction.noAction, 			new ActionParam(0,0,0, 0, -1)},
 			{pAction.buildTower, 		new ActionParam(0,0,0, 0, -1)},
 			{pAction.buildOffenceTower, new ActionParam(0,0,0, 0, 7)},
@@ -61,7 +91,8 @@ namespace PlayboardTypes{
 			{pAction.buildIntelTower, 	new ActionParam(0,0,0, 0, 7)},
 			{pAction.buildWall, 		new ActionParam(0,2,0, 2, -1)},
 			{pAction.fireBasic, 		new ActionParam(0,0,0, 0, -1)},
-			{pAction.scout, 			new ActionParam(0,0,2, 0, -1)}
+			{pAction.scout, 			new ActionParam(0,0,2, 0, -1)},
+			{pAction.fireAgain,			new ActionParam(3,0,0, 3, -1)}
 		};
 		Dictionary<pAction, int> actionCooldowns; //Use for tracking cooldowns
 		List<pAction> actionHistory; //Use for counting uses
@@ -262,7 +293,7 @@ namespace PlayboardTypes{
 			ars.AddRange(player1ARs);
 			//To CodeMonkey: each action must appear no more than once in these lists
 			List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower, pAction.buildWall};
-			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic};
+			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain};
 			List<pAction> scoutActions = new List<pAction>(){pAction.scout};
 			//Here we order the list to make sure that building happens first
 			var buildARs = ars.Where(ar => buildActions.Contains(ar.a));

@@ -152,6 +152,7 @@ public class InputProcessor : MonoBehaviour {
 				case pAction.buildOffenceTower:
 				case pAction.buildIntelTower:
 				case pAction.buildWall:
+				case pAction.fireAgain:
 					int target = pGrid ? this.report.playerId : this.report.enemyId;
 					singleAR = new ActionReq(this.report.playerId, target, this.actionContext, new Vector2[]{pos});
 					break;
