@@ -5,14 +5,10 @@ using CellUIInfo;
 using CellTypes;
 
 namespace CellUIInfo{
-	public enum SelState{
-		def = 0,
-		select,
-		selectHover
-	}
 	public enum InputType{
-		hover,
-		click
+		clickDown,
+		hoverEnter,
+		hoverExit
 	}
 }
 
@@ -37,10 +33,10 @@ public class Cell2D : MonoBehaviour {
 	//Other
 	public Vector2 coords;
 	public CState cState;
-	public SelState selState;
 	public GameGrid2D parentGrid;
-	//temp
-	Color defaultBGColor;
+	//Selections states
+	bool hovered = false;
+	bool selected = false;
 
 	// Use this for initialization
 	void Start () {
@@ -64,7 +60,6 @@ public class Cell2D : MonoBehaviour {
 
 	public void SetBGColor(Color c){
 		this.srbg.color = c;
-		this.defaultBGColor = c;
 	}
 
 	public void Flip(){
@@ -77,20 +72,16 @@ public class Cell2D : MonoBehaviour {
 	}
 
 	void OnMouseEnter(){
-		this.ReportInput(InputType.hover);
+		this.parentGrid.RXCellInput(this.coords, InputType.hoverEnter, this.cState);
 	}
 
 	void OnMouseExit(){
-		// don't report this...
+		this.parentGrid.RXCellInput(this.coords, InputType.hoverExit, this.cState);
 	}
 
 	void OnMouseDown(){
 		Debug.Log("Clicked on: " + this.coords.ToString() + "State currently " + this.cState.ToString());
-		this.ReportInput(InputType.click);
-	}
-
-	void ReportInput(InputType it){
-		this.parentGrid.RXCellInput(this.coords, it, this.cState, this.selState);
+		this.parentGrid.RXCellInput(this.coords, InputType.clickDown, this.cState);
 	}
 
 	public void SetMainState(CState newState){
@@ -135,18 +126,25 @@ public class Cell2D : MonoBehaviour {
 		}
 	}
 
-	public void SetSelectState(SelState s){
-		this.selState = s;
-		switch(this.selState){
-		case SelState.def:
-			this.srbg.sprite = this.defaultBG;
-			break;
-		case SelState.select:
+	public void SetHovered(bool hov){
+		this.hovered = hov;
+		this.UpdateBGState();
+	}
+
+	public void SetSelected(bool sel){
+		this.selected = sel;
+		this.UpdateBGState();
+	}
+
+	void UpdateBGState(){
+		if(this.hovered){
+			this.srbg.sprite = this.selectHoverBG;
+		}
+		else if(this.selected){
 			this.srbg.sprite = this.selectBG;
-			break;
-		case SelState.selectHover:
-		this.srbg.sprite = this.selectHoverBG;
-			break;
+		}
+		else{
+			this.srbg.sprite = this.defaultBG;
 		}
 	}
 

@@ -90,19 +90,23 @@ public class InputProcessor : MonoBehaviour {
 		this.queuedActions.Clear();
 	}
 
-	public void RXInput(bool pGrid, InputType it, Vector2 pos, CState state, SelState selstate){
+	public void RXInput(bool pGrid, InputType it, Vector2 pos, CState state){
 		//Don't need to ensure local player, grid only assigned to localplayer
 		if (this.actionLocked){
 			//Debug.Log("Got input, but we're already locked... ignoring");
 			return;
 		}
-		if(it == InputType.hover){ // Handle hover input. Probably will depend on current action context, don't worry about that now
-			this.pb.ClearSelectionState(true);
-			if(selstate != SelState.select){
-				this.pb.SetCellBGState(pGrid, pos, SelState.selectHover);
-			}
+		if(it == InputType.hoverEnter){ // Handle hover input. Probably will depend on current action context, don't worry about that now
+			//Debug.Log("Hover ON at: " + pos.ToString());
+			ActionReq hoverAR = new ActionReq(0, 0, this.actionContext, new Vector2[]{pos});// All that matters here is that context and pos are correct
+			this.pb.SetCellsSelect(pGrid, true, true, hoverAR);
 		}
-		else if(it == InputType.click){ // Handle click input
+		else if(it == InputType.hoverExit){
+			//Debug.Log("Hover OFF at: " + pos.ToString());
+			ActionReq hoverAR = new ActionReq(0, 0, this.actionContext, new Vector2[]{pos}); // All that matters here is that context and pos are correct
+			this.pb.SetCellsSelect(pGrid, false, true, hoverAR);
+		}
+		else if(it == InputType.clickDown){ // Handle click input
 			switch(this.apc){
 			case ActionProcState.reject:
 				Debug.Log("APC Reject: Ignoring input from grid");
@@ -163,15 +167,17 @@ public class InputProcessor : MonoBehaviour {
 				if(this.v.Validate(singleAR, this.report.latestPlayerGrid, this.report.latestEnemyGrid, new Vector2(pb.sizex, pb.sizey))){
 					Debug.Log("Validated action: " + singleAR.ToString());
 					if(singleAR.a == pAction.fireBasic){
+						this.pb.SetCellsSelect(pGrid, false, false, this.queuedActions[0]); //clear old action selection
 						this.queuedActions[0] = singleAR;
+						this.pb.SetCellsSelect(pGrid, true, false, this.queuedActions[0]); //add new action select
 						this.uic.ActionDisplayUpdateShoot(singleAR);
 					}
 					else{
+						this.pb.SetCellsSelect(pGrid, false, false, this.queuedActions[1]); //clear old action selection
 						this.queuedActions[1] = singleAR;
+						this.pb.SetCellsSelect(pGrid, true, false, this.queuedActions[1]); //add new action selectf
 						this.uic.ActionDisplayUpdateAction(singleAR);
 					}
-					this.pb.ClearSelectionState(false);
-					this.pb.SetCellBGState(pGrid, pos, SelState.select);
 				}
 				else{
 					Debug.Log("Bad action: " + singleAR.ToString());

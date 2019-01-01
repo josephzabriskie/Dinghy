@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using CellTypes;
 using CellUIInfo;
+using PlayerActions;
 
 //!! Important This script should be high priority in execution order
 public class PlayBoard2D : MonoBehaviour {
@@ -25,8 +26,8 @@ public class PlayBoard2D : MonoBehaviour {
 		this.enemyGrid.SetArrayState(eGrid);
 	}
 
-	public void RXGridInput(bool pGrid, InputType it, Vector2 pos, CState cstate, SelState selstate){
-		this.ip.RXInput(pGrid, it, pos, cstate, selstate);
+	public void RXGridInput(bool pGrid, InputType it, Vector2 pos, CState cstate){
+		this.ip.RXInput(pGrid, it, pos, cstate);
 	}
 
 	public void SetCellMainState(bool pGrid, Vector2 pos, CState state){
@@ -34,9 +35,27 @@ public class PlayBoard2D : MonoBehaviour {
 		g.SetCellMainState(pos, state);
 	}
 	
-	public void SetCellBGState(bool pGrid, Vector2 pos, SelState state){
+	public void SetCellsSelect(bool pGrid, bool sel, bool hovered, ActionReq ar){
 		GameGrid2D g = (pGrid) ? this.playerGrid : this.enemyGrid;
-		g.SetCellBGState(pos, state);
+		switch(ar.a){
+		case pAction.fireBasic:
+		case pAction.fireAgain:
+		case pAction.buildWall:
+		case pAction.buildOffenceTower:
+		case pAction.buildDefenceTower:
+		case pAction.buildIntelTower:
+		case pAction.scout:
+			g.SetSingleSelect(sel, ar.loc[0], hovered);
+			break;
+		case pAction.noAction:
+			if(hovered){
+				g.SetSingleSelect(sel, ar.loc[0], hovered);
+			}
+			break;
+		default:
+			Debug.Log("Unhandled pAction Type: " + ar.a.ToString());
+			break;
+		}
 	}
 
 	public void ClearGrids(){

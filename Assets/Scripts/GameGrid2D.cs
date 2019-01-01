@@ -24,10 +24,6 @@ public class GameGrid2D : MonoBehaviour {
 		this.cells[(int)pos.x, (int)pos.y].SetMainState(s);
 	}
 
-	public void SetCellBGState(Vector2 pos, SelState s){
-		this.cells[(int)pos.x, (int)pos.y].SetSelectState(s);
-	}
-
 	public void PlaceCells(float w, float h){
 		//Debug.Log(string.Format("STARTED GRID w:{0}, h:{1}", w, h));
 		int fitx = (int)(w / (this.CellPrefab.GetComponentInChildren<SpriteRenderer>().size.x)); //Warning there are multiple sprites as obj children, assuming here all the same size
@@ -71,9 +67,9 @@ public class GameGrid2D : MonoBehaviour {
 		}
 	}
 
-	public void RXCellInput(Vector2 pos, InputType it, CState cellState, SelState selState){
+	public void RXCellInput(Vector2 pos, InputType it, CState cellState){
 		//Debug.Log("RCCellInfo, send to parent. " + this.playerOwnedGrid.ToString() + pos.ToString() + cellState.ToString());
-		this.parent.RXGridInput(this.playerOwnedGrid, it, pos, cellState, selState);
+		this.parent.RXGridInput(this.playerOwnedGrid, it, pos, cellState);
 	}
 
 	public CState[,] GetArrayState(){
@@ -102,13 +98,31 @@ public class GameGrid2D : MonoBehaviour {
 		}
 	}
 
-	public void ClearSelectionState(bool hoveronly){
+	public void ClearSelectionState(bool hovered){
 		for(int x = 0; x < this.sizex; x++){
 			for(int y = 0; y < this.sizey; y++){
-				if(!hoveronly || this.cells[x,y].selState == SelState.selectHover){
-					this.cells[x,y].SetSelectState(SelState.def);
+				if(hovered){ //Clear hovered values
+					this.cells[x,y].SetHovered(false);
+				}
+				else{ //Clear cells
+					this.cells[x,y].SetSelected(false);
 				}
 			}
 		}
+	}
+
+	//SelectionUtilities
+	public void SetSingleSelect(bool sel, Vector2 loc, bool hovered){
+		if(hovered){
+			this.cells[(int)loc.x, (int)loc.y].SetHovered(sel);
+		}
+		else{
+			this.cells[(int)loc.x, (int)loc.y].SetSelected(sel);
+		}
+	}
+
+	public void SetRowSelect(bool sel, Vector2 loc, bool hovered){
+		
+
 	}
 }
