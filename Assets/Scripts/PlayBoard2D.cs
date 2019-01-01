@@ -45,11 +45,17 @@ public class PlayBoard2D : MonoBehaviour {
 		case pAction.buildDefenceTower:
 		case pAction.buildIntelTower:
 		case pAction.scout:
-			g.SetSingleSelect(sel, ar.loc[0], hovered);
+			g.SetSingleSelect(sel, hovered, ar.loc[0]);
+			break;
+		case pAction.fireRow:
+			g.SetRowSelect(sel, hovered, (int)ar.loc[0].y);
+			break;
+		case pAction.fireSquare:
+			g.SetSquareSelect(sel, hovered, ar.loc[0]);
 			break;
 		case pAction.noAction:
 			if(hovered){
-				g.SetSingleSelect(sel, ar.loc[0], hovered);
+				g.SetSingleSelect(sel, hovered, ar.loc[0]);
 			}
 			break;
 		default:

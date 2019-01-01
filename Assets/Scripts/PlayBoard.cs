@@ -18,6 +18,8 @@ namespace PlayerActions{
 		fireBasic, // Our every-round shot
 		scout,
 		fireAgain, // Our second shot (different reqs)
+		fireRow, // this won't be broken
+		fireSquare
 	}
 	public struct ActionReq	{
 		public int p; //player number
@@ -92,7 +94,9 @@ namespace PlayboardTypes{
 			{pAction.buildWall, 		new ActionParam(0,2,0, 2, -1)},
 			{pAction.fireBasic, 		new ActionParam(0,0,0, 0, -1)},
 			{pAction.scout, 			new ActionParam(0,0,2, 0, -1)},
-			{pAction.fireAgain,			new ActionParam(3,0,0, 3, -1)}
+			{pAction.fireAgain,			new ActionParam(3,0,0, 3, -1)},
+			{pAction.fireRow,			new ActionParam(0,0,0, 0, -1)},
+			{pAction.fireSquare,		new ActionParam(0,0,0, 0, -1)}
 		};
 		Dictionary<pAction, int> actionCooldowns; //Use for tracking cooldowns
 		List<pAction> actionHistory; //Use for counting uses
@@ -293,14 +297,14 @@ namespace PlayboardTypes{
 			ars.AddRange(player1ARs);
 			//To CodeMonkey: each action must appear no more than once in these lists
 			List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower, pAction.buildWall};
-			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain};
+			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain, pAction.fireRow, pAction.fireSquare};
 			List<pAction> scoutActions = new List<pAction>(){pAction.scout};
 			//Here we order the list to make sure that building happens first
 			var buildARs = ars.Where(ar => buildActions.Contains(ar.a));
 			var otherARs = ars.Where(ar => !buildARs.Contains(ar));
 			ars = buildARs.Concat(otherARs).ToList();
-			//true if a should be before b
-			//A should before b if a is a build acion and b isn't
+			//Now we need to expande certain actions, usually ones that will trigger onXXXX() in many cells
+			ars = this.ActionExpansion(ars);
 			foreach (ActionReq ar in ars){
 				if(buildActions.Contains(ar.a)){
 					this.GetCell(ar.t, new Vector2Int((int)ar.loc[0].x,(int)ar.loc[0].y)).onBuild(ar);
@@ -317,6 +321,37 @@ namespace PlayboardTypes{
 			}
 			//Now update the timed parameters of each cell
 			this.IncrementCellCounters();
+		}
+
+		List<ActionReq> ActionExpansion(List<ActionReq> inList){
+			//Some ARs need to be expanded to multiple cell onXXXX calls, we do this after we've validated and tracked the ARs
+			List<ActionReq> ret = new List<ActionReq>();
+			foreach(ActionReq ar in inList){
+				switch(ar.a){
+				case pAction.fireRow:
+					for(int x = 0; x < this.sizex; x++){
+						ret.Add(new ActionReq(ar.p, ar.t, ar.a, new Vector2[]{ new Vector2(x,(int)ar.loc[0].y)}));
+					}
+					break;
+				case pAction.fireSquare:
+					List<Vector2> locs = new List<Vector2>();
+					for(int x = -1; x < 2; x+=2){
+						for(int y = -1; y < 2; y+=2){
+							locs.Add(new Vector2(ar.loc[0].x + x, ar.loc[0].y + y));
+						}
+					}
+					foreach(Vector2 loc in locs){
+						if(this.CheckLocInRange(new Vector2Int((int)loc.x, (int)loc.y))){ //TODO make alllllll vector2's into vector2ints!
+							ret.Add(new ActionReq(ar.p, ar.t, ar.a, new Vector2[]{loc}));
+						}
+					}
+					break;
+				default:
+					ret.Add(ar);
+					break;
+				}
+			}
+			return ret;
 		}
 		
 		Cell GetCell(int targetPlayer, Vector2Int loc){ // TODO use this instead of 'this.cells[p][x,y]'

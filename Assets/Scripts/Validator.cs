@@ -42,7 +42,9 @@ public class Validator {
                 return DefBuildValid(ar, pGrid, gridSize);
             case pAction.fireBasic:
             case pAction.fireAgain:
-                return AttackValid(ar, eGrid, gridSize);
+            case pAction.fireRow:
+            case pAction.fireSquare:
+                return FireValid(ar, gridSize);
             case pAction.scout:
                 return ScoutValid(ar, eGrid, gridSize);
             case pAction.noAction:
@@ -90,10 +92,9 @@ public class Validator {
         return resl;
     }
 
-    bool AttackValid(ActionReq ar, CState[,] eGrid, Vector2 gridSize){
-        //Checks that player not targeting self,  only one loc specified, terrain isn't already destroyed
-        List<CState> invalidStates = new List<CState>{CState.destroyedTerrain, CState.destroyedTower, CState.wallDestroyed};
-        bool resl = !TargetsSelf(ar) && LocCountEq(ar, 1) && !StateIn(eGrid, ar.loc[0], invalidStates, gridSize);
+    bool FireValid(ActionReq ar, Vector2 gridSize){
+        //Checks that player not targeting self,  only one loc specified, target is in our grid
+        bool resl = !TargetsSelf(ar) && LocCountEq(ar, 1) && LocInGrid(ar.loc[0], gridSize);
         //Debug.Log("Attack Valid returned " + resl.ToString());
         return resl;
     }
@@ -104,7 +105,6 @@ public class Validator {
         //Debug.Log("ScoutValid returned " + resl.ToString());
         return resl;
     }
-
 
     //////////////////////////////
     // Library of validators

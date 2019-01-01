@@ -110,9 +110,9 @@ public class GameGrid2D : MonoBehaviour {
 			}
 		}
 	}
-
-	//SelectionUtilities
-	public void SetSingleSelect(bool sel, Vector2 loc, bool hovered){
+	////////////////////////////////////////////////////
+	//Selection Functions
+	public void SetSingleSelect(bool sel, bool hovered, Vector2 loc){
 		if(hovered){
 			this.cells[(int)loc.x, (int)loc.y].SetHovered(sel);
 		}
@@ -121,8 +121,35 @@ public class GameGrid2D : MonoBehaviour {
 		}
 	}
 
-	public void SetRowSelect(bool sel, Vector2 loc, bool hovered){
-		
+	public void SetRowSelect(bool sel, bool hovered, int row){
+		for(int x = 0; x < this.sizex; x++){
+			if(hovered){
+				this.cells[x,row].SetHovered(sel);
+			}
+			else{
+				this.cells[x,row].SetSelected(sel);
+			}
+		}
+	}
 
+	public void SetSquareSelect(bool sel, bool hovered, Vector2 loc){
+		for(int x = -1; x < 2; x+=2){
+			for(int y = -1; y < 2; y+=2){
+				Vector2 newLoc = new Vector2(loc.x + x, loc.y + y);
+				if(!this.CheckLocInRange(newLoc)){
+					continue;
+				}
+				if(hovered){
+					this.cells[(int)newLoc.x, (int)newLoc.y].SetHovered(sel);
+				}
+				else{
+					this.cells[(int)newLoc.x, (int)newLoc.y].SetSelected(sel);
+				}
+			}
+		}
+	}
+
+	bool CheckLocInRange(Vector2 loc){
+		return loc.x >= 0 && loc.x < this.sizex && loc.y >= 0 && loc.y < this.sizey;
 	}
 }
