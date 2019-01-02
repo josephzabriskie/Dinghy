@@ -149,6 +149,19 @@ public class GameGrid2D : MonoBehaviour {
 		}
 	}
 
+	public void SetAllSelect(bool sel, bool hovered){
+		for(int x = 0; x < this.sizex; x++){
+			for(int y = 0; y < this.sizey; y++){
+				if(hovered){
+				this.cells[x,y].SetHovered(sel);
+				}
+				else{
+					this.cells[x,y].SetSelected(sel);
+				}
+			}
+		}
+	}
+
 	bool CheckLocInRange(Vector2 loc){
 		return loc.x >= 0 && loc.x < this.sizex && loc.y >= 0 && loc.y < this.sizey;
 	}

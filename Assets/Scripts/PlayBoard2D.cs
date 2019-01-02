@@ -53,6 +53,9 @@ public class PlayBoard2D : MonoBehaviour {
 		case pAction.fireSquare:
 			g.SetSquareSelect(sel, hovered, ar.loc[0]);
 			break;
+		case pAction.blockingShot:
+			g.SetAllSelect(sel, hovered);
+			break;
 		case pAction.noAction:
 			if(hovered){
 				g.SetSingleSelect(sel, hovered, ar.loc[0]);

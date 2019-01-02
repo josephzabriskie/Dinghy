@@ -47,6 +47,8 @@ public class Validator {
                 return FireValid(ar, gridSize);
             case pAction.scout:
                 return ScoutValid(ar, eGrid, gridSize);
+            case pAction.blockingShot:
+                return BlockingShotValid(ar);
             case pAction.noAction:
                 return false;
             default:
@@ -103,6 +105,11 @@ public class Validator {
         //Checks: target enemy, has only 1 loc, target is hidden
         bool resl = !TargetsSelf(ar) && LocCountEq(ar, 1) && StateIs(eGrid, ar.loc[0], CState.hidden, gridSize);
         //Debug.Log("ScoutValid returned " + resl.ToString());
+        return resl;
+    }
+
+    bool BlockingShotValid(ActionReq ar){
+        bool resl = !TargetsSelf(ar) && LocCountEq(ar, 0);
         return resl;
     }
 

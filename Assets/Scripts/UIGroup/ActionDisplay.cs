@@ -22,7 +22,8 @@ public class ActionDisplay : MonoBehaviour {
 			this.Clear();
 		}
 		else {
-			this.actiontxt.text = "Action: " + newAR.a.ToString() + " at " + newAR.loc[0].ToString();
+			string locstr = newAR.loc.Length > 0 ? newAR.loc[0].ToString() : "null";
+			this.actiontxt.text = "Action: " + newAR.a.ToString() + " at " + locstr;
 		}
 	}
 

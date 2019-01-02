@@ -146,6 +146,7 @@ public class InputProcessor : MonoBehaviour {
 				break;
 			case ActionProcState.basicActions:
 				ActionReq singleAR = new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null); // NoAction should always fail eval
+				int target = pGrid ? this.report.playerId : this.report.enemyId;
 				switch(this.actionContext){ // May not need this to be a switch statement after refactor... lol TODO
 				case pAction.noAction:
 					break; // don't do nuthin if no action context
@@ -158,9 +159,11 @@ public class InputProcessor : MonoBehaviour {
 				case pAction.buildWall:
 				case pAction.fireAgain:
 				case pAction.fireRow: // this is multi location, but still single targeted shot
-				case pAction.fireSquare:
-					int target = pGrid ? this.report.playerId : this.report.enemyId;
+				case pAction.fireSquare: // this is multi location, but still single targeted shot
 					singleAR = new ActionReq(this.report.playerId, target, this.actionContext, new Vector2[]{pos});
+					break;
+				case pAction.blockingShot:
+					singleAR = new ActionReq(this.report.playerId, target, this.actionContext, new Vector2[0]);
 					break;
 				default:
 					Debug.LogError("Input processor unhandled actionContext: " + this.actionContext.ToString());	

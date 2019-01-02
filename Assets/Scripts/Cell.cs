@@ -17,7 +17,8 @@ namespace CellTypes{
 		destroyedTower,
 		destroyedTerrain,
 		wall,
-		wallDestroyed
+		wallDestroyed,
+		blocked
 	}
 
 	public enum PCBType{ //prioritycallback type
@@ -105,6 +106,7 @@ namespace CellTypes{
 			case CState.destroyedTerrain:
 			case CState.destroyedTower:
 			case CState.wallDestroyed:
+			case CState.blocked:
 				this.shootDef = new PriorityCB(0, NullCB);
 				this.buildDef = new PriorityCB(0, NullCB);
 				this.scoutDef = new PriorityCB(0, NullCB);
@@ -181,6 +183,7 @@ namespace CellTypes{
 			case CState.destroyedTerrain:
 			case CState.wallDestroyed:
 			case CState.destroyedTower:
+			case CState.blocked:
 				//Debug.Log("SetStateParams: Since we're destoryed, reveal us: " + this.state.ToString());
 				this.vis = true;
 				break;
@@ -258,11 +261,21 @@ namespace CellTypes{
 
 		bool DefShotCB(ActionReq ar){
 			//Debug.Log("CB handler: DefShotCB loc " + this.loc.ToString());
-			if (new List<CState>(){CState.towerDefence, CState.towerOffence, CState.towerIntel}.Contains(this.state)){
-				this.ChangeState(CState.destroyedTower);
+			if(ar.a == pAction.blockingShot){
+				if (this.state == CState.empty){
+					this.ChangeState(CState.blocked);
+				}
+				else{
+					Debug.LogError("Trying to block a non empty cstate! " + ar.ToString());
+				}
 			}
-			else if (this.state == CState.empty){
-				this.ChangeState(CState.destroyedTerrain);
+			else{
+				if (new List<CState>(){CState.towerDefence, CState.towerOffence, CState.towerIntel}.Contains(this.state)){
+					this.ChangeState(CState.destroyedTower);
+				}
+				else if (this.state == CState.empty){
+					this.ChangeState(CState.destroyedTerrain);
+				}
 			}
 			return true;
 		}

@@ -19,7 +19,9 @@ namespace PlayerActions{
 		scout,
 		fireAgain, // Our second shot (different reqs)
 		fireRow, // this won't be broken
-		fireSquare
+		fireSquare,
+		blockingShot, // Randomly block # of unoccupied spaces on enemy grid
+
 	}
 	public struct ActionReq	{
 		public int p; //player number
@@ -96,7 +98,8 @@ namespace PlayboardTypes{
 			{pAction.scout, 			new ActionParam(0,0,2, 0, -1)},
 			{pAction.fireAgain,			new ActionParam(3,0,0, 3, -1)},
 			{pAction.fireRow,			new ActionParam(0,0,0, 0, -1)},
-			{pAction.fireSquare,		new ActionParam(0,0,0, 0, -1)}
+			{pAction.fireSquare,		new ActionParam(0,0,0, 0, -1)},
+			{pAction.blockingShot,		new ActionParam(0,0,0, 0, -1)}
 		};
 		Dictionary<pAction, int> actionCooldowns; //Use for tracking cooldowns
 		List<pAction> actionHistory; //Use for counting uses
@@ -243,6 +246,19 @@ namespace PlayboardTypes{
 			return gridOut;
 		}
 
+		//Used to help our randomizer functions that don't want to hit
+		List<Vector2> GetLocsInStates(int idx,  List<CState> states, bool negate=false, bool showAll=false){
+			List<Vector2> ret = new List<Vector2>();
+			for(int x = 0; x < this.sizex; x++){
+				for(int y = 0; y < this.sizey; y++){
+					if (!negate && states.Contains(cells[idx][x,y].GetState(showAll:showAll))){
+						ret.Add(new Vector2(x,y));
+					}
+				}
+			}
+			return ret;
+		}
+
 		public bool CheckPlayerLose(int p){
 			List<CState> s = new List<CState>(){CState.towerOffence, CState.towerDefence, CState.towerIntel};
 			//Debug.Log("GameOverChecking for player: " + p.ToString());
@@ -297,7 +313,7 @@ namespace PlayboardTypes{
 			ars.AddRange(player1ARs);
 			//To CodeMonkey: each action must appear no more than once in these lists
 			List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower, pAction.buildWall};
-			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain, pAction.fireRow, pAction.fireSquare};
+			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain, pAction.fireRow, pAction.fireSquare, pAction.blockingShot};
 			List<pAction> scoutActions = new List<pAction>(){pAction.scout};
 			//Here we order the list to make sure that building happens first
 			var buildARs = ars.Where(ar => buildActions.Contains(ar.a));
@@ -334,16 +350,24 @@ namespace PlayboardTypes{
 					}
 					break;
 				case pAction.fireSquare:
-					List<Vector2> locs = new List<Vector2>();
+					List<Vector2> squareLocs = new List<Vector2>();
 					for(int x = -1; x < 2; x+=2){
 						for(int y = -1; y < 2; y+=2){
-							locs.Add(new Vector2(ar.loc[0].x + x, ar.loc[0].y + y));
+							squareLocs.Add(new Vector2(ar.loc[0].x + x, ar.loc[0].y + y));
 						}
 					}
-					foreach(Vector2 loc in locs){
+					foreach(Vector2 loc in squareLocs){
 						if(this.CheckLocInRange(new Vector2Int((int)loc.x, (int)loc.y))){ //TODO make alllllll vector2's into vector2ints!
 							ret.Add(new ActionReq(ar.p, ar.t, ar.a, new Vector2[]{loc}));
 						}
+					}
+					break;
+				case pAction.blockingShot:
+					List<Vector2> emptyLocs =  this.GetLocsInStates(ar.t, new List<CState>(){CState.empty}, showAll:true);
+					for(int i = 0; i < 3; i++){
+						int randVal = UnityEngine.Random.Range(0,emptyLocs.Count());
+						ret.Add(new ActionReq(ar.p, ar.t, ar.a, new Vector2[]{emptyLocs[randVal]}));
+						emptyLocs.RemoveAt(randVal);
 					}
 					break;
 				default:
