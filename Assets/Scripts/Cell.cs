@@ -18,7 +18,9 @@ namespace CellTypes{
 		destroyedTerrain,
 		wall,
 		wallDestroyed,
-		blocked
+		blocked,
+		mine,
+		destroyedMine
 	}
 
 	public enum PCBType{ //prioritycallback type
@@ -99,6 +101,7 @@ namespace CellTypes{
 			case CState.towerOffence:
 			case CState.towerDefence:
 			case CState.towerIntel:
+			case CState.mine:
 				this.shootDef = new PriorityCB(0, DefShotCB);
 				this.buildDef = new PriorityCB(0, DefBuiltCB);
 				this.scoutDef = new PriorityCB(0, DefScoutedCB);
@@ -107,6 +110,7 @@ namespace CellTypes{
 			case CState.destroyedTower:
 			case CState.wallDestroyed:
 			case CState.blocked:
+			case CState.destroyedMine:
 				this.shootDef = new PriorityCB(0, NullCB);
 				this.buildDef = new PriorityCB(0, NullCB);
 				this.scoutDef = new PriorityCB(0, NullCB);
@@ -184,6 +188,7 @@ namespace CellTypes{
 			case CState.wallDestroyed:
 			case CState.destroyedTower:
 			case CState.blocked:
+			case CState.destroyedMine:
 				//Debug.Log("SetStateParams: Since we're destoryed, reveal us: " + this.state.ToString());
 				this.vis = true;
 				break;
@@ -252,6 +257,9 @@ namespace CellTypes{
 			case pAction.buildWall:
 				this.ChangeState(CState.wall);
 				break;
+			case pAction.placeMine:
+				this.ChangeState(CState.mine);
+				break;
 			default:
 				Debug.LogError("EmptyBuildCB: Default case unhandled. " + ar.a.ToString());
 				return false;
@@ -261,6 +269,10 @@ namespace CellTypes{
 
 		bool DefShotCB(ActionReq ar){
 			//Debug.Log("CB handler: DefShotCB loc " + this.loc.ToString());
+			if(this.state == CState.mine){
+				this.ChangeState(CState.destroyedMine);
+				this.pb.SetActionCooldown(ar.p, pAction.fireBasic, 3);
+			}
 			if(ar.a == pAction.blockingShot){
 				if (this.state == CState.empty){
 					this.ChangeState(CState.blocked);

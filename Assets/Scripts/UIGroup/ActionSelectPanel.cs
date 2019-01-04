@@ -90,7 +90,8 @@ public class ActionSelectPanel : MonoBehaviour {
 	}
 
 	public void UpdateActionInfo(ActionAvail aa){
-		this.cooldownText.text = aa.actionParam.cooldown == 0 ? "-" : string.Format("{0}/{1}", aa.cooldown, aa.actionParam.cooldown);
+		//Some actions can be set on cooldown by other actions, check both max cd and current before blanking
+		this.cooldownText.text = aa.actionParam.cooldown == 0 && aa.cooldown == 0 ? "-" : string.Format("{0}/{1}", aa.cooldown, aa.actionParam.cooldown);
 		this.usesLeftText.text = aa.usesLeft < 0 ? "∞" : aa.usesLeft.ToString();
 		this.offenceCostText.text = aa.actionParam.offenceCost.ToString();
 		this.defenceCostText.text = aa.actionParam.defenceCost.ToString();

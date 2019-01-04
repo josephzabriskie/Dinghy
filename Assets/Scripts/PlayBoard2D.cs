@@ -45,6 +45,7 @@ public class PlayBoard2D : MonoBehaviour {
 		case pAction.buildDefenceTower:
 		case pAction.buildIntelTower:
 		case pAction.scout:
+		case pAction.placeMine:
 			g.SetSingleSelect(sel, hovered, ar.loc[0]);
 			break;
 		case pAction.fireRow:
@@ -53,8 +54,10 @@ public class PlayBoard2D : MonoBehaviour {
 		case pAction.fireSquare:
 			g.SetSquareSelect(sel, hovered, ar.loc[0]);
 			break;
-		case pAction.blockingShot:
-			g.SetAllSelect(sel, hovered);
+		case pAction.blockingShot: // these guys don't have any targeting or loc in their action
+		case pAction.hellFire: // for now just target (0,0) temp
+		case pAction.flare:
+			g.SetSingleSelect(sel, hovered, new Vector2(0,0)); //TODO Add actions that don't need targeting
 			break;
 		case pAction.noAction:
 			if(hovered){

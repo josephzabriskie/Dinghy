@@ -21,7 +21,9 @@ namespace PlayerActions{
 		fireRow, // this won't be broken
 		fireSquare,
 		blockingShot, // Randomly block # of unoccupied spaces on enemy grid
-
+		hellFire, // Randomly shoot at 5 targets on enemy side!
+		flare, //randomly shoot scouts at 2
+		placeMine,
 	}
 	public struct ActionReq	{
 		public int p; //player number
@@ -87,7 +89,7 @@ namespace PlayboardTypes{
 	public class PlayerActionTracker{
 		static List<pAction> allActions = ((pAction[])Enum.GetValues(typeof(pAction))).ToList(); // How to get all pActions defined in the enum!
 		static Dictionary<pAction, ActionParam> actionParams = new Dictionary<pAction, ActionParam>{
-										//	ActionParam(costs..cd..uses) Note: you can set uses to 0 if you want disabled
+			//								ActionParam(costs..cd..uses) Note: you can set uses to 0 to disable
 			{pAction.noAction, 			new ActionParam(0,0,0, 0, -1)},
 			{pAction.buildTower, 		new ActionParam(0,0,0, 0, -1)},
 			{pAction.buildOffenceTower, new ActionParam(0,0,0, 0, 7)},
@@ -99,7 +101,10 @@ namespace PlayboardTypes{
 			{pAction.fireAgain,			new ActionParam(3,0,0, 3, -1)},
 			{pAction.fireRow,			new ActionParam(0,0,0, 0, -1)},
 			{pAction.fireSquare,		new ActionParam(0,0,0, 0, -1)},
-			{pAction.blockingShot,		new ActionParam(0,0,0, 0, -1)}
+			{pAction.blockingShot,		new ActionParam(0,0,0, 0, -1)},
+			{pAction.hellFire,			new ActionParam(0,0,0, 0, -1)},
+			{pAction.flare,				new ActionParam(0,0,0, 0, -1)},
+			{pAction.placeMine,			new ActionParam(0,0,0, 0, -1)},
 		};
 		Dictionary<pAction, int> actionCooldowns; //Use for tracking cooldowns
 		List<pAction> actionHistory; //Use for counting uses
@@ -188,6 +193,15 @@ namespace PlayboardTypes{
 			}
 		}
 
+		//Function to artificially set cooldown of action
+		public void SetCooldown(pAction action, int cooldown){
+			if(cooldown < 0){
+				Debug.LogError("Don't set cd to < 0: " + cooldown.ToString());
+				return;
+			}
+			this.actionCooldowns[action] = cooldown;
+		}
+
 		//Validate and track actions = Just do the validate then track in sequence
 		public List<ActionReq> ValidateAndTrackActions(List<ActionReq> inList, CState[,] pGrid){
 			List<ActionReq> valActions = this.ValidateActions(inList, pGrid);
@@ -251,8 +265,15 @@ namespace PlayboardTypes{
 			List<Vector2> ret = new List<Vector2>();
 			for(int x = 0; x < this.sizex; x++){
 				for(int y = 0; y < this.sizey; y++){
-					if (!negate && states.Contains(cells[idx][x,y].GetState(showAll:showAll))){
-						ret.Add(new Vector2(x,y));
+					if(!negate){
+						if (states.Contains(cells[idx][x,y].GetState(showAll:showAll))){
+							ret.Add(new Vector2(x,y));
+						}
+					}
+					else{
+						if (!states.Contains(cells[idx][x,y].GetState(showAll:showAll))){
+							ret.Add(new Vector2(x,y));
+						}
 					}
 				}
 			}
@@ -312,9 +333,9 @@ namespace PlayboardTypes{
 			ars.AddRange(player0ARs);
 			ars.AddRange(player1ARs);
 			//To CodeMonkey: each action must appear no more than once in these lists
-			List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower, pAction.buildWall};
-			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain, pAction.fireRow, pAction.fireSquare, pAction.blockingShot};
-			List<pAction> scoutActions = new List<pAction>(){pAction.scout};
+			List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower, pAction.buildWall, pAction.placeMine};
+			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain, pAction.fireRow, pAction.fireSquare, pAction.blockingShot, pAction.hellFire};
+			List<pAction> scoutActions = new List<pAction>(){pAction.scout, pAction.flare};
 			//Here we order the list to make sure that building happens first
 			var buildARs = ars.Where(ar => buildActions.Contains(ar.a));
 			var otherARs = ars.Where(ar => !buildARs.Contains(ar));
@@ -365,9 +386,34 @@ namespace PlayboardTypes{
 				case pAction.blockingShot:
 					List<Vector2> emptyLocs =  this.GetLocsInStates(ar.t, new List<CState>(){CState.empty}, showAll:true);
 					for(int i = 0; i < 3; i++){
+						if(emptyLocs.Count() == 0){
+							break;
+						}
 						int randVal = UnityEngine.Random.Range(0,emptyLocs.Count());
 						ret.Add(new ActionReq(ar.p, ar.t, ar.a, new Vector2[]{emptyLocs[randVal]}));
 						emptyLocs.RemoveAt(randVal);
+					}
+					break;
+				case pAction.hellFire:
+					List<Vector2> allLocs =  this.GetLocsInStates(ar.t, new List<CState>(){}, showAll:true, negate:true);
+					for(int i = 0; i < 5; i++){
+						if(allLocs.Count() == 0){
+							break;
+						}
+						int randVal = UnityEngine.Random.Range(0,allLocs.Count());
+						ret.Add(new ActionReq(ar.p, ar.t, ar.a, new Vector2[]{allLocs[randVal]}));
+						allLocs.RemoveAt(randVal);
+					}
+					break;
+				case pAction.flare:
+					List<Vector2> noTowerLocs =  this.GetLocsInStates(ar.t, new List<CState>(){}, showAll:true, negate:true);
+					for(int i = 0; i < 2; i++){
+						if(noTowerLocs.Count() == 0){
+							break;
+						}
+						int randVal = UnityEngine.Random.Range(0,noTowerLocs.Count());
+						ret.Add(new ActionReq(ar.p, ar.t, ar.a, new Vector2[]{noTowerLocs[randVal]}));
+						noTowerLocs.RemoveAt(randVal);
 					}
 					break;
 				default:
@@ -402,6 +448,10 @@ namespace PlayboardTypes{
 				return;
 			//Debug.Log("PB: RemCellCallback: loc: " + loc.ToString() + ", type: " + cbt.ToString());
 			this.GetCell(p, loc).RemCB(cb, cbt);
+		}
+
+		public void SetActionCooldown(int playerId, pAction action, int cooldown){
+			this.pats[playerId].SetCooldown(action,cooldown);
 		}
 
 		bool CheckLocInRange(Vector2Int loc){

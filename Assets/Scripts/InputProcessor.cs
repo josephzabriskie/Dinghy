@@ -160,9 +160,12 @@ public class InputProcessor : MonoBehaviour {
 				case pAction.fireAgain:
 				case pAction.fireRow: // this is multi location, but still single targeted shot
 				case pAction.fireSquare: // this is multi location, but still single targeted shot
+				case pAction.placeMine:
 					singleAR = new ActionReq(this.report.playerId, target, this.actionContext, new Vector2[]{pos});
 					break;
 				case pAction.blockingShot:
+				case pAction.hellFire:
+				case pAction.flare:
 					singleAR = new ActionReq(this.report.playerId, target, this.actionContext, new Vector2[0]);
 					break;
 				default:

@@ -148,6 +148,8 @@ MonoBehaviour:
   wall: {fileID: 21300000, guid: 019662129bae4cb45a00f6b221d6ecae, type: 3}
   wallDestroyed: {fileID: 21300000, guid: c5e90ba7e60e6424f8539cb8d0b1bef9, type: 3}
   blocked: {fileID: 21300000, guid: 8e9c89d628dd56a4a98235ecaaa9e4a5, type: 3}
+  mine: {fileID: 21300000, guid: 9fa0558577ce5774ca66ee2e905cfbda, type: 3}
+  mineDestroyed: {fileID: 21300000, guid: 7a27e5ce0e7b284408cd4d84d6e868eb, type: 3}
   defaultBG: {fileID: 21300000, guid: 3469a51f0714bc44889e92b07ff33fae, type: 3}
   selectBG: {fileID: 21300000, guid: abfa7ff6220b2af4289403789b592604, type: 3}
   selectHoverBG: {fileID: 21300000, guid: 953a9dac67a8c7742ab4ec8d29637ae1, type: 3}

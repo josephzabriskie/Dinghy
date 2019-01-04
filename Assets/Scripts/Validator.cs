@@ -39,6 +39,7 @@ public class Validator {
             case pAction.buildDefenceTower:
             case pAction.buildIntelTower:
             case pAction.buildWall:
+            case pAction.placeMine:
                 return DefBuildValid(ar, pGrid, gridSize);
             case pAction.fireBasic:
             case pAction.fireAgain:
@@ -48,7 +49,9 @@ public class Validator {
             case pAction.scout:
                 return ScoutValid(ar, eGrid, gridSize);
             case pAction.blockingShot:
-                return BlockingShotValid(ar);
+            case pAction.hellFire:
+            case pAction.flare:
+                return RandomShootActionValid(ar);
             case pAction.noAction:
                 return false;
             default:
@@ -108,7 +111,7 @@ public class Validator {
         return resl;
     }
 
-    bool BlockingShotValid(ActionReq ar){
+    bool RandomShootActionValid(ActionReq ar){
         bool resl = !TargetsSelf(ar) && LocCountEq(ar, 0);
         return resl;
     }
