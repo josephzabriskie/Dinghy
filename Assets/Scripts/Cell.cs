@@ -6,7 +6,7 @@ using PlayboardTypes;
 
 //Hey, don't use any unity stuff if you can avoid it here!
 namespace CellTypes{
-	public enum CState{
+	public enum CBldg{ //Representation of what's built in a tile
 		hidden = 0,
 		empty,
 		towerTemp,
@@ -14,15 +14,29 @@ namespace CellTypes{
 		towerOffence,
 		towerDefence,
 		towerIntel,
-		destroyedTower,
-		destroyedTerrain,
+		//destroyedTower,
+		//destroyedTerrain,
 		wall,
-		wallDestroyed,
+		//wallDestroyed,
 		blocked,
 		mine,
-		destroyedMine,
+		//destroyedMine,
 		defenceGrid,
-		destroyedDefenceGrid
+		//destroyedDefenceGrid
+	}
+	public struct CellStruct{ // Here is the data type that will be passed back to the player
+		public CBldg bldg; //The building in the cell (can be empty)
+		public bool destroyed;
+		//Explicit Constructor
+		public CellStruct(CBldg bldg, bool destroyed){
+			this.bldg = bldg;
+			this.destroyed = destroyed;
+		}
+		//Default constructor? Useful?
+		public CellStruct(CBldg bldg){
+			this.bldg = bldg;
+			this.destroyed = false;
+		}
 	}
 
 	public enum PCBType{ //prioritycallback type
@@ -46,7 +60,7 @@ namespace CellTypes{
 	}
 
     public class Cell{
-		CState state;
+		CBldg bldg;
 		public PlayBoard pb;
 		public int pNum;
 		public Vector2Int loc;
@@ -56,6 +70,8 @@ namespace CellTypes{
 		List<PriorityCB> shootCBs;
 		List<PriorityCB> buildCBs;
 		List<PriorityCB> scoutCBs;
+		///////CellParams
+		bool destroyed; // if we ded
 		bool vis; // visible to Enemy
 		//For Scouting actions
 		bool scouted;
@@ -78,11 +94,21 @@ namespace CellTypes{
 			this.defenceGridActive = false;
 		}
 
-		public CState GetState(bool showAll=false){
-			return showAll || this.vis || this.scouted ? this.state : CState.hidden;
+		public CellStruct GetCellStruct(bool showAll=false){
+			CBldg s;
+			bool ded;
+			if(showAll || this.vis || this.scouted){ // In this case area is visible, fill in all data accurately
+				s = this.bldg;
+				ded = this.destroyed;
+			}
+			else{ //We're supposed to be hidden, show nothing!
+				s = CBldg.hidden;
+				ded = false;
+			}
+			return new CellStruct(s, ded);
 		}
 
-		public Cell(CState state, int pNum, Vector2Int loc, PlayBoard pb, bool visibleToEnemy){
+		public Cell(CBldg bldg, int pNum, Vector2Int loc, PlayBoard pb, bool visibleToEnemy){
 			this.pb = pb; // This will never change
 			this.pNum = pNum;
 			this.loc = loc;
@@ -90,45 +116,59 @@ namespace CellTypes{
 			this.shootCBs = new List<PriorityCB>();
 			this.buildCBs = new List<PriorityCB>();
 			this.scoutCBs = new List<PriorityCB>();
-			this.ChangeState(state, init:true);
+			this.ChangeCellBldg(bldg, init:true);
 		}
 		
-		public void ChangeState(CState newState, bool init=false){
-			//Debug.Log("Changing our state from" + this.state.ToString() + " to " + newState.ToString() + " loc " + this.loc.ToString());
+		//////////////////////////
+		//State Changing functions
+		public void ChangeCellBldg(CBldg newBldg, bool init=false){
+			//Debug.Log("Changing our bldg from" + this.bldg.ToString() + " to " + newBldg.ToString() + " loc " + this.loc.ToString());
 			if (!init){
 				this.TearDownSpecialCbs();
 			}
-			this.SetStateParams(newState);
+			this.SetCellParams(newBldg);
 			this.SetDefaultCB();
 			this.SetupSpecialCBs();			
 		}
 
+		public void DestroyCell(bool destroy){
+			this.destroyed = destroy;
+			if(destroy){ // blow it up
+				this.vis = true; // on boom, make visible
+				this.TearDownSpecialCbs();
+			}
+			else{// un-blow it up?
+				this.SetupSpecialCBs();
+			}
+		}
+
+		//////////////////////////
 		void SetDefaultCB(){
-			switch(this.state){
-				//Each State here has to set each of the defaults! If you don't it'll use the ones from the last state
-			case CState.empty:
-			case CState.wall:
-			case CState.towerOffence:
-			case CState.towerDefence:
-			case CState.towerIntel:
-			case CState.mine:
-			case CState.defenceGrid:
+			switch(this.bldg){
+				//Each bldg here has to set each of the defaults! If you don't it'll use the ones from the last bldg
+			case CBldg.empty:
+			case CBldg.wall:
+			case CBldg.towerOffence:
+			case CBldg.towerDefence:
+			case CBldg.towerIntel:
+			case CBldg.mine:
+			case CBldg.defenceGrid:
 				this.shootDef = new PriorityCB(0, DefShotCB);
 				this.buildDef = new PriorityCB(0, DefBuiltCB);
 				this.scoutDef = new PriorityCB(0, DefScoutedCB);
 				break;
-			case CState.destroyedTerrain:
-			case CState.destroyedTower:
-			case CState.wallDestroyed:
-			case CState.blocked:
-			case CState.destroyedMine:
-			case CState.destroyedDefenceGrid:
-				this.shootDef = new PriorityCB(0, NullCB);
-				this.buildDef = new PriorityCB(0, NullCB);
-				this.scoutDef = new PriorityCB(0, NullCB);
-				break;
+			// case CState.destroyedTerrain:
+			// case CState.destroyedTower:
+			// case CState.wallDestroyed:
+			// case CState.destroyedMine:
+			// case CState.destroyedDefenceGrid:
+			case CBldg.blocked:
+			// 	this.shootDef = new PriorityCB(0, NullCB);
+			// 	this.buildDef = new PriorityCB(0, NullCB);
+			// 	this.scoutDef = new PriorityCB(0, NullCB);
+			// 	break;
 			default:
-				Debug.LogError("SetDefaultCB unhandled Case: " + this.state.ToString() + ", setting CB's to null");
+				Debug.LogError("SetDefaultCB unhandled Case: " + this.bldg.ToString() + ", setting CB's to null");
 				this.shootDef = new PriorityCB(0, NullCB);
 				this.buildDef = new PriorityCB(0, NullCB);
 				this.scoutDef = new PriorityCB(0, NullCB);
@@ -138,12 +178,12 @@ namespace CellTypes{
 
 		//Add special CBs to other cells
 		void SetupSpecialCBs(){
-			if(this.state == CState.wall){
+			if(this.bldg == CBldg.wall){
 				//Debug.Log("Adding the wall's special callbacks");
 				this.pb.AddCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -1), new PriorityCB(5, this.WallCB), PCBType.shoot);
 				this.pb.AddCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -2), new PriorityCB(6, this.WallCB), PCBType.shoot);
 			}
-			if(this.state == CState.defenceGrid){
+			if(this.bldg == CBldg.defenceGrid){
 				for(int x = -2; x < 3; x++){
 					for(int y = -2; y < 3; y++){
 						if(!(x == 0 && y == 0)){
@@ -155,12 +195,12 @@ namespace CellTypes{
 		}
 
 		void TearDownSpecialCbs(){
-			if(this.state == CState.wall){
+			if(this.bldg == CBldg.wall){
 				//Debug.Log("removing the wall's special callbacks");
 				this.pb.RemCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -1), new PriorityCB(5, this.WallCB), PCBType.shoot);
 				this.pb.RemCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -2), new PriorityCB(6, this.WallCB), PCBType.shoot);
 			}
-			if(this.state == CState.defenceGrid){
+			if(this.bldg == CBldg.defenceGrid){
 				for(int x = -2; x < 3; x++){
 					for(int y = -2; y < 3; y++){
 						if(!(x == 0 && y == 0)){
@@ -205,30 +245,30 @@ namespace CellTypes{
 				lst.Remove(rem);
 			}
 			else{
-				Debug.LogError("Found none or more than 1 matching item to remove");
+				Debug.LogError("Found none or more than 1 matching item to remove: len" + lst.Count.ToString() + " pcb: " + rem.ToString());
 				return false;
 			}
 			return true;
 		}
 
-		void SetStateParams(CState newState){
-			this.state = newState;
-			switch(this.state){
-			case CState.destroyedTerrain:
-			case CState.wallDestroyed:
-			case CState.destroyedTower:
-			case CState.blocked:
-			case CState.destroyedMine:
-			case CState.destroyedDefenceGrid:
-				//Debug.Log("SetStateParams: Since we're destoryed, reveal us: " + this.state.ToString());
-				this.vis = true;
+		void SetCellParams(CBldg newBldg){
+			this.bldg = newBldg;
+			switch(this.bldg){
+			// case CState.destroyedTerrain:
+			// case CState.wallDestroyed:
+			// case CState.destroyedTower:
+			// case CState.destroyedMine:
+			// case CState.destroyedDefenceGrid:
+			case CBldg.blocked:
+				//Debug.Log("SetCellParams: Since we're destroyed, reveal us: " + this.newBldg.ToString());
+				this.vis = true; // Set visibility permanently
 				break;
-			case CState.defenceGrid:
+			case CBldg.defenceGrid:
 				this.defenceGridHits = 0;
 				this.defenceGridActive = false;
 				break;
-			case CState.hidden:
-				Debug.LogError("SetStateParams: Don't ever expect to be in this state: " + this.state.ToString());
+			case CBldg.hidden:
+				Debug.LogError("SetCellParams: Don't ever expect to be in this state: " + this.bldg.ToString());
 				break;
 			default:
 				//Debug.Log("SetStateParams: No new state params for incoming state: " + this.state.ToString());
@@ -266,14 +306,14 @@ namespace CellTypes{
 		}
 
 		public void PrintSelfInfo(){
-			Debug.Log("Cellinfo: Loc: " + this.loc.ToString() + ", State: " + this.state.ToString());
+			Debug.Log("Cellinfo: Loc: " + this.loc.ToString() + ", Bldg: " + this.bldg.ToString());
 			Debug.Log("Cellinfo cont: cbshot: " + this.shootCBs.Count().ToString() + ", cbbuild:" +this.buildCBs.Count().ToString() + ", cbscout:" + this.scoutCBs.Count().ToString());
 		}
 
 		/////////////Callbacks
 		bool WallCB(ActionReq ar){
 			//Debug.Log("CB handler: WallCB loc" + this.loc.ToString());
-			this.ChangeState(CState.wallDestroyed);
+			this.DestroyCell(true);
 			return true;
 		}
 
@@ -286,7 +326,7 @@ namespace CellTypes{
 			}
 			Debug.LogWarning("CB handler: DefenceGridCB blocked shot #" + this.defenceGridHits.ToString() + " at loc" + this.loc.ToString());
 			if (this.defenceGridHits >= maxHits){
-				this.ChangeState(CState.destroyedDefenceGrid);
+				this.DestroyCell(true);
 			}
 			return true;
 		}
@@ -295,22 +335,22 @@ namespace CellTypes{
 			//Debug.Log("CB handler: DefBuiltCB loc " + this.loc.ToString());
 			switch(ar.a){
 			case pAction.buildOffenceTower:
-				this.ChangeState(CState.towerOffence);
+				this.ChangeCellBldg(CBldg.towerOffence);
 				break;
 			case pAction.buildDefenceTower:
-				this.ChangeState(CState.towerDefence);
+				this.ChangeCellBldg(CBldg.towerDefence);
 				break;
 			case pAction.buildIntelTower:
-				this.ChangeState(CState.towerIntel);
+				this.ChangeCellBldg(CBldg.towerIntel);
 				break;
 			case pAction.buildWall:
-				this.ChangeState(CState.wall);
+				this.ChangeCellBldg(CBldg.wall);
 				break;
 			case pAction.placeMine:
-				this.ChangeState(CState.mine);
+				this.ChangeCellBldg(CBldg.mine);
 				break;
 			case pAction.buildDefenceGrid:
-				this.ChangeState(CState.defenceGrid);
+				this.ChangeCellBldg(CBldg.defenceGrid);
 				break;
 			default:
 				Debug.LogError("EmptyBuildCB: Default case unhandled. " + ar.a.ToString());
@@ -322,26 +362,20 @@ namespace CellTypes{
 		bool DefShotCB(ActionReq ar){
 			//Debug.Log("CB handler: DefShotCB loc " + this.loc.ToString());
 			//Always check if we're a mine first, must punish
-			if(this.state == CState.mine){
-				this.ChangeState(CState.destroyedMine);
+			if(this.bldg == CBldg.mine){
+				this.DestroyCell(true);
 				this.pb.SetActionCooldown(ar.p, pAction.fireBasic, 3);
 			}
 			if(ar.a == pAction.blockingShot){
-				if (this.state == CState.empty){
-					this.ChangeState(CState.blocked);
+				if (this.bldg == CBldg.empty){
+					this.ChangeCellBldg(CBldg.blocked);
 				}
 				else{
-					Debug.LogError("Trying to block a non empty cstate! " + ar.ToString());
+					Debug.LogError("Trying to block a non empty cell! " + ar.ToString());
 				}
 			}
-			else if (new List<CState>(){CState.towerDefence, CState.towerOffence, CState.towerIntel}.Contains(this.state)){
-				this.ChangeState(CState.destroyedTower);
-			}
-			else if (this.state == CState.empty){
-				this.ChangeState(CState.destroyedTerrain);
-			}
-			else if (this.state == CState.defenceGrid){
-				this.ChangeState(CState.destroyedDefenceGrid);
+			else{
+				this.DestroyCell(true);
 			}
 			return true;
 		}
@@ -356,7 +390,7 @@ namespace CellTypes{
 
 		//TODO does this need to be unique for shot,built,scouted?
 		bool NullCB(ActionReq ar){
-			//Debug.Log("CB handler: NullCB loc " + this.loc.ToString() + ". Do nothing. State: " + this.state.ToString());
+			//Debug.Log("CB handler: NullCB loc " + this.loc.ToString() + ". Do nothing. Bldg: " + this.bldg.ToString());
 			return true;
 		}
 	}

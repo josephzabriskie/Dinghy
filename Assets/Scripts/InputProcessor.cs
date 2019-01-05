@@ -90,7 +90,7 @@ public class InputProcessor : MonoBehaviour {
 		this.queuedActions.Clear();
 	}
 
-	public void RXInput(bool pGrid, InputType it, Vector2 pos, CState state){
+	public void RXInput(bool pGrid, InputType it, Vector2 pos, CellStruct cs){
 		//Don't need to ensure local player, grid only assigned to localplayer
 		if (this.actionLocked){
 			//Debug.Log("Got input, but we're already locked... ignoring");
@@ -117,30 +117,30 @@ public class InputProcessor : MonoBehaviour {
 					break; // Our validator would catch this, but we do some more logic below that relies on this assumption
 				}
 				int idx;
-				Dictionary<pAction, CState> buildDict = new Dictionary<pAction, CState>{
-					{pAction.buildOffenceTower, CState.towerOffence},
-					{pAction.buildDefenceTower, CState.towerDefence},
-					{pAction.buildIntelTower, CState.towerIntel}};
-				CState[][,] currentGrids = this.pb.GetGridStates();
+				Dictionary<pAction, CellStruct> buildDict = new Dictionary<pAction, CellStruct>{
+					{pAction.buildOffenceTower, new CellStruct(CBldg.towerOffence)},
+					{pAction.buildDefenceTower, new CellStruct(CBldg.towerDefence)},
+					{pAction.buildIntelTower, new CellStruct(CBldg.towerIntel)}};
+				CellStruct[][,] currentGrids = this.pb.GetGridStates();
 				ActionReq MultiTowerAR = new ActionReq(this.report.playerId, this.report.playerId, this.actionContext, new Vector2[]{pos});
 				if(this.v.Validate(MultiTowerAR, currentGrids[0], currentGrids[1], new Vector2(pb.sizex, pb.sizey))){
 					idx = this.queuedActions.FindIndex(x => x.a == pAction.noAction);
 					if(idx >=0){
 						Debug.Log("Input processor: Valid Move: Add new AR at " + idx.ToString() + ", ar: " + MultiTowerAR.ToString());
 						this.queuedActions[idx] = MultiTowerAR;
-						this.pb.SetCellMainState(true, pos, buildDict[this.actionContext]);
+						this.pb.SetCellStruct(true, pos, buildDict[this.actionContext]);
 						break;
 					}
 				}
 				else{
 					Debug.Log("Input processor: Invalid request, don't add to list");
 				}
-				if (this.v.StateIn(currentGrids[0], pos, buildDict.Values.ToList(), new Vector2(pb.sizex, pb.sizey))){ // Now, if there is a tower here already, remove it
+				if (this.v.BldgIn(currentGrids[0], pos, buildDict.Values.ToList().Select(cstruct => cstruct.bldg).ToList(), new Vector2(pb.sizex, pb.sizey))){ // Now, if there is a tower here already, remove it
 					idx = this.queuedActions.FindIndex(x => buildDict.Keys.ToList().Contains(x.a) && x.loc != null && x.loc[0] == pos);
 					if(idx >= 0){
 						Debug.Log("Input processor: Removing AR that is in this place");
 						this.queuedActions[idx] = new ActionReq(this.report.playerId, this.report.playerId, pAction.noAction, null);
-						this.pb.SetCellMainState(true, pos, CState.empty);
+						this.pb.SetCellStruct(true, pos, new CellStruct(CBldg.empty));
 					}
 				}
 				break;

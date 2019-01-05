@@ -17,7 +17,7 @@ public class Validator {
         this.apc = newAPC;
     }
 
-    public bool Validate(ActionReq ar, CState[,] pGrid, CState[,] eGrid, Vector2 gridSize){
+    public bool Validate(ActionReq ar, CellStruct[,] pGrid, CellStruct[,] eGrid, Vector2 gridSize){
         switch(this.apc){
         case ActionProcState.reject:
             return false;
@@ -69,10 +69,10 @@ public class Validator {
 
     //////////////////////////
     //GridSearchingFuncs
-    int CountState(CState state, CState[,] grid){
+    int CountBldg(CBldg bldg, CBldg[,] grid){
         int count = 0;
-        foreach(CState s in grid){
-            if (s == state){
+        foreach(CBldg s in grid){
+            if (s == bldg){
                 count++;
             }
         }
@@ -81,19 +81,19 @@ public class Validator {
 
     ///////////////////////////
     //Validate builds during multiTower phase
-    bool MultiTowerValid(ActionReq ar, CState[,] pGrid, Vector2 gridSize){
-        Dictionary<pAction, CState> mapping = new Dictionary<pAction, CState>{
-            {pAction.buildOffenceTower, CState.towerOffence},
-            {pAction.buildDefenceTower, CState.towerDefence},
-            {pAction.buildIntelTower, CState.towerIntel}};
-        return !GridContainsState(pGrid, mapping[ar.a]) && DefBuildValid(ar, pGrid, gridSize) && !NextToStates(pGrid, ar.loc[0], mapping.Values.ToList(), gridSize);
+    bool MultiTowerValid(ActionReq ar, CellStruct[,] pGrid, Vector2 gridSize){
+        Dictionary<pAction, CBldg> mapping = new Dictionary<pAction, CBldg>{
+            {pAction.buildOffenceTower, CBldg.towerOffence},
+            {pAction.buildDefenceTower, CBldg.towerDefence},
+            {pAction.buildIntelTower, CBldg.towerIntel}};
+        return !GridContainsBldg(pGrid, mapping[ar.a]) && DefBuildValid(ar, pGrid, gridSize) && !NextToBldgs(pGrid, ar.loc[0], mapping.Values.ToList(), gridSize);
     }
 
     //////////////////////////
     //Main validators
-    bool DefBuildValid(ActionReq ar, CState[,] pGrid, Vector2 gridSize){
+    bool DefBuildValid(ActionReq ar, CellStruct[,] pGrid, Vector2 gridSize){
         //Checks: targets player grid, has only one listed coord
-        bool resl = TargetsSelf(ar) && LocCountEq(ar, 1) && StateIs(pGrid, ar.loc[0], CState.empty, gridSize);
+        bool resl = TargetsSelf(ar) && LocCountEq(ar, 1) && BldgIs(pGrid, ar.loc[0], CBldg.empty, gridSize);
         //Debug.Log("DefBuildValid returning " + resl.ToString());
         return resl;
     }
@@ -105,9 +105,9 @@ public class Validator {
         return resl;
     }
 
-    bool ScoutValid(ActionReq ar, CState[,] eGrid, Vector2 gridSize){
+    bool ScoutValid(ActionReq ar, CellStruct[,] eGrid, Vector2 gridSize){
         //Checks: target enemy, has only 1 loc, target is hidden
-        bool resl = !TargetsSelf(ar) && LocCountEq(ar, 1) && StateIs(eGrid, ar.loc[0], CState.hidden, gridSize);
+        bool resl = !TargetsSelf(ar) && LocCountEq(ar, 1) && BldgIs(eGrid, ar.loc[0], CBldg.hidden, gridSize);
         //Debug.Log("ScoutValid returned " + resl.ToString());
         return resl;
     }
@@ -131,26 +131,26 @@ public class Validator {
         return resl;
     }
 
-    public bool StateIn(CState[,] grid, Vector2 loc, List<CState> states, Vector2 gridSize){
-        bool resl = states.Contains(grid[(int)loc.x, (int)loc.y]);
-        //Debug.Log("StateIn returning: " + resl);
+    public bool BldgIn(CellStruct[,] grid, Vector2 loc, List<CBldg> bldgs, Vector2 gridSize){
+        bool resl = bldgs.Contains(grid[(int)loc.x, (int)loc.y].bldg);
+        //Debug.Log("BldgIn returning: " + resl);
         return resl;
     }
 
-    public bool StateIs(CState[,] grid, Vector2 loc, CState state, Vector2 gridSize){
-        bool resl = grid[(int)loc.x, (int)loc.y] == state;
-        //Debug.Log("StateIs returning: " + resl + ": " + grid[(int)loc.x, (int)loc.y] + "?" + state.ToString());
+    public bool BldgIs(CellStruct[,] grid, Vector2 loc, CBldg bldg, Vector2 gridSize){
+        bool resl = grid[(int)loc.x, (int)loc.y].bldg == bldg;
+        //Debug.Log("BldgIs returning: " + resl + ": " + grid[(int)loc.x, (int)loc.y] + "?" + bldg.ToString());
         return resl;
     }
 
-    bool NextToState(CState[,] grid, Vector2 loc, CState state, Vector2 gridSize){
+    bool NextToBldg(CellStruct[,] grid, Vector2 loc, CBldg bldg, Vector2 gridSize){
         for(int x = -1; x <= 1; x++){
             for(int y = -1; y <= 1; y++){
                 Vector2 testpos = new Vector2(loc.x + x, loc.y + y);
                 if(!LocInGrid(testpos, gridSize)){
                     continue;
                 }
-                if(StateIs(grid, testpos, state, gridSize)){
+                if(BldgIs(grid, testpos, bldg, gridSize)){
                     return true;
                 }
             }
@@ -158,14 +158,14 @@ public class Validator {
         return false;
     }
 
-    bool NextToStates(CState[,] grid, Vector2 loc, List<CState> states, Vector2 gridSize){
-        foreach (CState state in states){
-            if(NextToState(grid, loc, state, gridSize)){
-                //Debug.Log("NextToStates ret true: " + state.ToString());
+    bool NextToBldgs(CellStruct[,] grid, Vector2 loc, List<CBldg> bldgs, Vector2 gridSize){
+        foreach (CBldg bldg in bldgs){
+            if(NextToBldg(grid, loc, bldg, gridSize)){
+                //Debug.Log("NextToBldgs ret true: " + bldg.ToString());
                 return true;
             }
         }
-        //Debug.Log("NextToStates ret false");
+        //Debug.Log("NextToBldgs ret false");
         return false;
     }
 
@@ -175,16 +175,16 @@ public class Validator {
         return resl;
     }
 
-    bool GridContainsState(CState[,] grid, CState state){
+    bool GridContainsBldg(CellStruct[,] grid, CBldg bldg){
         int i = 0;
-        foreach(CState s in grid){
+        foreach(CellStruct cell in grid){
             i++;
-            if(s == state){
-                //Debug.Log("GridContainsState ret true: " + state.ToString());
+            if(cell.bldg == bldg){
+                //Debug.Log("GridContainsBldg ret true: " + bldg.ToString());
                 return true;
             }
         }
-        //Debug.Log("GridContainsState ret false: " + state.ToString());
+        //Debug.Log("GridContainsBldg ret false: " + bldg.ToString());
         return false;
     }
 }

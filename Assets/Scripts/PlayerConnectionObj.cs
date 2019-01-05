@@ -19,8 +19,8 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	UIController uic = null;
 	PlayBoard2D pb = null;
 	InputProcessor ip = null;
-	public CState[,] latestPlayerGrid;
-	public CState[,] latestEnemyGrid;
+	public CellStruct[,] latestPlayerGrid;
+	public CellStruct[,] latestEnemyGrid;
 	ActionAvail latestActionAvail;
 
 	bool isReady = false;
@@ -100,7 +100,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 
 	//Serialized RPC with ours and other's grid state
 	[ClientRpc]
-	public void RpcUpdateGrids(CState[] our, CState[] other, int dim1, int dim2, ActionAvail[] aaArray){
+	public void RpcUpdateGrids(CellStruct[] our, CellStruct[] other, int dim1, int dim2, ActionAvail[] aaArray){
 		if (!isLocalPlayer || !this.ReadyGuard()){// Ignore info if not local or Start not called yet
 			return;
 		}

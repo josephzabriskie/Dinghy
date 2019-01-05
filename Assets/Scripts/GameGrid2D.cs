@@ -20,8 +20,8 @@ public class GameGrid2D : MonoBehaviour {
 		}
 	}
 
-	public void SetCellMainState(Vector2 pos, CState s){
-		this.cells[(int)pos.x, (int)pos.y].SetMainState(s);
+	public void SetCellStruct(Vector2 pos, CellStruct s){
+		this.cells[(int)pos.x, (int)pos.y].SetCellStruct(s);
 	}
 
 	public void PlaceCells(float w, float h){
@@ -67,33 +67,33 @@ public class GameGrid2D : MonoBehaviour {
 		}
 	}
 
-	public void RXCellInput(Vector2 pos, InputType it, CState cellState){
-		//Debug.Log("RCCellInfo, send to parent. " + this.playerOwnedGrid.ToString() + pos.ToString() + cellState.ToString());
-		this.parent.RXGridInput(this.playerOwnedGrid, it, pos, cellState);
+	public void RXCellInput(Vector2 pos, InputType it, CellStruct cs){
+		//Debug.Log("RCCellInfo, send to parent. " + this.playerOwnedGrid.ToString() + pos.ToString() + cs.ToString());
+		this.parent.RXGridInput(this.playerOwnedGrid, it, pos, cs);
 	}
 
-	public CState[,] GetArrayState(){
-		CState[,] output = new CState[this.sizex, this.sizey];
+	public CellStruct[,] GetCSArray(){
+		CellStruct[,] output = new CellStruct[this.sizex, this.sizey];
 		for(int x = 0; x < this.sizex; x++){
 			for(int y = 0; y < this.sizey; y++){
-				output[x,y] = this.cells[x,y].cState;
+				output[x,y] = this.cells[x,y].cStruct;
 			}
 		}
 		return output;
 	}
 
-	public void SetArrayState(CState[,] inStates){
-		for(int x = 0; x < inStates.GetLength(0); x++){
-			for(int y = 0; y < inStates.GetLength(1); y++){
-				this.cells[x,y].SetMainState(inStates[x,y]);
+	public void SetCSArray(CellStruct[,] inCSArr){
+		for(int x = 0; x < inCSArr.GetLength(0); x++){
+			for(int y = 0; y < inCSArr.GetLength(1); y++){
+				this.cells[x,y].SetCellStruct(inCSArr[x,y]);
 			}
 		}
 	}
 
-	public void ClearArrayState(){
+	public void ClearCSArray(){
 		for(int x = 0; x < this.sizex; x++){
 			for(int y = 0; y < this.sizey; y++){
-				this.cells[x,y].SetMainState(CState.hidden);
+				this.cells[x,y].SetCellStruct(new CellStruct(CBldg.hidden));
 			}
 		}
 	}

@@ -38,8 +38,8 @@ namespace PlayerActions{
 			loc=inCoords;
 		}
 		public override string ToString()
-    	{	string locStr = loc==null? "null" : loc.Count()==0 ? "0 len" : loc.ToString();
-        	return "P: " + p + " T: " + t + " A: " + a + " loc0: " + loc;
+    	{	string locStr = loc==null ? "null" : loc.Count()==0 ? "0 len" : loc.ToString();
+        	return "P: " + p + " T: " + t + " A: " + a + " loc0: " + locStr;
     	}
 	}
 }
@@ -125,10 +125,10 @@ namespace PlayboardTypes{
 			this.actionHistory = new List<pAction>();
 		}
 
-		static List<pAction> CheckCostsMet(CState[,] pGrid){
-			int offenceCount = GUtils.Serialize(pGrid).Count(s => s == CState.towerOffence);
-			int defenceCount = GUtils.Serialize(pGrid).Count(s => s == CState.towerDefence);
-			int intelCount = GUtils.Serialize(pGrid).Count(s => s == CState.towerIntel);
+		static List<pAction> CheckCostsMet(CellStruct[,] pGrid){
+			int offenceCount = GUtils.Serialize(pGrid).Count(cell => cell.bldg == CBldg.towerOffence && !cell.destroyed);
+			int defenceCount = GUtils.Serialize(pGrid).Count(cell => cell.bldg == CBldg.towerDefence && !cell.destroyed);
+			int intelCount = GUtils.Serialize(pGrid).Count(cell => cell.bldg == CBldg.towerIntel && !cell.destroyed);
 			List<pAction> retList = new List<pAction>();
 			foreach(pAction action in actionParams.Keys){
 				ActionParam apm = actionParams[action];
@@ -156,7 +156,7 @@ namespace PlayboardTypes{
 			return usesLeft != 0; // Less than zero we ignore, more than 0 means uses are left
 		}
 		
-		public List<ActionAvail> GetActionAvailibility(CState[,] pGrid){
+		public List<ActionAvail> GetActionAvailibility(CellStruct[,] pGrid){
 			List<ActionAvail> retList = new List<ActionAvail>();
 			List<pAction> costsMetActions = CheckCostsMet(pGrid); // Check cost of actions met
 			foreach(pAction action in allActions){
@@ -166,7 +166,7 @@ namespace PlayboardTypes{
 		}
 
 		//Validate Actions = input action list, output actionlist that meet costs, off cooldown, not over max use
-		List<ActionReq> ValidateActions(List<ActionReq> inList, CState[,] pGrid){
+		List<ActionReq> ValidateActions(List<ActionReq> inList, CellStruct[,] pGrid){
 			List<ActionReq> retList = new List<ActionReq>();
 			List<pAction> costsMetActions = CheckCostsMet(pGrid); // Check cost of actions met
 			foreach(ActionReq ar in inList){
@@ -205,7 +205,7 @@ namespace PlayboardTypes{
 		}
 
 		//Validate and track actions = Just do the validate then track in sequence
-		public List<ActionReq> ValidateAndTrackActions(List<ActionReq> inList, CState[,] pGrid){
+		public List<ActionReq> ValidateAndTrackActions(List<ActionReq> inList, CellStruct[,] pGrid){
 			List<ActionReq> valActions = this.ValidateActions(inList, pGrid);
 			this.TrackActions(valActions);
 			return valActions;
@@ -237,43 +237,43 @@ namespace PlayboardTypes{
 				this.cells[p] = new Cell[this.sizex, this.sizey];
 				for(int x = 0; x < this.sizex; x++){
 					for(int y = 0; y < this.sizey; y++){
-						this.cells[p][x,y] = new Cell(CState.empty, p, new Vector2Int(x,y), this, false);
+						this.cells[p][x,y] = new Cell(CBldg.empty, p, new Vector2Int(x,y), this, false);
 					}
 				}
 			}
 		}
 		//////////////////////Public functions for logic core calls
 		//Return value will always put requesting player's grid in idx 0, enemy grid in idx 1
-		public CState[][,] GetPlayerGameState(int playerIdx){
+		public CellStruct[][,] GetPlayerGameState(int playerIdx){
 			int enemyIdx = (playerIdx + 1) % playercnt;
-			CState[][,] boardOut = new CState[playercnt][,];
+			CellStruct[][,] boardOut = new CellStruct[playercnt][,];
 			boardOut[0] = this.GetGridSide(playerIdx, showAll:true); //playerGrid
 			boardOut[1] = this.GetGridSide(enemyIdx); //enemyGrid
 			return boardOut; 
 		}
-		//Used only to help out GetPlayerGameState
-		CState[,] GetGridSide(int idx, bool showAll=false){
-			CState [,] gridOut = new CState[sizex,sizey];
+		//Get specific side of grid (indexed by playerID)
+		CellStruct[,] GetGridSide(int idx, bool showAll=false){
+			CellStruct [,] gridOut = new CellStruct[sizex,sizey];
 			for(int x = 0; x < this.sizex; x++){
 				for(int y = 0; y < this.sizey; y++){
-					gridOut[x,y] = cells[idx][x,y].GetState(showAll:showAll);
+					gridOut[x,y] = cells[idx][x,y].GetCellStruct(showAll:showAll);
 				}
 			}
 			return gridOut;
 		}
 
 		//Used to help our randomizer functions that don't want to hit
-		List<Vector2> GetLocsInStates(int idx,  List<CState> states, bool negate=false, bool showAll=false){
+		List<Vector2> GetLocsOfBldgs(int idx,  List<CBldg> bldgs, bool negate=false, bool showAll=false){
 			List<Vector2> ret = new List<Vector2>();
 			for(int x = 0; x < this.sizex; x++){
 				for(int y = 0; y < this.sizey; y++){
 					if(!negate){
-						if (states.Contains(cells[idx][x,y].GetState(showAll:showAll))){
+						if (bldgs.Contains(cells[idx][x,y].GetCellStruct(showAll:showAll).bldg)){
 							ret.Add(new Vector2(x,y));
 						}
 					}
 					else{
-						if (!states.Contains(cells[idx][x,y].GetState(showAll:showAll))){
+						if (!bldgs.Contains(cells[idx][x,y].GetCellStruct(showAll:showAll).bldg)){
 							ret.Add(new Vector2(x,y));
 						}
 					}
@@ -283,12 +283,13 @@ namespace PlayboardTypes{
 		}
 
 		public bool CheckPlayerLose(int p){
-			List<CState> s = new List<CState>(){CState.towerOffence, CState.towerDefence, CState.towerIntel};
+			List<CBldg> s = new List<CBldg>(){CBldg.towerOffence, CBldg.towerDefence, CBldg.towerIntel};
 			//Debug.Log("GameOverChecking for player: " + p.ToString());
 			bool playerlose = true;
 			for(int x = 0; x < this.sizex; x++){ //TODO replace these nested loops with a foreach (think that should work on jagged array)
 				for(int y = 0; y < this.sizey; y++){
-					if (s.Contains(this.cells[p][x,y].GetState(showAll:true))){
+					CellStruct cs = this.cells[p][x,y].GetCellStruct(showAll:true);
+					if (s.Contains(cs.bldg) && !cs.destroyed){
 						playerlose = false; // as long as they have one tower, they're still in it!
 					}
 				}
@@ -386,7 +387,7 @@ namespace PlayboardTypes{
 					}
 					break;
 				case pAction.blockingShot:
-					List<Vector2> emptyLocs =  this.GetLocsInStates(ar.t, new List<CState>(){CState.empty}, showAll:true);
+					List<Vector2> emptyLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){CBldg.empty}, showAll:true);
 					for(int i = 0; i < 3; i++){
 						if(emptyLocs.Count() == 0){
 							break;
@@ -397,7 +398,7 @@ namespace PlayboardTypes{
 					}
 					break;
 				case pAction.hellFire:
-					List<Vector2> allLocs =  this.GetLocsInStates(ar.t, new List<CState>(){}, showAll:true, negate:true);
+					List<Vector2> allLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){}, showAll:true, negate:true);
 					for(int i = 0; i < 5; i++){
 						if(allLocs.Count() == 0){
 							break;
@@ -408,7 +409,7 @@ namespace PlayboardTypes{
 					}
 					break;
 				case pAction.flare:
-					List<Vector2> noTowerLocs =  this.GetLocsInStates(ar.t, new List<CState>(){}, showAll:true, negate:true);
+					List<Vector2> noTowerLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){}, showAll:true, negate:true);
 					for(int i = 0; i < 2; i++){
 						if(noTowerLocs.Count() == 0){
 							break;
@@ -430,11 +431,11 @@ namespace PlayboardTypes{
 			return this.cells[targetPlayer][loc.x, loc.y];
 		}
 		///////////////////Public functions for Cell calls
-		public void SetCellState(int p, Vector2Int loc, CState state){
+		public void SetCellBldg(int p, Vector2Int loc, CBldg bldg){
 			if (!this.CheckLocInRange(loc))
 				return;
-			//Debug.Log("PB: SetCell " + loc.x.ToString() + "," + loc.y.ToString() + " to " + state.ToString());
-			this.GetCell(p, loc).ChangeState(state);
+			//Debug.Log("PB: SetCellBldg " + loc.x.ToString() + "," + loc.y.ToString() + " to " + bldg.ToString());
+			this.GetCell(p, loc).ChangeCellBldg(bldg);
 		}
 
 		public void AddCellCallback(int p, Vector2Int loc, PriorityCB cb, PCBType cbt){

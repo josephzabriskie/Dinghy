@@ -347,9 +347,9 @@ public class LogicCore : NetworkBehaviour {
 	//Called by pcobj on start
 	public void ReportGridState(int p){
 		Debug.Log("Reporting Grid states to player '" + p + "'");
-		CState[][,] state = this.PB.GetPlayerGameState(p);
-		CState[] pOwnGrid = GUtils.Serialize(state[0]);
-		CState[] pOtherGrid = GUtils.Serialize(state[1]);
+		CellStruct[][,] state = this.PB.GetPlayerGameState(p);
+		CellStruct[] pOwnGrid = GUtils.Serialize(state[0]);
+		CellStruct[] pOtherGrid = GUtils.Serialize(state[1]);
 		List<ActionAvail> aaList=  this.PB.GetActionAvailable(p);
 		this.mnm.playerSlots[p].RpcUpdateGrids(pOwnGrid, pOtherGrid, this.sizex, this.sizey, aaList.ToArray());
 	}

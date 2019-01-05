@@ -15,29 +15,30 @@ namespace CellUIInfo{
 public class Cell2D : MonoBehaviour {
 	SpriteRenderer srbg; // sr of the bg
 	SpriteRenderer srmain; // sr of the covering image
-	//CoverState
+	SpriteRenderer srdestroyed;
+	//BldgStatesprites
 	public Sprite fog;
 	public Sprite tower;
 	public Sprite towerOffence;
 	public Sprite towerDefence;
 	public Sprite towerIntel;
 	public Sprite towerTemp;
-	public Sprite destroyedTower;
+	//public Sprite destroyedTower;
 	public Sprite destroyedTerrain;
 	public Sprite wall;
-	public Sprite wallDestroyed;
+	//public Sprite wallDestroyed;
 	public Sprite blocked;
 	public Sprite mine;
-	public Sprite mineDestroyed;
+	//public Sprite mineDestroyed;
 	public Sprite defenceGrid;
-	public Sprite defenceGridDestroyed;
+	//public Sprite defenceGridDestroyed;
 	//bgState
 	public Sprite defaultBG;
 	public Sprite selectBG;
 	public Sprite selectHoverBG;
 	//Other
 	public Vector2 coords;
-	public CState cState;
+	public CellStruct cStruct;
 	public GameGrid2D parentGrid;
 	//Selections states
 	bool hovered = false;
@@ -53,13 +54,16 @@ public class Cell2D : MonoBehaviour {
 			else if(sr.name == "MainState"){
 				this.srmain = sr;
 			}
+			else if(sr.name == "Destroyed"){
+				this.srdestroyed = sr;
+			}
 			else{
 				Debug.LogError("Cell2D init: Unhandled name " + sr.name);
 			}
 		}
 		this.srbg = srlist[0];
 		this.srmain = srlist[1];
-		this.SetMainState(CState.hidden);
+		this.SetCellStruct(new CellStruct(CBldg.hidden));
 		this.SetBGColor(Color.white);
 	}
 
@@ -77,73 +81,59 @@ public class Cell2D : MonoBehaviour {
 	}
 
 	void OnMouseEnter(){
-		this.parentGrid.RXCellInput(this.coords, InputType.hoverEnter, this.cState);
+		this.parentGrid.RXCellInput(this.coords, InputType.hoverEnter, this.cStruct);
 	}
 
 	void OnMouseExit(){
-		this.parentGrid.RXCellInput(this.coords, InputType.hoverExit, this.cState);
+		this.parentGrid.RXCellInput(this.coords, InputType.hoverExit, this.cStruct);
 	}
 
 	void OnMouseDown(){
-		Debug.Log("Clicked on: " + this.coords.ToString() + "State currently " + this.cState.ToString());
-		this.parentGrid.RXCellInput(this.coords, InputType.clickDown, this.cState);
+		Debug.Log("Clicked on: " + this.coords.ToString() + "State currently " + this.cStruct.ToString());
+		this.parentGrid.RXCellInput(this.coords, InputType.clickDown, this.cStruct);
 	}
 
-	public void SetMainState(CState newState){
-		this.cState = newState;
-		switch(this.cState){
-			case CState.empty:
-				this.srmain.sprite = null;
-				break;
-			case CState.hidden:
-				this.srmain.sprite = this.fog;
-				break;
-			case CState.tower:
-				this.srmain.sprite = this.tower;
-				break;
-			case CState.towerTemp:
-				this.srmain.sprite = this.towerTemp;
-				break;
-			case CState.destroyedTerrain:
-				this.srmain.sprite = this.destroyedTerrain;
-				break;
-			case CState.destroyedTower:
-				this.srmain.sprite = this.destroyedTower;
-				break;
-			case CState.towerOffence:
-				this.srmain.sprite = this.towerOffence;
-				break;
-			case CState.towerDefence:
-				this.srmain.sprite = this.towerDefence;
-				break;
-			case CState.towerIntel:
-				this.srmain.sprite = this.towerIntel;
-				break;
-			case CState.wall:
-				this.srmain.sprite = this.wall;
-				break;
-			case CState.wallDestroyed:
-				this.srmain.sprite = this.wallDestroyed;
-				break;
-			case CState.blocked:
-				this.srmain.sprite = this.blocked;
-				break;
-			case CState.mine:
-				this.srmain.sprite = this.mine;
-				break;
-			case CState.destroyedMine:
-				this.srmain.sprite = this.mineDestroyed;
-				break;
-			case CState.defenceGrid:
-				this.srmain.sprite = this.defenceGrid;
-				break;
-			case CState.destroyedDefenceGrid:
-				this.srmain.sprite = this.defenceGridDestroyed;
-				break;
-			default:
-				Debug.LogError("Unhandled state: " + this.cState.ToString());
-				break;
+	public void SetCellStruct(CellStruct newCS){
+		this.cStruct = newCS;
+		switch(this.cStruct.bldg){
+		case CBldg.empty:
+			this.srmain.sprite = null;
+			break;
+		case CBldg.hidden:
+			this.srmain.sprite = this.fog;
+			break;
+		case CBldg.tower:
+			this.srmain.sprite = this.tower;
+			break;
+		case CBldg.towerTemp:
+			this.srmain.sprite = this.towerTemp;
+			break;
+		case CBldg.towerOffence:
+			this.srmain.sprite = this.towerOffence;
+			break;
+		case CBldg.towerDefence:
+			this.srmain.sprite = this.towerDefence;
+			break;
+		case CBldg.towerIntel:
+			this.srmain.sprite = this.towerIntel;
+			break;
+		case CBldg.wall:
+			this.srmain.sprite = this.wall;
+			break;
+		case CBldg.blocked:
+			this.srmain.sprite = this.blocked;
+			break;
+		case CBldg.mine:
+			this.srmain.sprite = this.mine;
+			break;
+		case CBldg.defenceGrid:
+			this.srmain.sprite = this.defenceGrid;
+			break;
+		default:
+			Debug.LogError("Unhandled state: " + this.cStruct.ToString());
+			break;
 		}
+		this.srdestroyed.sprite = this.cStruct.destroyed? this.destroyedTerrain : null;
 	}
 
 	public void SetHovered(bool hov){
@@ -168,7 +158,7 @@ public class Cell2D : MonoBehaviour {
 		}
 	}
 
-	public CState GetMainState(){
-		return this.cState;
+	public CellStruct GetCellStruct(){
+		return this.cStruct;
 	}
 }

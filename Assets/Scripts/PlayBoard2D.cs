@@ -21,18 +21,18 @@ public class PlayBoard2D : MonoBehaviour {
 		this.InstantiateGrids();
 	}
 
-	public void SetGridStates(CState[,] pGrid, CState[,] eGrid){
-		this.playerGrid.SetArrayState(pGrid);
-		this.enemyGrid.SetArrayState(eGrid);
+	public void SetGridStates(CellStruct[,] pGrid, CellStruct[,] eGrid){
+		this.playerGrid.SetCSArray(pGrid);
+		this.enemyGrid.SetCSArray(eGrid);
 	}
 
-	public void RXGridInput(bool pGrid, InputType it, Vector2 pos, CState cstate){
-		this.ip.RXInput(pGrid, it, pos, cstate);
+	public void RXGridInput(bool pGrid, InputType it, Vector2 pos, CellStruct cStruct){
+		this.ip.RXInput(pGrid, it, pos, cStruct);
 	}
 
-	public void SetCellMainState(bool pGrid, Vector2 pos, CState state){
+	public void SetCellStruct(bool pGrid, Vector2 pos, CellStruct cStruct){
 		GameGrid2D g = (pGrid) ? this.playerGrid : this.enemyGrid;
-		g.SetCellMainState(pos, state);
+		g.SetCellStruct(pos, cStruct);
 	}
 	
 	public void SetCellsSelect(bool pGrid, bool sel, bool hovered, ActionReq ar){
@@ -72,8 +72,8 @@ public class PlayBoard2D : MonoBehaviour {
 	}
 
 	public void ClearGrids(){
-		this.playerGrid.ClearArrayState();
-		this.enemyGrid.ClearArrayState();
+		this.playerGrid.ClearCSArray();
+		this.enemyGrid.ClearCSArray();
 	}
 
 	public void ClearSelectionState(bool hoveronly){
@@ -86,10 +86,10 @@ public class PlayBoard2D : MonoBehaviour {
 		return ret;
 	}
 
-	public CState[][,] GetGridStates(){
-		CState [][,] ret = new CState[2][,];
-		ret[0] = this.playerGrid.GetArrayState(); // player's grid always idx 0
-		ret[1] = this.enemyGrid.GetArrayState(); // enemy's grid always idx 1
+	public CellStruct[][,] GetGridStates(){
+		CellStruct [][,] ret = new CellStruct[2][,];
+		ret[0] = this.playerGrid.GetCSArray(); // player's grid always idx 0
+		ret[1] = this.enemyGrid.GetCSArray(); // enemy's grid always idx 1
 		return ret;
 	}
 
