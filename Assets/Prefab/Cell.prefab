@@ -173,16 +173,18 @@ MonoBehaviour:
   towerDefence: {fileID: 21300000, guid: d320a742aa6968a4b850528afc4c162f, type: 3}
   towerIntel: {fileID: 21300000, guid: 60e529a18f190e44f9471cb67ceeb31a, type: 3}
   towerTemp: {fileID: 21300000, guid: bb0814bedfc59db4ca5ad25009303f56, type: 3}
-  destroyedTerrain: {fileID: 21300000, guid: 06dd6cc8d80bcd14badfe36708a531b8, type: 3}
   wall: {fileID: 21300000, guid: 019662129bae4cb45a00f6b221d6ecae, type: 3}
   blocked: {fileID: 21300000, guid: 8e9c89d628dd56a4a98235ecaaa9e4a5, type: 3}
   mine: {fileID: 21300000, guid: 9fa0558577ce5774ca66ee2e905cfbda, type: 3}
   defenceGrid: {fileID: 21300000, guid: 7afb2f1f7c1cbd84bbeb347f968f478b, type: 3}
+  reflector: {fileID: 21300000, guid: b292509a69aa7dc419da068de2c9a6e7, type: 3}
   defaultBG: {fileID: 21300000, guid: 3469a51f0714bc44889e92b07ff33fae, type: 3}
   selectBG: {fileID: 21300000, guid: abfa7ff6220b2af4289403789b592604, type: 3}
   selectHoverBG: {fileID: 21300000, guid: 953a9dac67a8c7742ab4ec8d29637ae1, type: 3}
   coords: {x: 0, y: 0}
   parentGrid: {fileID: 0}
+  destroyed: {fileID: 21300000, guid: 82909017b22220a419c41d078ac338d0, type: 3}
+  defenceGridBlock: {fileID: 21300000, guid: d59f3e1c92ebd38409648a2f7d01c539, type: 3}
 --- !u!212 &212076900352453740
 SpriteRenderer:
   m_ObjectHideFlags: 1

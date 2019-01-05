@@ -25,6 +25,8 @@ namespace PlayerActions{
 		flare, //randomly shoot scouts at 2
 		placeMine,
 		buildDefenceGrid, // Guard against 3 shots den blow up
+		buildReflector, // Shots that hit this are reflected to a random space on the opponents side
+		fireReflected, //Player can't request this action, only a reflector can cause this. Normal shot, but destroys reflectors so no looping
 	}
 	public struct ActionReq	{
 		public int p; //player number
@@ -106,7 +108,9 @@ namespace PlayboardTypes{
 			{pAction.hellFire,			new ActionParam(0,0,0, 0, -1)},
 			{pAction.flare,				new ActionParam(0,0,0, 0, -1)},
 			{pAction.placeMine,			new ActionParam(0,0,0, 0, -1)},
-			{pAction.buildDefenceGrid,		new ActionParam(0,0,0, 0, -1)},
+			{pAction.buildDefenceGrid,	new ActionParam(0,0,0, 0, -1)},
+			{pAction.buildReflector,	new ActionParam(0,0,0, 0, -1)},
+			{pAction.fireReflected,		new ActionParam(0,0,0, 0, 0)}, // Player can't cause this
 		};
 		Dictionary<pAction, int> actionCooldowns; //Use for tracking cooldowns
 		List<pAction> actionHistory; //Use for counting uses
@@ -216,8 +220,8 @@ namespace PlayboardTypes{
 
 		const int playercnt = 2; //So far we're only designing for 2 players
 		Cell[][,] cells;
-		int sizex;
-		int sizey;
+		public int sizex;
+		public int sizey;
 		public Validator validator;
 		PlayerActionTracker[] pats;
 		
@@ -247,33 +251,33 @@ namespace PlayboardTypes{
 		public CellStruct[][,] GetPlayerGameState(int playerIdx){
 			int enemyIdx = (playerIdx + 1) % playercnt;
 			CellStruct[][,] boardOut = new CellStruct[playercnt][,];
-			boardOut[0] = this.GetGridSide(playerIdx, showAll:true); //playerGrid
-			boardOut[1] = this.GetGridSide(enemyIdx); //enemyGrid
+			boardOut[0] = this.GetGridSide(playerIdx, 1); //playerGrid
+			boardOut[1] = this.GetGridSide(enemyIdx, 2); //enemyGrid
 			return boardOut; 
 		}
 		//Get specific side of grid (indexed by playerID)
-		CellStruct[,] GetGridSide(int idx, bool showAll=false){
+		CellStruct[,] GetGridSide(int idx, int perspective){
 			CellStruct [,] gridOut = new CellStruct[sizex,sizey];
 			for(int x = 0; x < this.sizex; x++){
 				for(int y = 0; y < this.sizey; y++){
-					gridOut[x,y] = cells[idx][x,y].GetCellStruct(showAll:showAll);
+					gridOut[x,y] = cells[idx][x,y].GetCellStruct(perspective);
 				}
 			}
 			return gridOut;
 		}
 
 		//Used to help our randomizer functions that don't want to hit
-		List<Vector2> GetLocsOfBldgs(int idx,  List<CBldg> bldgs, bool negate=false, bool showAll=false){
+		List<Vector2> GetLocsOfBldgs(int idx,  List<CBldg> bldgs, int perspective, bool negate=false){
 			List<Vector2> ret = new List<Vector2>();
 			for(int x = 0; x < this.sizex; x++){
 				for(int y = 0; y < this.sizey; y++){
 					if(!negate){
-						if (bldgs.Contains(cells[idx][x,y].GetCellStruct(showAll:showAll).bldg)){
+						if (bldgs.Contains(cells[idx][x,y].GetCellStruct(perspective).bldg)){
 							ret.Add(new Vector2(x,y));
 						}
 					}
 					else{
-						if (!bldgs.Contains(cells[idx][x,y].GetCellStruct(showAll:showAll).bldg)){
+						if (!bldgs.Contains(cells[idx][x,y].GetCellStruct(perspective).bldg)){
 							ret.Add(new Vector2(x,y));
 						}
 					}
@@ -288,7 +292,7 @@ namespace PlayboardTypes{
 			bool playerlose = true;
 			for(int x = 0; x < this.sizex; x++){ //TODO replace these nested loops with a foreach (think that should work on jagged array)
 				for(int y = 0; y < this.sizey; y++){
-					CellStruct cs = this.cells[p][x,y].GetCellStruct(showAll:true);
+					CellStruct cs = this.cells[p][x,y].GetCellStruct(0);
 					if (s.Contains(cs.bldg) && !cs.destroyed){
 						playerlose = false; // as long as they have one tower, they're still in it!
 					}
@@ -298,7 +302,7 @@ namespace PlayboardTypes{
 		}
 
 		public List<ActionAvail> GetActionAvailable(int playerId){
-			return this.pats[playerId].GetActionAvailibility(this.GetGridSide(playerId, showAll:true));
+			return this.pats[playerId].GetActionAvailibility(this.GetGridSide(playerId, 0));
 		}
 
 		void IncrementCellCounters(){
@@ -313,11 +317,11 @@ namespace PlayboardTypes{
 
 
 		//We expect this to be called once per round. We'll update the ticking elements at the end of this func
-		public void ApplyActions(List<ActionReq> ars){
+		public void ApplyValidActions(List<ActionReq> ars){
 			Debug.Log("PlayBoard processing Actions. Got " + ars.Count);
 			List<ActionReq> validARs = new List<ActionReq>();
 			foreach(ActionReq ar in ars){ // Trust no one, validate it allllll
-				if (this.validator.Validate(ar, this.GetGridSide(ar.p, showAll:true), this.GetGridSide((ar.p + 1) % playercnt), new Vector2(sizex, sizey))){
+				if (this.validator.Validate(ar, this.GetGridSide(ar.p, 1), this.GetGridSide((ar.p + 1) % playercnt, 2), new Vector2(sizex, sizey))){
 					validARs.Add(ar);
 					Debug.Log("validated ar! :) " + ar.ToString());
 				}
@@ -330,14 +334,22 @@ namespace PlayboardTypes{
 			//Doing this for each player is kinda clunky, TODO revisit this section
 			List<ActionReq> player0ARs = ars.Where(ar => ar.p == 0).ToList();
 			List<ActionReq> player1ARs = ars.Where(ar => ar.p == 1).ToList();
-			player0ARs = this.pats[0].ValidateAndTrackActions(player0ARs, this.GetGridSide(0, showAll:true));
-			player1ARs = this.pats[1].ValidateAndTrackActions(player1ARs, this.GetGridSide(1, showAll:true));
+			player0ARs = this.pats[0].ValidateAndTrackActions(player0ARs, this.GetGridSide(0, 0));
+			player1ARs = this.pats[1].ValidateAndTrackActions(player1ARs, this.GetGridSide(1, 0));
 			ars.Clear();
 			ars.AddRange(player0ARs);
 			ars.AddRange(player1ARs);
+			//Validation is done, now we can apply these as like normal
+			this.ApplyActions(ars);
+			//Now update the timed parameters of each cell
+			this.IncrementCellCounters();
+		}
+
+		void ApplyActions(List<ActionReq> ars){
 			//To CodeMonkey: each action must appear no more than once in these lists
-			List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower, pAction.buildWall, pAction.placeMine, pAction.buildDefenceGrid};
-			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain, pAction.fireRow, pAction.fireSquare, pAction.blockingShot, pAction.hellFire};
+			List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower, pAction.buildWall,
+				pAction.placeMine, pAction.buildDefenceGrid, pAction.buildReflector};
+			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain, pAction.fireRow, pAction.fireSquare, pAction.blockingShot, pAction.hellFire, pAction.fireReflected};
 			List<pAction> scoutActions = new List<pAction>(){pAction.scout, pAction.flare};
 			//Here we order the list to make sure that building happens first
 			var buildARs = ars.Where(ar => buildActions.Contains(ar.a));
@@ -359,8 +371,6 @@ namespace PlayboardTypes{
 					Debug.LogError("Unhandled Player request!  " + ar.a.ToString());
 				}
 			}
-			//Now update the timed parameters of each cell
-			this.IncrementCellCounters();
 		}
 
 		List<ActionReq> ActionExpansion(List<ActionReq> inList){
@@ -387,7 +397,7 @@ namespace PlayboardTypes{
 					}
 					break;
 				case pAction.blockingShot:
-					List<Vector2> emptyLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){CBldg.empty}, showAll:true);
+					List<Vector2> emptyLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){CBldg.empty}, 0);
 					for(int i = 0; i < 3; i++){
 						if(emptyLocs.Count() == 0){
 							break;
@@ -398,7 +408,7 @@ namespace PlayboardTypes{
 					}
 					break;
 				case pAction.hellFire:
-					List<Vector2> allLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){}, showAll:true, negate:true);
+					List<Vector2> allLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){}, 0, negate:true);
 					for(int i = 0; i < 5; i++){
 						if(allLocs.Count() == 0){
 							break;
@@ -409,7 +419,7 @@ namespace PlayboardTypes{
 					}
 					break;
 				case pAction.flare:
-					List<Vector2> noTowerLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){}, showAll:true, negate:true);
+					List<Vector2> noTowerLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){}, 0, negate:true);
 					for(int i = 0; i < 2; i++){
 						if(noTowerLocs.Count() == 0){
 							break;
@@ -430,12 +440,22 @@ namespace PlayboardTypes{
 		Cell GetCell(int targetPlayer, Vector2Int loc){ // TODO use this instead of 'this.cells[p][x,y]'
 			return this.cells[targetPlayer][loc.x, loc.y];
 		}
-		///////////////////Public functions for Cell calls
+		///////////////////Public functions for Cell calls during their action resolution
 		public void SetCellBldg(int p, Vector2Int loc, CBldg bldg){
 			if (!this.CheckLocInRange(loc))
 				return;
 			//Debug.Log("PB: SetCellBldg " + loc.x.ToString() + "," + loc.y.ToString() + " to " + bldg.ToString());
 			this.GetCell(p, loc).ChangeCellBldg(bldg);
+		}
+
+		public void CellSetDefGridBlock(int p, Vector2Int loc, bool block){
+			Debug.LogWarning("Setting block boolean to " + block.ToString());
+			this.GetCell(p,loc).defenceGridBlock = block;
+		}
+
+		//Cells can create and execute new actions in their resolution
+		public void CellApplyActionReqs(List<ActionReq> actionReq){
+			this.ApplyActions(actionReq);
 		}
 
 		public void AddCellCallback(int p, Vector2Int loc, PriorityCB cb, PCBType cbt){

@@ -47,6 +47,7 @@ public class PlayBoard2D : MonoBehaviour {
 		case pAction.scout:
 		case pAction.placeMine:
 		case pAction.buildDefenceGrid:
+		case pAction.buildReflector:
 			g.SetSingleSelect(sel, hovered, ar.loc[0]);
 			break;
 		case pAction.fireRow:

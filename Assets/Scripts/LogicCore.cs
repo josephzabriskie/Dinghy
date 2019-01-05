@@ -365,7 +365,7 @@ public class LogicCore : NetworkBehaviour {
 
 	void EvalActions(){
 		//Evaluate Actions
-		this.PB.ApplyActions(this.playerActions);
+		this.PB.ApplyValidActions(this.playerActions);
 		//Then clear Actions
 		this.playerActions.Clear();
 		//Now forward the results on to the world

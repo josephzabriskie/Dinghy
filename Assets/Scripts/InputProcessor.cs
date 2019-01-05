@@ -162,12 +162,16 @@ public class InputProcessor : MonoBehaviour {
 				case pAction.fireSquare: // this is multi location, but still single targeted shot
 				case pAction.placeMine:
 				case pAction.buildDefenceGrid:
+				case pAction.buildReflector:
 					singleAR = new ActionReq(this.report.playerId, target, this.actionContext, new Vector2[]{pos});
 					break;
 				case pAction.blockingShot:
 				case pAction.hellFire:
 				case pAction.flare:
 					singleAR = new ActionReq(this.report.playerId, target, this.actionContext, new Vector2[0]);
+					break;
+				case pAction.fireReflected:
+					Debug.LogError("Player input should never be able to make this action! " + this.actionContext.ToString());
 					break;
 				default:
 					Debug.LogError("Input processor unhandled actionContext: " + this.actionContext.ToString());	

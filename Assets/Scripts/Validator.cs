@@ -41,6 +41,7 @@ public class Validator {
             case pAction.buildWall:
             case pAction.placeMine:
             case pAction.buildDefenceGrid:
+            case pAction.buildReflector:
                 return DefBuildValid(ar, pGrid, gridSize);
             case pAction.fireBasic:
             case pAction.fireAgain:

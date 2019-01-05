@@ -23,15 +23,11 @@ public class Cell2D : MonoBehaviour {
 	public Sprite towerDefence;
 	public Sprite towerIntel;
 	public Sprite towerTemp;
-	//public Sprite destroyedTower;
-	public Sprite destroyedTerrain;
 	public Sprite wall;
-	//public Sprite wallDestroyed;
 	public Sprite blocked;
 	public Sprite mine;
-	//public Sprite mineDestroyed;
 	public Sprite defenceGrid;
-	//public Sprite defenceGridDestroyed;
+	public Sprite reflector;
 	//bgState
 	public Sprite defaultBG;
 	public Sprite selectBG;
@@ -40,6 +36,9 @@ public class Cell2D : MonoBehaviour {
 	public Vector2 coords;
 	public CellStruct cStruct;
 	public GameGrid2D parentGrid;
+	//Hit States
+	public Sprite destroyed;
+	public Sprite defenceGridBlock;
 	//Selections states
 	bool hovered = false;
 	bool selected = false;
@@ -129,11 +128,23 @@ public class Cell2D : MonoBehaviour {
 		case CBldg.defenceGrid:
 			this.srmain.sprite = this.defenceGrid;
 			break;
+		case CBldg.reflector:
+			this.srmain.sprite = this.reflector;
+			break;
 		default:
 			Debug.LogError("Unhandled state: " + this.cStruct.ToString());
 			break;
 		}
-		this.srdestroyed.sprite = this.cStruct.destroyed? this.destroyedTerrain : null;
+		//Set destroyed state
+		if(this.cStruct.destroyed){
+			this.srdestroyed.sprite = this.destroyed;
+		}
+		else if(this.cStruct.defenceGridBlock){
+			this.srdestroyed.sprite = this.defenceGridBlock;
+		}
+		else{
+			this.srdestroyed.sprite = null;
+		}
 	}
 
 	public void SetHovered(bool hov){

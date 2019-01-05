@@ -2,10 +2,11 @@ Adding a new action
 - Add to enum 'pAction'
 - Add to dict 'actionParams' in class 'PlayerActionTracker' in PlayBoard.cs
 - Add a validator in Validator.cs for placement of action
-- Add action to list of build/shoot/scout actions to be handled appropriately in 'ApplyActions()', part of PlayBoard.cs
+- Add action to list of build/shoot/scout actions to be handled appropriately in 'ApplyValidActions()', part of PlayBoard.cs
 - Add logic for result of action in Cell.cs and PlayBoard.cs
     - Here you may need to add an "ActionExpansion" Case for the action if the server has to determine locations
 - Add action to InputProcessor.cs 'RXInput()'
 - Add new action to 'SetCellsSelect' in PlayBoard2D
     - If needed, add new UI selection display here to done in GameGrid2D, called by 'SetCellsSelect'
+- Add new Cell2d bldg case handling if new bldg
 - Finally add new actionSelectPanel with the action set to your new action

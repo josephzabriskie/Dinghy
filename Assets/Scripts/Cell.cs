@@ -14,28 +14,27 @@ namespace CellTypes{
 		towerOffence,
 		towerDefence,
 		towerIntel,
-		//destroyedTower,
-		//destroyedTerrain,
 		wall,
-		//wallDestroyed,
 		blocked,
 		mine,
-		//destroyedMine,
 		defenceGrid,
-		//destroyedDefenceGrid
+		reflector,
 	}
 	public struct CellStruct{ // Here is the data type that will be passed back to the player
 		public CBldg bldg; //The building in the cell (can be empty)
 		public bool destroyed;
+		public bool  defenceGridBlock;
 		//Explicit Constructor
-		public CellStruct(CBldg bldg, bool destroyed){
+		public CellStruct(CBldg bldg, bool destroyed, bool defenceGridBlock){
 			this.bldg = bldg;
 			this.destroyed = destroyed;
+			this. defenceGridBlock = defenceGridBlock;
 		}
 		//Default constructor? Useful?
 		public CellStruct(CBldg bldg){
 			this.bldg = bldg;
 			this.destroyed = false;
+			this. defenceGridBlock = false;
 		}
 	}
 
@@ -79,6 +78,7 @@ namespace CellTypes{
 		//For couting hits on defence grid
 		int defenceGridHits;
 		bool defenceGridActive; // multiple shots on grid in one round are blocked, don't count
+		public bool defenceGridBlock; // For indicating to the player that their shot was blocked by DG
 
 		//Called externally to decrement/increment counting elements on each turn
 		//Take action here if needed
@@ -93,19 +93,39 @@ namespace CellTypes{
 			//Grid de-activate
 			this.defenceGridActive = false;
 		}
-
-		public CellStruct GetCellStruct(bool showAll=false){
+		// perspectives: 0 = Show all, 1 = player's owngrid, 2 = player's enemygrid
+		public CellStruct GetCellStruct(int perspective){
 			CBldg s;
 			bool ded;
-			if(showAll || this.vis || this.scouted){ // In this case area is visible, fill in all data accurately
+			bool dgb; //defenceGridBlock
+			if (perspective == 0 ){ // Show everything as is
 				s = this.bldg;
 				ded = this.destroyed;
+				dgb = this.defenceGridBlock;
 			}
-			else{ //We're supposed to be hidden, show nothing!
+			else if (perspective == 1){ // Show player's view
+				s = this.bldg;
+				ded = this.destroyed;
+				dgb = this.defenceGridBlock; // don't show the player this on their own side
+			}
+			else if (perspective == 2){ // perspective 2 enemy's grid
+				if(this.vis || this.scouted){
+					s = this.bldg;
+					ded = this.destroyed;
+				}
+				else{ //We're supposed to be hidden, show nothing!
+					s = CBldg.hidden;
+					ded = false;
+				}
+				dgb = this.defenceGridBlock; //always show this
+			}
+			else{
+				Debug.LogError("Big ol Warning! GetCellStruct unhandled perspective: " + perspective.ToString());
 				s = CBldg.hidden;
 				ded = false;
+				dgb = false;
 			}
-			return new CellStruct(s, ded);
+			return new CellStruct(s, ded, dgb);
 		}
 
 		public Cell(CBldg bldg, int pNum, Vector2Int loc, PlayBoard pb, bool visibleToEnemy){
@@ -116,6 +136,12 @@ namespace CellTypes{
 			this.shootCBs = new List<PriorityCB>();
 			this.buildCBs = new List<PriorityCB>();
 			this.scoutCBs = new List<PriorityCB>();
+			this.destroyed = false;
+			this.scouted = false;
+			this.scoutDuration = 0;
+			this.defenceGridHits = 0;
+			this.defenceGridActive = false;
+			this.defenceGridBlock = false;
 			this.ChangeCellBldg(bldg, init:true);
 		}
 		
@@ -135,6 +161,7 @@ namespace CellTypes{
 			this.destroyed = destroy;
 			if(destroy){ // blow it up
 				this.vis = true; // on boom, make visible
+				this.defenceGridBlock = false; // clear this, should really only ever have one of this or destroyed == true
 				this.TearDownSpecialCbs();
 			}
 			else{// un-blow it up?
@@ -151,22 +178,26 @@ namespace CellTypes{
 			case CBldg.towerOffence:
 			case CBldg.towerDefence:
 			case CBldg.towerIntel:
-			case CBldg.mine:
 			case CBldg.defenceGrid:
 				this.shootDef = new PriorityCB(0, DefShotCB);
 				this.buildDef = new PriorityCB(0, DefBuiltCB);
 				this.scoutDef = new PriorityCB(0, DefScoutedCB);
 				break;
-			// case CState.destroyedTerrain:
-			// case CState.destroyedTower:
-			// case CState.wallDestroyed:
-			// case CState.destroyedMine:
-			// case CState.destroyedDefenceGrid:
+			case CBldg.mine:
+				this.shootDef = new PriorityCB(0, MineShotCB);
+				this.buildDef = new PriorityCB(0, DefBuiltCB);
+				this.scoutDef = new PriorityCB(0, DefScoutedCB);
+				break;
+			case CBldg.reflector:
+				this.shootDef = new PriorityCB(0, ReflectorShotCB);
+				this.buildDef = new PriorityCB(0, DefBuiltCB);
+				this.scoutDef = new PriorityCB(0, DefScoutedCB);
+				break;
 			case CBldg.blocked:
-			// 	this.shootDef = new PriorityCB(0, NullCB);
-			// 	this.buildDef = new PriorityCB(0, NullCB);
-			// 	this.scoutDef = new PriorityCB(0, NullCB);
-			// 	break;
+			 	this.shootDef = new PriorityCB(0, NullCB);
+				this.buildDef = new PriorityCB(0, NullCB);
+				this.scoutDef = new PriorityCB(0, NullCB);
+				break;
 			default:
 				Debug.LogError("SetDefaultCB unhandled Case: " + this.bldg.ToString() + ", setting CB's to null");
 				this.shootDef = new PriorityCB(0, NullCB);
@@ -320,6 +351,7 @@ namespace CellTypes{
 		bool DefenceGridCB(ActionReq ar){
 			const int maxHits = 3;
 			//Todo, we need a way to show this to the player!
+			this.pb.CellSetDefGridBlock(ar.t, new Vector2Int((int)ar.loc[0].x, (int)ar.loc[0].y), true); // show the player that they were blocked
 			if (!this.defenceGridActive){
 				this.defenceGridHits++;
 				this.defenceGridActive = true;
@@ -352,6 +384,9 @@ namespace CellTypes{
 			case pAction.buildDefenceGrid:
 				this.ChangeCellBldg(CBldg.defenceGrid);
 				break;
+			case pAction.buildReflector:
+				this.ChangeCellBldg(CBldg.reflector);
+				break;
 			default:
 				Debug.LogError("EmptyBuildCB: Default case unhandled. " + ar.a.ToString());
 				return false;
@@ -362,10 +397,6 @@ namespace CellTypes{
 		bool DefShotCB(ActionReq ar){
 			//Debug.Log("CB handler: DefShotCB loc " + this.loc.ToString());
 			//Always check if we're a mine first, must punish
-			if(this.bldg == CBldg.mine){
-				this.DestroyCell(true);
-				this.pb.SetActionCooldown(ar.p, pAction.fireBasic, 3);
-			}
 			if(ar.a == pAction.blockingShot){
 				if (this.bldg == CBldg.empty){
 					this.ChangeCellBldg(CBldg.blocked);
@@ -376,6 +407,27 @@ namespace CellTypes{
 			}
 			else{
 				this.DestroyCell(true);
+			}
+			return true;
+		}
+
+		bool MineShotCB(ActionReq ar){
+			if(!this.destroyed){
+				this.pb.SetActionCooldown(ar.p, pAction.fireBasic, 3);
+			}
+			this.DestroyCell(true);
+			return true;
+		}
+
+		bool ReflectorShotCB(ActionReq ar){
+			if(ar.a == pAction.fireReflected){ // so there's no looping, just blow this up if we're hit with a reflected shot
+				this.DestroyCell(true);
+			}
+			else{
+				this.vis = true;
+				Vector2 loc = new Vector2(Random.Range(0,this.pb.sizex - 1), Random.Range(0,this.pb.sizey - 1));
+				//Debug.Log("Ping! Deflected that shot");
+				pb.CellApplyActionReqs(new List<ActionReq>{new ActionReq(ar.t, ar.p, pAction.fireReflected, new Vector2[]{loc})});
 			}
 			return true;
 		}
