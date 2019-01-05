@@ -29,6 +29,8 @@ public class Cell2D : MonoBehaviour {
 	public Sprite blocked;
 	public Sprite mine;
 	public Sprite mineDestroyed;
+	public Sprite defenceGrid;
+	public Sprite defenceGridDestroyed;
 	//bgState
 	public Sprite defaultBG;
 	public Sprite selectBG;
@@ -131,6 +133,12 @@ public class Cell2D : MonoBehaviour {
 				break;
 			case CState.destroyedMine:
 				this.srmain.sprite = this.mineDestroyed;
+				break;
+			case CState.defenceGrid:
+				this.srmain.sprite = this.defenceGrid;
+				break;
+			case CState.destroyedDefenceGrid:
+				this.srmain.sprite = this.defenceGridDestroyed;
 				break;
 			default:
 				Debug.LogError("Unhandled state: " + this.cState.ToString());

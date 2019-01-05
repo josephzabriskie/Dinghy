@@ -40,6 +40,7 @@ public class Validator {
             case pAction.buildIntelTower:
             case pAction.buildWall:
             case pAction.placeMine:
+            case pAction.buildDefenceGrid:
                 return DefBuildValid(ar, pGrid, gridSize);
             case pAction.fireBasic:
             case pAction.fireAgain:

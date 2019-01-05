@@ -24,6 +24,7 @@ namespace PlayerActions{
 		hellFire, // Randomly shoot at 5 targets on enemy side!
 		flare, //randomly shoot scouts at 2
 		placeMine,
+		buildDefenceGrid, // Guard against 3 shots den blow up
 	}
 	public struct ActionReq	{
 		public int p; //player number
@@ -37,8 +38,8 @@ namespace PlayerActions{
 			loc=inCoords;
 		}
 		public override string ToString()
-    	{
-        	return "P: " + p + " T: " + t + " A: " + a + " loc: " + loc;
+    	{	string locStr = loc==null? "null" : loc.Count()==0 ? "0 len" : loc.ToString();
+        	return "P: " + p + " T: " + t + " A: " + a + " loc0: " + loc;
     	}
 	}
 }
@@ -105,6 +106,7 @@ namespace PlayboardTypes{
 			{pAction.hellFire,			new ActionParam(0,0,0, 0, -1)},
 			{pAction.flare,				new ActionParam(0,0,0, 0, -1)},
 			{pAction.placeMine,			new ActionParam(0,0,0, 0, -1)},
+			{pAction.buildDefenceGrid,		new ActionParam(0,0,0, 0, -1)},
 		};
 		Dictionary<pAction, int> actionCooldowns; //Use for tracking cooldowns
 		List<pAction> actionHistory; //Use for counting uses
@@ -333,7 +335,7 @@ namespace PlayboardTypes{
 			ars.AddRange(player0ARs);
 			ars.AddRange(player1ARs);
 			//To CodeMonkey: each action must appear no more than once in these lists
-			List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower, pAction.buildWall, pAction.placeMine};
+			List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower, pAction.buildWall, pAction.placeMine, pAction.buildDefenceGrid};
 			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain, pAction.fireRow, pAction.fireSquare, pAction.blockingShot, pAction.hellFire};
 			List<pAction> scoutActions = new List<pAction>(){pAction.scout, pAction.flare};
 			//Here we order the list to make sure that building happens first

@@ -150,6 +150,9 @@ MonoBehaviour:
   blocked: {fileID: 21300000, guid: 8e9c89d628dd56a4a98235ecaaa9e4a5, type: 3}
   mine: {fileID: 21300000, guid: 9fa0558577ce5774ca66ee2e905cfbda, type: 3}
   mineDestroyed: {fileID: 21300000, guid: 7a27e5ce0e7b284408cd4d84d6e868eb, type: 3}
+  defenceGrid: {fileID: 21300000, guid: 7afb2f1f7c1cbd84bbeb347f968f478b, type: 3}
+  defenceGridDestroyed: {fileID: 21300000, guid: 97fede0b1d85f9d43b2dae35d386ac67,
+    type: 3}
   defaultBG: {fileID: 21300000, guid: 3469a51f0714bc44889e92b07ff33fae, type: 3}
   selectBG: {fileID: 21300000, guid: abfa7ff6220b2af4289403789b592604, type: 3}
   selectHoverBG: {fileID: 21300000, guid: 953a9dac67a8c7742ab4ec8d29637ae1, type: 3}

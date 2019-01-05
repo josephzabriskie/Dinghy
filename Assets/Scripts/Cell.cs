@@ -20,7 +20,9 @@ namespace CellTypes{
 		wallDestroyed,
 		blocked,
 		mine,
-		destroyedMine
+		destroyedMine,
+		defenceGrid,
+		destroyedDefenceGrid
 	}
 
 	public enum PCBType{ //prioritycallback type
@@ -55,17 +57,25 @@ namespace CellTypes{
 		List<PriorityCB> buildCBs;
 		List<PriorityCB> scoutCBs;
 		bool vis; // visible to Enemy
+		//For Scouting actions
 		bool scouted;
-        public int scoutDuration; // How long visible to enemy
+        int scoutDuration; // How long visible to enemy
+		//For couting hits on defence grid
+		int defenceGridHits;
+		bool defenceGridActive; // multiple shots on grid in one round are blocked, don't count
 
 		//Called externally to decrement/increment counting elements on each turn
 		//Take action here if needed
 		public void IncrementCounters(){
 			//Scouted Counters
-			scoutDuration--;
-			if(scoutDuration <=0){ // Scouting worn off
+			if(this.scouted){
+				this.scoutDuration--;
+			}
+			if(this.scoutDuration <=0){ // Scouting worn off
 				this.scouted = false;
 			}
+			//Grid de-activate
+			this.defenceGridActive = false;
 		}
 
 		public CState GetState(bool showAll=false){
@@ -102,6 +112,7 @@ namespace CellTypes{
 			case CState.towerDefence:
 			case CState.towerIntel:
 			case CState.mine:
+			case CState.defenceGrid:
 				this.shootDef = new PriorityCB(0, DefShotCB);
 				this.buildDef = new PriorityCB(0, DefBuiltCB);
 				this.scoutDef = new PriorityCB(0, DefScoutedCB);
@@ -111,6 +122,7 @@ namespace CellTypes{
 			case CState.wallDestroyed:
 			case CState.blocked:
 			case CState.destroyedMine:
+			case CState.destroyedDefenceGrid:
 				this.shootDef = new PriorityCB(0, NullCB);
 				this.buildDef = new PriorityCB(0, NullCB);
 				this.scoutDef = new PriorityCB(0, NullCB);
@@ -131,6 +143,15 @@ namespace CellTypes{
 				this.pb.AddCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -1), new PriorityCB(5, this.WallCB), PCBType.shoot);
 				this.pb.AddCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -2), new PriorityCB(6, this.WallCB), PCBType.shoot);
 			}
+			if(this.state == CState.defenceGrid){
+				for(int x = -2; x < 3; x++){
+					for(int y = -2; y < 3; y++){
+						if(!(x == 0 && y == 0)){
+							this.pb.AddCellCallback(this.pNum, new Vector2Int(this.loc.x + x, this.loc.y + y), new PriorityCB(7, this.DefenceGridCB), PCBType.shoot);
+						}
+					}
+				}
+			}
 		}
 
 		void TearDownSpecialCbs(){
@@ -138,6 +159,15 @@ namespace CellTypes{
 				//Debug.Log("removing the wall's special callbacks");
 				this.pb.RemCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -1), new PriorityCB(5, this.WallCB), PCBType.shoot);
 				this.pb.RemCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -2), new PriorityCB(6, this.WallCB), PCBType.shoot);
+			}
+			if(this.state == CState.defenceGrid){
+				for(int x = -2; x < 3; x++){
+					for(int y = -2; y < 3; y++){
+						if(!(x == 0 && y == 0)){
+							this.pb.RemCellCallback(this.pNum, new Vector2Int(this.loc.x + x, this.loc.y + y), new PriorityCB(7, this.DefenceGridCB), PCBType.shoot);
+						}
+					}
+				}
 			}
 		}
 
@@ -189,8 +219,13 @@ namespace CellTypes{
 			case CState.destroyedTower:
 			case CState.blocked:
 			case CState.destroyedMine:
+			case CState.destroyedDefenceGrid:
 				//Debug.Log("SetStateParams: Since we're destoryed, reveal us: " + this.state.ToString());
 				this.vis = true;
+				break;
+			case CState.defenceGrid:
+				this.defenceGridHits = 0;
+				this.defenceGridActive = false;
 				break;
 			case CState.hidden:
 				Debug.LogError("SetStateParams: Don't ever expect to be in this state: " + this.state.ToString());
@@ -242,6 +277,20 @@ namespace CellTypes{
 			return true;
 		}
 
+		bool DefenceGridCB(ActionReq ar){
+			const int maxHits = 3;
+			//Todo, we need a way to show this to the player!
+			if (!this.defenceGridActive){
+				this.defenceGridHits++;
+				this.defenceGridActive = true;
+			}
+			Debug.LogWarning("CB handler: DefenceGridCB blocked shot #" + this.defenceGridHits.ToString() + " at loc" + this.loc.ToString());
+			if (this.defenceGridHits >= maxHits){
+				this.ChangeState(CState.destroyedDefenceGrid);
+			}
+			return true;
+		}
+
 		bool DefBuiltCB(ActionReq ar){
 			//Debug.Log("CB handler: DefBuiltCB loc " + this.loc.ToString());
 			switch(ar.a){
@@ -260,6 +309,9 @@ namespace CellTypes{
 			case pAction.placeMine:
 				this.ChangeState(CState.mine);
 				break;
+			case pAction.buildDefenceGrid:
+				this.ChangeState(CState.defenceGrid);
+				break;
 			default:
 				Debug.LogError("EmptyBuildCB: Default case unhandled. " + ar.a.ToString());
 				return false;
@@ -269,6 +321,7 @@ namespace CellTypes{
 
 		bool DefShotCB(ActionReq ar){
 			//Debug.Log("CB handler: DefShotCB loc " + this.loc.ToString());
+			//Always check if we're a mine first, must punish
 			if(this.state == CState.mine){
 				this.ChangeState(CState.destroyedMine);
 				this.pb.SetActionCooldown(ar.p, pAction.fireBasic, 3);
@@ -281,13 +334,14 @@ namespace CellTypes{
 					Debug.LogError("Trying to block a non empty cstate! " + ar.ToString());
 				}
 			}
-			else{
-				if (new List<CState>(){CState.towerDefence, CState.towerOffence, CState.towerIntel}.Contains(this.state)){
-					this.ChangeState(CState.destroyedTower);
-				}
-				else if (this.state == CState.empty){
-					this.ChangeState(CState.destroyedTerrain);
-				}
+			else if (new List<CState>(){CState.towerDefence, CState.towerOffence, CState.towerIntel}.Contains(this.state)){
+				this.ChangeState(CState.destroyedTower);
+			}
+			else if (this.state == CState.empty){
+				this.ChangeState(CState.destroyedTerrain);
+			}
+			else if (this.state == CState.defenceGrid){
+				this.ChangeState(CState.destroyedDefenceGrid);
 			}
 			return true;
 		}
