@@ -150,7 +150,7 @@ public class LogicCore : NetworkBehaviour {
 			break;
 		case MatchState.actionSelect:
 			Debug.Log("We're entering actionSelect state!");
-			this.stateTime = 30;
+			this.stateTime = 60;
 			this.PB.validator.SetAPC(ActionProcState.basicActions);
 			this.ClearCurrentCoroutine();
 			this.UpdatePlayersGameState();

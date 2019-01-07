@@ -47,9 +47,12 @@ public class Validator {
             case pAction.fireAgain:
             case pAction.fireRow:
             case pAction.fireSquare:
+            case pAction.firePiercing:
                 return FireValid(ar, gridSize);
             case pAction.scout:
                 return ScoutValid(ar, eGrid, gridSize);
+            case pAction.placeMole:
+                return MoleValid(ar);
             case pAction.blockingShot:
             case pAction.hellFire:
             case pAction.flare:
@@ -110,6 +113,11 @@ public class Validator {
         //Checks: target enemy, has only 1 loc, target is hidden
         bool resl = !TargetsSelf(ar) && LocCountEq(ar, 1) && BldgIs(eGrid, ar.loc[0], CBldg.hidden, gridSize);
         //Debug.Log("ScoutValid returned " + resl.ToString());
+        return resl;
+    }
+
+    bool MoleValid(ActionReq ar){
+        bool resl = !TargetsSelf(ar) && LocCountEq(ar, 1);
         return resl;
     }
 

@@ -46,15 +46,21 @@ public class PlayBoard2D : MonoBehaviour {
 		case pAction.buildIntelTower:
 		case pAction.scout:
 		case pAction.placeMine:
-		case pAction.buildDefenceGrid:
 		case pAction.buildReflector:
+		case pAction.firePiercing:
 			g.SetSingleSelect(sel, hovered, ar.loc[0]);
 			break;
 		case pAction.fireRow:
 			g.SetRowSelect(sel, hovered, (int)ar.loc[0].y);
 			break;
 		case pAction.fireSquare:
-			g.SetSquareSelect(sel, hovered, ar.loc[0]);
+			g.SetEmptySquareSelect(sel, hovered, ar.loc[0]);
+			break;
+		case pAction.placeMole:
+			g.SetSquare3Select(sel, hovered, ar.loc[0], 1); // 3x3 square
+			break;
+		case pAction.buildDefenceGrid:
+			g.SetSquare3Select(sel, hovered, ar.loc[0], 2); // 5x5 square
 			break;
 		case pAction.blockingShot: // these guys don't have any targeting or loc in their action
 		case pAction.hellFire: // for now just target (0,0) temp

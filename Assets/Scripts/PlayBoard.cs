@@ -27,6 +27,8 @@ namespace PlayerActions{
 		buildDefenceGrid, // Guard against 3 shots den blow up
 		buildReflector, // Shots that hit this are reflected to a random space on the opponents side
 		fireReflected, //Player can't request this action, only a reflector can cause this. Normal shot, but destroys reflectors so no looping
+		firePiercing, //Shot that goes through walls, boom on the way
+		placeMole, // place a mole that 
 	}
 	public struct ActionReq	{
 		public int p; //player number
@@ -111,6 +113,8 @@ namespace PlayboardTypes{
 			{pAction.buildDefenceGrid,	new ActionParam(0,0,0, 0, -1)},
 			{pAction.buildReflector,	new ActionParam(0,0,0, 0, -1)},
 			{pAction.fireReflected,		new ActionParam(0,0,0, 0, 0)}, // Player can't cause this
+			{pAction.firePiercing,		new ActionParam(0,0,0, 0, -1)},
+			{pAction.placeMole,			new ActionParam(0,0,0, 0, -1)},
 		};
 		Dictionary<pAction, int> actionCooldowns; //Use for tracking cooldowns
 		List<pAction> actionHistory; //Use for counting uses
@@ -246,7 +250,7 @@ namespace PlayboardTypes{
 				}
 			}
 		}
-		//////////////////////Public functions for logic core calls
+		//////////////////////Public for logic core calls
 		//Return value will always put requesting player's grid in idx 0, enemy grid in idx 1
 		public CellStruct[][,] GetPlayerGameState(int playerIdx){
 			int enemyIdx = (playerIdx + 1) % playercnt;
@@ -255,6 +259,8 @@ namespace PlayboardTypes{
 			boardOut[1] = this.GetGridSide(enemyIdx, 2); //enemyGrid
 			return boardOut; 
 		}
+
+		////////////////////////Helper functions for game logic
 		//Get specific side of grid (indexed by playerID)
 		CellStruct[,] GetGridSide(int idx, int perspective){
 			CellStruct [,] gridOut = new CellStruct[sizex,sizey];
@@ -264,6 +270,22 @@ namespace PlayboardTypes{
 				}
 			}
 			return gridOut;
+		}
+
+		//Made for mole area checking
+		int GetMoleCount(int idx, Vector2Int loc){
+			List<CBldg> untrackedBldgs = new List<CBldg>{CBldg.empty};
+			int ret = 0;
+			for(int x = -1; x < 2; x++){
+				for(int y = -1; y < 2; y++){
+					Vector2Int newLoc = new Vector2Int(loc.x + x, loc.y + y);
+					Debug.Log("Molecounting at loc " + newLoc.ToString() + " player: " + idx.ToString());
+					if(CheckLocInRange(newLoc) && !untrackedBldgs.Contains(cells[idx][newLoc.x,newLoc.y].GetCellStruct(0).bldg)){
+						ret++;
+					}
+				}
+			}
+			return ret;
 		}
 
 		//Used to help our randomizer functions that don't want to hit
@@ -305,18 +327,27 @@ namespace PlayboardTypes{
 			return this.pats[playerId].GetActionAvailibility(this.GetGridSide(playerId, 0));
 		}
 
-		void IncrementCellCounters(){
+		//Here we do the cleanup/calcs/etc that needs to happen at the end of apply
+		void FinalizeApply(){
+			//Increment the counters in the cells
 			for(int p = 0; p < playercnt; p++){
 				for(int x = 0; x < this.sizex; x++){
 					for(int y = 0; y < this.sizey; y++){
+						//Increment the counters in the cells
 						this.cells[p][x,y].IncrementCounters();
+						//Moles do their thing at the end of every action apply
+						if(this.cells[p][x,y].mole){
+							this.cells[p][x,y].molecount = this.GetMoleCount(p, new Vector2Int(x,y));
+						}
 					}
 				}
 			}
+			//Moles do their thing at the end of every action apply
+
 		}
 
 
-		//We expect this to be called once per round. We'll update the ticking elements at the end of this func
+		//We expect this to be called only once per round
 		public void ApplyValidActions(List<ActionReq> ars){
 			Debug.Log("PlayBoard processing Actions. Got " + ars.Count);
 			List<ActionReq> validARs = new List<ActionReq>();
@@ -342,14 +373,15 @@ namespace PlayboardTypes{
 			//Validation is done, now we can apply these as like normal
 			this.ApplyActions(ars);
 			//Now update the timed parameters of each cell
-			this.IncrementCellCounters();
+			this.FinalizeApply();
 		}
 
 		void ApplyActions(List<ActionReq> ars){
 			//To CodeMonkey: each action must appear no more than once in these lists
 			List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower, pAction.buildWall,
-				pAction.placeMine, pAction.buildDefenceGrid, pAction.buildReflector};
-			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain, pAction.fireRow, pAction.fireSquare, pAction.blockingShot, pAction.hellFire, pAction.fireReflected};
+				pAction.placeMine, pAction.buildDefenceGrid, pAction.buildReflector, pAction.placeMole};
+			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain, pAction.fireRow, pAction.fireSquare, pAction.blockingShot,
+				pAction.hellFire, pAction.fireReflected, pAction.firePiercing};
 			List<pAction> scoutActions = new List<pAction>(){pAction.scout, pAction.flare};
 			//Here we order the list to make sure that building happens first
 			var buildARs = ars.Where(ar => buildActions.Contains(ar.a));

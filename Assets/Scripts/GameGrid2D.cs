@@ -132,9 +132,30 @@ public class GameGrid2D : MonoBehaviour {
 		}
 	}
 
-	public void SetSquareSelect(bool sel, bool hovered, Vector2 loc){
+	public void SetEmptySquareSelect(bool sel, bool hovered, Vector2 loc){
 		for(int x = -1; x < 2; x+=2){
 			for(int y = -1; y < 2; y+=2){
+				Vector2 newLoc = new Vector2(loc.x + x, loc.y + y);
+				if(!this.CheckLocInRange(newLoc)){
+					continue;
+				}
+				if(hovered){
+					this.cells[(int)newLoc.x, (int)newLoc.y].SetHovered(sel);
+				}
+				else{
+					this.cells[(int)newLoc.x, (int)newLoc.y].SetSelected(sel);
+				}
+			}
+		}
+	}
+
+	//Set square. Size is the diagonal count from center to edge.
+	public void SetSquare3Select(bool sel, bool hovered, Vector2 loc, int size){
+		if(size < 0){ // Bad input
+			return;
+		}
+		for(int x = -size; x < size + 1; x++){
+			for(int y = -size; y < size + 1; y++){
 				Vector2 newLoc = new Vector2(loc.x + x, loc.y + y);
 				if(!this.CheckLocInRange(newLoc)){
 					continue;

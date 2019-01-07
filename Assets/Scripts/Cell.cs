@@ -24,17 +24,23 @@ namespace CellTypes{
 		public CBldg bldg; //The building in the cell (can be empty)
 		public bool destroyed;
 		public bool  defenceGridBlock;
+		public bool mole;
+		public int molecount;
 		//Explicit Constructor
-		public CellStruct(CBldg bldg, bool destroyed, bool defenceGridBlock){
+		public CellStruct(CBldg bldg, bool destroyed, bool defenceGridBlock, bool mole, int molecount){
 			this.bldg = bldg;
 			this.destroyed = destroyed;
 			this. defenceGridBlock = defenceGridBlock;
+			this.mole = mole;
+			this.molecount = molecount;
 		}
 		//Default constructor? Useful?
 		public CellStruct(CBldg bldg){
 			this.bldg = bldg;
 			this.destroyed = false;
-			this. defenceGridBlock = false;
+			this.defenceGridBlock = false;
+			this.mole = false;
+			this.molecount = 0;
 		}
 	}
 
@@ -79,6 +85,9 @@ namespace CellTypes{
 		int defenceGridHits;
 		bool defenceGridActive; // multiple shots on grid in one round are blocked, don't count
 		public bool defenceGridBlock; // For indicating to the player that their shot was blocked by DG
+		//For mole
+		public bool mole;
+		public int molecount;
 
 		//Called externally to decrement/increment counting elements on each turn
 		//Take action here if needed
@@ -95,13 +104,18 @@ namespace CellTypes{
 		}
 		// perspectives: 0 = Show all, 1 = player's owngrid, 2 = player's enemygrid
 		public CellStruct GetCellStruct(int perspective){
-			CBldg s;
-			bool ded;
-			bool dgb; //defenceGridBlock
+			//Default values
+			CBldg s = CBldg.hidden;
+			bool ded = false;
+			bool dgb = false; //defenceGridBlock
+			bool mole = false;
+			int mcnt = 0; // mole count
 			if (perspective == 0 ){ // Show everything as is
 				s = this.bldg;
 				ded = this.destroyed;
 				dgb = this.defenceGridBlock;
+				mole = this.mole;
+				mcnt = mole ? this.molecount : 0;
 			}
 			else if (perspective == 1){ // Show player's view
 				s = this.bldg;
@@ -117,15 +131,14 @@ namespace CellTypes{
 					s = CBldg.hidden;
 					ded = false;
 				}
-				dgb = this.defenceGridBlock; //always show this
+				dgb = this.defenceGridBlock; //always show these
+				mole = this.mole;
+				mcnt = mole ? this.molecount : 0;
 			}
 			else{
 				Debug.LogError("Big ol Warning! GetCellStruct unhandled perspective: " + perspective.ToString());
-				s = CBldg.hidden;
-				ded = false;
-				dgb = false;
 			}
-			return new CellStruct(s, ded, dgb);
+			return new CellStruct(s, ded, dgb, mole, mcnt);
 		}
 
 		public Cell(CBldg bldg, int pNum, Vector2Int loc, PlayBoard pb, bool visibleToEnemy){
@@ -142,6 +155,8 @@ namespace CellTypes{
 			this.defenceGridHits = 0;
 			this.defenceGridActive = false;
 			this.defenceGridBlock = false;
+			this.mole = false;
+			this.molecount = 0;
 			this.ChangeCellBldg(bldg, init:true);
 		}
 		
@@ -162,6 +177,8 @@ namespace CellTypes{
 			if(destroy){ // blow it up
 				this.vis = true; // on boom, make visible
 				this.defenceGridBlock = false; // clear this, should really only ever have one of this or destroyed == true
+				this.mole = false; // well, the mole dies too :( why'd you shoot him?
+				this.molecount = 0;
 				this.TearDownSpecialCbs();
 			}
 			else{// un-blow it up?
@@ -345,7 +362,7 @@ namespace CellTypes{
 		bool WallCB(ActionReq ar){
 			//Debug.Log("CB handler: WallCB loc" + this.loc.ToString());
 			this.DestroyCell(true);
-			return true;
+			return ar.a != pAction.firePiercing;
 		}
 
 		bool DefenceGridCB(ActionReq ar){
@@ -386,6 +403,9 @@ namespace CellTypes{
 				break;
 			case pAction.buildReflector:
 				this.ChangeCellBldg(CBldg.reflector);
+				break;
+			case pAction.placeMole:
+				this.mole = true;
 				break;
 			default:
 				Debug.LogError("EmptyBuildCB: Default case unhandled. " + ar.a.ToString());

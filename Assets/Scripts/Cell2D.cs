@@ -16,6 +16,8 @@ public class Cell2D : MonoBehaviour {
 	SpriteRenderer srbg; // sr of the bg
 	SpriteRenderer srmain; // sr of the covering image
 	SpriteRenderer srdestroyed;
+	GameObject moleTextObj;
+	TextMesh moleText;
 	//BldgStatesprites
 	public Sprite fog;
 	public Sprite tower;
@@ -39,6 +41,9 @@ public class Cell2D : MonoBehaviour {
 	//Hit States
 	public Sprite destroyed;
 	public Sprite defenceGridBlock;
+	//Molestuff
+	public bool mole;
+	public int molecount;
 	//Selections states
 	bool hovered = false;
 	bool selected = false;
@@ -60,6 +65,9 @@ public class Cell2D : MonoBehaviour {
 				Debug.LogError("Cell2D init: Unhandled name " + sr.name);
 			}
 		}
+		this.moleTextObj = this.transform.Find("MoleText").gameObject;
+		this.moleText = this.moleTextObj.GetComponent<TextMesh>();
+		this.moleTextObj.SetActive(false);
 		this.srbg = srlist[0];
 		this.srmain = srlist[1];
 		this.SetCellStruct(new CellStruct(CBldg.hidden));
@@ -136,14 +144,25 @@ public class Cell2D : MonoBehaviour {
 			break;
 		}
 		//Set destroyed state
-		if(this.cStruct.destroyed){
+		if(newCS.destroyed){
 			this.srdestroyed.sprite = this.destroyed;
 		}
-		else if(this.cStruct.defenceGridBlock){
+		else if(newCS.defenceGridBlock){
 			this.srdestroyed.sprite = this.defenceGridBlock;
 		}
 		else{
 			this.srdestroyed.sprite = null;
+		}
+		//Update mole status
+		this.mole = newCS.mole;
+		if(this.mole){
+			this.molecount = newCS.molecount;
+			this.moleTextObj.SetActive(true);
+			this.moleText.text = this.molecount.ToString();
+		}
+		else{
+			this.molecount = 0;
+			this.moleTextObj.SetActive(false);
 		}
 	}
 

@@ -163,6 +163,8 @@ public class InputProcessor : MonoBehaviour {
 				case pAction.placeMine:
 				case pAction.buildDefenceGrid:
 				case pAction.buildReflector:
+				case pAction.firePiercing:
+				case pAction.placeMole:
 					singleAR = new ActionReq(this.report.playerId, target, this.actionContext, new Vector2[]{pos});
 					break;
 				case pAction.blockingShot:
