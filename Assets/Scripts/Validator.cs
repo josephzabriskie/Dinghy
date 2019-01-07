@@ -48,6 +48,7 @@ public class Validator {
             case pAction.fireRow:
             case pAction.fireSquare:
             case pAction.firePiercing:
+            case pAction.towerTakeover:
                 return FireValid(ar, gridSize);
             case pAction.scout:
                 return ScoutValid(ar, eGrid, gridSize);

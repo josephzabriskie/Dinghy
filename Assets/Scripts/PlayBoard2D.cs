@@ -48,6 +48,7 @@ public class PlayBoard2D : MonoBehaviour {
 		case pAction.placeMine:
 		case pAction.buildReflector:
 		case pAction.firePiercing:
+		case pAction.towerTakeover:
 			g.SetSingleSelect(sel, hovered, ar.loc[0]);
 			break;
 		case pAction.fireRow:

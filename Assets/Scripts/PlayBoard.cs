@@ -10,7 +10,6 @@ using ActionProc;
 namespace PlayerActions{
 	public enum pAction{
 		noAction,
-		buildTower, //Should be unused, place type of tower is new action
 		buildOffenceTower,
 		buildDefenceTower,
 		buildIntelTower,
@@ -29,6 +28,7 @@ namespace PlayerActions{
 		fireReflected, //Player can't request this action, only a reflector can cause this. Normal shot, but destroys reflectors so no looping
 		firePiercing, //Shot that goes through walls, boom on the way
 		placeMole, // place a mole that 
+		towerTakeover, //Takeover enemy tower on hit. Tower now counts towards your cost requirements
 	}
 	public struct ActionReq	{
 		public int p; //player number
@@ -96,25 +96,25 @@ namespace PlayboardTypes{
 		static Dictionary<pAction, ActionParam> actionParams = new Dictionary<pAction, ActionParam>{
 			//								ActionParam(costs..cd..uses) Note: you can set uses to 0 to disable
 			{pAction.noAction, 			new ActionParam(0,0,0, 0, -1)},
-			{pAction.buildTower, 		new ActionParam(0,0,0, 0, -1)},
 			{pAction.buildOffenceTower, new ActionParam(0,0,0, 0, 7)},
 			{pAction.buildDefenceTower, new ActionParam(0,0,0, 0, 7)},
 			{pAction.buildIntelTower, 	new ActionParam(0,0,0, 0, 7)},
-			{pAction.buildWall, 		new ActionParam(0,2,0, 2, -1)},
+			{pAction.buildWall, 		new ActionParam(0,3,0, 2, 5)},
 			{pAction.fireBasic, 		new ActionParam(0,0,0, 0, -1)},
-			{pAction.scout, 			new ActionParam(0,0,2, 0, -1)},
-			{pAction.fireAgain,			new ActionParam(3,0,0, 3, -1)},
-			{pAction.fireRow,			new ActionParam(0,0,0, 0, -1)},
-			{pAction.fireSquare,		new ActionParam(0,0,0, 0, -1)},
-			{pAction.blockingShot,		new ActionParam(0,0,0, 0, -1)},
-			{pAction.hellFire,			new ActionParam(0,0,0, 0, -1)},
-			{pAction.flare,				new ActionParam(0,0,0, 0, -1)},
-			{pAction.placeMine,			new ActionParam(0,0,0, 0, -1)},
-			{pAction.buildDefenceGrid,	new ActionParam(0,0,0, 0, -1)},
-			{pAction.buildReflector,	new ActionParam(0,0,0, 0, -1)},
+			{pAction.scout, 			new ActionParam(0,0,3, 0, 0)},
+			{pAction.fireAgain,			new ActionParam(3,0,0, 2, -1)},
+			{pAction.fireRow,			new ActionParam(0,0,0, 0, 0)},
+			{pAction.fireSquare,		new ActionParam(5,0,0, 4, -1)},
+			{pAction.blockingShot,		new ActionParam(0,3,3, 0, -1)},// this one's odd?
+			{pAction.hellFire,			new ActionParam(7,0,0, 4, -1)},
+			{pAction.flare,				new ActionParam(0,0,3, 0, -1)},
+			{pAction.placeMine,			new ActionParam(0,5,0, 1, 4)},
+			{pAction.buildDefenceGrid,	new ActionParam(0,7,0, 6, 3)},
+			{pAction.buildReflector,	new ActionParam(3,3,0, 2, 4)},
 			{pAction.fireReflected,		new ActionParam(0,0,0, 0, 0)}, // Player can't cause this
-			{pAction.firePiercing,		new ActionParam(0,0,0, 0, -1)},
-			{pAction.placeMole,			new ActionParam(0,0,0, 0, -1)},
+			{pAction.firePiercing,		new ActionParam(3,0,3, 0, 0)},
+			{pAction.placeMole,			new ActionParam(0,0,5, 3, 2)},
+			{pAction.towerTakeover,		new ActionParam(0,0,7, 0, -1)},
 		};
 		Dictionary<pAction, int> actionCooldowns; //Use for tracking cooldowns
 		List<pAction> actionHistory; //Use for counting uses
@@ -133,10 +133,14 @@ namespace PlayboardTypes{
 			this.actionHistory = new List<pAction>();
 		}
 
-		static List<pAction> CheckCostsMet(CellStruct[,] pGrid){
-			int offenceCount = GUtils.Serialize(pGrid).Count(cell => cell.bldg == CBldg.towerOffence && !cell.destroyed);
-			int defenceCount = GUtils.Serialize(pGrid).Count(cell => cell.bldg == CBldg.towerDefence && !cell.destroyed);
-			int intelCount = GUtils.Serialize(pGrid).Count(cell => cell.bldg == CBldg.towerIntel && !cell.destroyed);
+		static List<pAction> CheckCostsMet(CellStruct[][,] gState){
+			//Game state from a specific player's perspetive
+			int offenceCount = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == CBldg.towerOffence && !cell.destroyed);
+			offenceCount += GUtils.Serialize(gState[1]).Count(cell => cell.bldg == CBldg.towerOffence && !cell.destroyed && cell.defected);
+			int defenceCount = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == CBldg.towerDefence && !cell.destroyed);
+			defenceCount += GUtils.Serialize(gState[1]).Count(cell => cell.bldg == CBldg.towerDefence && !cell.destroyed && cell.defected);
+			int intelCount = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == CBldg.towerIntel && !cell.destroyed);
+			intelCount += GUtils.Serialize(gState[1]).Count(cell => cell.bldg == CBldg.towerIntel && !cell.destroyed && cell.defected);
 			List<pAction> retList = new List<pAction>();
 			foreach(pAction action in actionParams.Keys){
 				ActionParam apm = actionParams[action];
@@ -164,9 +168,9 @@ namespace PlayboardTypes{
 			return usesLeft != 0; // Less than zero we ignore, more than 0 means uses are left
 		}
 		
-		public List<ActionAvail> GetActionAvailibility(CellStruct[,] pGrid){
+		public List<ActionAvail> GetActionAvailibility(CellStruct[][,] playerGameState){
 			List<ActionAvail> retList = new List<ActionAvail>();
-			List<pAction> costsMetActions = CheckCostsMet(pGrid); // Check cost of actions met
+			List<pAction> costsMetActions = CheckCostsMet(playerGameState); // Check cost of actions met
 			foreach(pAction action in allActions){
 				retList.Add(new ActionAvail(action, costsMetActions.Contains(action), this.actionCooldowns[action], this.GetUsesLeft(action), actionParams[action]));
 			}
@@ -174,9 +178,9 @@ namespace PlayboardTypes{
 		}
 
 		//Validate Actions = input action list, output actionlist that meet costs, off cooldown, not over max use
-		List<ActionReq> ValidateActions(List<ActionReq> inList, CellStruct[,] pGrid){
+		List<ActionReq> ValidateActions(List<ActionReq> inList, CellStruct[][,] playerGameState){
 			List<ActionReq> retList = new List<ActionReq>();
-			List<pAction> costsMetActions = CheckCostsMet(pGrid); // Check cost of actions met
+			List<pAction> costsMetActions = CheckCostsMet(playerGameState); // Check cost of actions met
 			foreach(ActionReq ar in inList){
 				//Is cooldown 0, Is cost met, max uses not met yet?
 				if (this.actionCooldowns[ar.a] == 0 && costsMetActions.Contains(ar.a) && this.HasUsesLeft(ar.a)){
@@ -213,8 +217,8 @@ namespace PlayboardTypes{
 		}
 
 		//Validate and track actions = Just do the validate then track in sequence
-		public List<ActionReq> ValidateAndTrackActions(List<ActionReq> inList, CellStruct[,] pGrid){
-			List<ActionReq> valActions = this.ValidateActions(inList, pGrid);
+		public List<ActionReq> ValidateAndTrackActions(List<ActionReq> inList, CellStruct[][,] playerGameState){
+			List<ActionReq> valActions = this.ValidateActions(inList, playerGameState);
 			this.TrackActions(valActions);
 			return valActions;
 		}
@@ -252,11 +256,18 @@ namespace PlayboardTypes{
 		}
 		//////////////////////Public for logic core calls
 		//Return value will always put requesting player's grid in idx 0, enemy grid in idx 1
-		public CellStruct[][,] GetPlayerGameState(int playerIdx){
+		//Set showall to false if you're looking to get data to hand back to players
+		public CellStruct[][,] GetPlayerGameState(int playerIdx, bool showall){
 			int enemyIdx = (playerIdx + 1) % playercnt;
 			CellStruct[][,] boardOut = new CellStruct[playercnt][,];
-			boardOut[0] = this.GetGridSide(playerIdx, 1); //playerGrid
-			boardOut[1] = this.GetGridSide(enemyIdx, 2); //enemyGrid
+			if(showall){
+				boardOut[0] = this.GetGridSide(playerIdx, 0); //playerGrid
+				boardOut[1] = this.GetGridSide(enemyIdx, 0); //enemyGrid	
+			}
+			else{
+				boardOut[0] = this.GetGridSide(playerIdx, 1); //playerGrid
+				boardOut[1] = this.GetGridSide(enemyIdx, 2); //enemyGrid
+			}
 			return boardOut; 
 		}
 
@@ -315,7 +326,7 @@ namespace PlayboardTypes{
 			for(int x = 0; x < this.sizex; x++){ //TODO replace these nested loops with a foreach (think that should work on jagged array)
 				for(int y = 0; y < this.sizey; y++){
 					CellStruct cs = this.cells[p][x,y].GetCellStruct(0);
-					if (s.Contains(cs.bldg) && !cs.destroyed){
+					if (s.Contains(cs.bldg) && !cs.destroyed && !cs.defected){
 						playerlose = false; // as long as they have one tower, they're still in it!
 					}
 				}
@@ -324,7 +335,7 @@ namespace PlayboardTypes{
 		}
 
 		public List<ActionAvail> GetActionAvailable(int playerId){
-			return this.pats[playerId].GetActionAvailibility(this.GetGridSide(playerId, 0));
+			return this.pats[playerId].GetActionAvailibility(this.GetPlayerGameState(playerId, true));
 		}
 
 		//Here we do the cleanup/calcs/etc that needs to happen at the end of apply
@@ -365,8 +376,8 @@ namespace PlayboardTypes{
 			//Doing this for each player is kinda clunky, TODO revisit this section
 			List<ActionReq> player0ARs = ars.Where(ar => ar.p == 0).ToList();
 			List<ActionReq> player1ARs = ars.Where(ar => ar.p == 1).ToList();
-			player0ARs = this.pats[0].ValidateAndTrackActions(player0ARs, this.GetGridSide(0, 0));
-			player1ARs = this.pats[1].ValidateAndTrackActions(player1ARs, this.GetGridSide(1, 0));
+			player0ARs = this.pats[0].ValidateAndTrackActions(player0ARs, this.GetPlayerGameState(0, true));
+			player1ARs = this.pats[1].ValidateAndTrackActions(player1ARs, this.GetPlayerGameState(1, true));
 			ars.Clear();
 			ars.AddRange(player0ARs);
 			ars.AddRange(player1ARs);
@@ -381,7 +392,7 @@ namespace PlayboardTypes{
 			List<pAction> buildActions = new List<pAction>(){pAction.buildOffenceTower, pAction.buildDefenceTower, pAction.buildIntelTower, pAction.buildWall,
 				pAction.placeMine, pAction.buildDefenceGrid, pAction.buildReflector, pAction.placeMole};
 			List<pAction> shootActions = new List<pAction>(){pAction.fireBasic, pAction.fireAgain, pAction.fireRow, pAction.fireSquare, pAction.blockingShot,
-				pAction.hellFire, pAction.fireReflected, pAction.firePiercing};
+				pAction.hellFire, pAction.fireReflected, pAction.firePiercing, pAction.towerTakeover};
 			List<pAction> scoutActions = new List<pAction>(){pAction.scout, pAction.flare};
 			//Here we order the list to make sure that building happens first
 			var buildARs = ars.Where(ar => buildActions.Contains(ar.a));

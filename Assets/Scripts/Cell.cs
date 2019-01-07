@@ -26,13 +26,15 @@ namespace CellTypes{
 		public bool  defenceGridBlock;
 		public bool mole;
 		public int molecount;
+		public bool defected;
 		//Explicit Constructor
-		public CellStruct(CBldg bldg, bool destroyed, bool defenceGridBlock, bool mole, int molecount){
+		public CellStruct(CBldg bldg, bool destroyed, bool defenceGridBlock, bool mole, int molecount, bool defected){
 			this.bldg = bldg;
 			this.destroyed = destroyed;
 			this. defenceGridBlock = defenceGridBlock;
 			this.mole = mole;
 			this.molecount = molecount;
+			this.defected = defected;
 		}
 		//Default constructor? Useful?
 		public CellStruct(CBldg bldg){
@@ -41,6 +43,7 @@ namespace CellTypes{
 			this.defenceGridBlock = false;
 			this.mole = false;
 			this.molecount = 0;
+			this.defected = false;
 		}
 	}
 
@@ -88,6 +91,8 @@ namespace CellTypes{
 		//For mole
 		public bool mole;
 		public int molecount;
+		//For tower takeover
+		public bool defected;
 
 		//Called externally to decrement/increment counting elements on each turn
 		//Take action here if needed
@@ -110,17 +115,20 @@ namespace CellTypes{
 			bool dgb = false; //defenceGridBlock
 			bool mole = false;
 			int mcnt = 0; // mole count
+			bool defect = false;
 			if (perspective == 0 ){ // Show everything as is
 				s = this.bldg;
 				ded = this.destroyed;
 				dgb = this.defenceGridBlock;
 				mole = this.mole;
 				mcnt = mole ? this.molecount : 0;
+				defect = this.defected;
 			}
 			else if (perspective == 1){ // Show player's view
 				s = this.bldg;
 				ded = this.destroyed;
 				dgb = this.defenceGridBlock; // don't show the player this on their own side
+				defect = this.defected;
 			}
 			else if (perspective == 2){ // perspective 2 enemy's grid
 				if(this.vis || this.scouted){
@@ -134,11 +142,12 @@ namespace CellTypes{
 				dgb = this.defenceGridBlock; //always show these
 				mole = this.mole;
 				mcnt = mole ? this.molecount : 0;
+				defect = this.defected;
 			}
 			else{
 				Debug.LogError("Big ol Warning! GetCellStruct unhandled perspective: " + perspective.ToString());
 			}
-			return new CellStruct(s, ded, dgb, mole, mcnt);
+			return new CellStruct(s, ded, dgb, mole, mcnt, defect);
 		}
 
 		public Cell(CBldg bldg, int pNum, Vector2Int loc, PlayBoard pb, bool visibleToEnemy){
@@ -157,6 +166,7 @@ namespace CellTypes{
 			this.defenceGridBlock = false;
 			this.mole = false;
 			this.molecount = 0;
+			this.defected = false;
 			this.ChangeCellBldg(bldg, init:true);
 		}
 		
@@ -302,11 +312,6 @@ namespace CellTypes{
 		void SetCellParams(CBldg newBldg){
 			this.bldg = newBldg;
 			switch(this.bldg){
-			// case CState.destroyedTerrain:
-			// case CState.wallDestroyed:
-			// case CState.destroyedTower:
-			// case CState.destroyedMine:
-			// case CState.destroyedDefenceGrid:
 			case CBldg.blocked:
 				//Debug.Log("SetCellParams: Since we're destroyed, reveal us: " + this.newBldg.ToString());
 				this.vis = true; // Set visibility permanently
@@ -361,11 +366,17 @@ namespace CellTypes{
 		/////////////Callbacks
 		bool WallCB(ActionReq ar){
 			//Debug.Log("CB handler: WallCB loc" + this.loc.ToString());
+			if(ar.a == pAction.towerTakeover){ //Actions that don't trigger walls can be added here
+				return false;
+			}
 			this.DestroyCell(true);
 			return ar.a != pAction.firePiercing;
 		}
 
 		bool DefenceGridCB(ActionReq ar){
+			if(ar.a == pAction.towerTakeover){ //Actions that don't trigger defence grids can be added here
+				return false;
+			}
 			const int maxHits = 3;
 			//Todo, we need a way to show this to the player!
 			this.pb.CellSetDefGridBlock(ar.t, new Vector2Int((int)ar.loc[0].x, (int)ar.loc[0].y), true); // show the player that they were blocked
@@ -424,6 +435,12 @@ namespace CellTypes{
 				else{
 					Debug.LogError("Trying to block a non empty cell! " + ar.ToString());
 				}
+			}
+			else if(ar.a == pAction.towerTakeover){
+				if(new List<CBldg>{CBldg.towerOffence, CBldg.towerDefence, CBldg.towerIntel}.Contains(this.bldg)){
+					this.defected = true;
+				}
+				this.vis = true; // Should we destroy otherwise?
 			}
 			else{
 				this.DestroyCell(true);

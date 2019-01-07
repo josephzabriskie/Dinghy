@@ -13,11 +13,11 @@ namespace CellUIInfo{
 }
 
 public class Cell2D : MonoBehaviour {
+	//Sprite Renderers
 	SpriteRenderer srbg; // sr of the bg
 	SpriteRenderer srmain; // sr of the covering image
-	SpriteRenderer srdestroyed;
-	GameObject moleTextObj;
-	TextMesh moleText;
+	SpriteRenderer srdestroyed; // sr of the destroyed image
+	SpriteRenderer srdefected; // sr when we defect
 	//BldgStatesprites
 	public Sprite fog;
 	public Sprite tower;
@@ -44,6 +44,11 @@ public class Cell2D : MonoBehaviour {
 	//Molestuff
 	public bool mole;
 	public int molecount;
+	GameObject moleTextObj;
+	TextMesh moleText;
+	//Take over/Defection
+	public bool defected;
+	public Sprite defectSprite;
 	//Selections states
 	bool hovered = false;
 	bool selected = false;
@@ -60,6 +65,9 @@ public class Cell2D : MonoBehaviour {
 			}
 			else if(sr.name == "Destroyed"){
 				this.srdestroyed = sr;
+			}
+			else if(sr.name == "Defected"){
+				this.srdefected = sr;
 			}
 			else{
 				Debug.LogError("Cell2D init: Unhandled name " + sr.name);
@@ -163,6 +171,14 @@ public class Cell2D : MonoBehaviour {
 		else{
 			this.molecount = 0;
 			this.moleTextObj.SetActive(false);
+		}
+		//Update takeover info
+		this.defected = newCS.defected;
+		if(this.defected){
+			this.srdefected.sprite = this.defectSprite;
+		}
+		else{
+			this.srdefected.sprite = null;
 		}
 	}
 

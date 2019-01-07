@@ -152,7 +152,6 @@ public class InputProcessor : MonoBehaviour {
 					break; // don't do nuthin if no action context
 				case pAction.fireBasic: // All of these single targeted actions can be handled the same way
 				case pAction.scout: // All differences in placement rules are handled by the validator
-				case pAction.buildTower:
 				case pAction.buildDefenceTower:
 				case pAction.buildOffenceTower:
 				case pAction.buildIntelTower:
@@ -165,6 +164,7 @@ public class InputProcessor : MonoBehaviour {
 				case pAction.buildReflector:
 				case pAction.firePiercing:
 				case pAction.placeMole:
+				case pAction.towerTakeover:
 					singleAR = new ActionReq(this.report.playerId, target, this.actionContext, new Vector2[]{pos});
 					break;
 				case pAction.blockingShot:
