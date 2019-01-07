@@ -18,6 +18,8 @@ public class Cell2D : MonoBehaviour {
 	SpriteRenderer srmain; // sr of the covering image
 	SpriteRenderer srdestroyed; // sr of the destroyed image
 	SpriteRenderer srdefected; // sr when we defect
+	SpriteRenderer srmoleArea; //sr for mole area 
+	SpriteRenderer srdefenceGridArea; // sr for def grid area
 	//BldgStatesprites
 	public Sprite fog;
 	public Sprite tower;
@@ -30,6 +32,7 @@ public class Cell2D : MonoBehaviour {
 	public Sprite mine;
 	public Sprite defenceGrid;
 	public Sprite reflector;
+	public Sprite defenceGridArea; // area tha defence grid protects
 	//bgState
 	public Sprite defaultBG;
 	public Sprite selectBG;
@@ -42,6 +45,7 @@ public class Cell2D : MonoBehaviour {
 	public Sprite destroyed;
 	public Sprite defenceGridBlock;
 	//Molestuff
+	public Sprite moleArea; // Area that the mole detects
 	public bool mole;
 	public int molecount;
 	GameObject moleTextObj;
@@ -68,6 +72,12 @@ public class Cell2D : MonoBehaviour {
 			}
 			else if(sr.name == "Defected"){
 				this.srdefected = sr;
+			}
+			else if(sr.name == "MoleArea"){
+				this.srmoleArea = sr;
+			}
+			else if(sr.name == "DefenceGridArea"){
+				this.srdefenceGridArea = sr;
 			}
 			else{
 				Debug.LogError("Cell2D init: Unhandled name " + sr.name);
@@ -167,10 +177,12 @@ public class Cell2D : MonoBehaviour {
 			this.molecount = newCS.molecount;
 			this.moleTextObj.SetActive(true);
 			this.moleText.text = this.molecount.ToString();
+			this.srmoleArea.sprite = this.moleArea;
 		}
 		else{
 			this.molecount = 0;
 			this.moleTextObj.SetActive(false);
+			this.srmoleArea.sprite = null;
 		}
 		//Update takeover info
 		this.defected = newCS.defected;
@@ -179,6 +191,13 @@ public class Cell2D : MonoBehaviour {
 		}
 		else{
 			this.srdefected.sprite = null;
+		}
+		//Update DefenceGrid
+		if(newCS.bldg == CBldg.defenceGrid && !newCS.destroyed){
+			this.srdefenceGridArea.sprite = this.defenceGridArea;
+		}
+		else{
+			this.srdefenceGridArea.sprite = null;
 		}
 	}
 
