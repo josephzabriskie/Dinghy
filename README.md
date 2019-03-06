@@ -1,5 +1,6 @@
 # Dinghy
 A BattleShipper
+
 Dinghy is a game that aims to be battleship++.
 The design is to keep some of the most fun elements, and make the decision making more engaging.
 
