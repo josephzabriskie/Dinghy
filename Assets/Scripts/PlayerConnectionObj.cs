@@ -16,9 +16,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	public int playerId;
 	public int enemyId;
 	LogicCore lc = null;
-	UIController uic = null;
 	PlayBoard2D pb = null;
-	InputProcessor ip = null;
 	public CellStruct[,] latestPlayerGrid;
 	public CellStruct[,] latestEnemyGrid;
 	ActionAvail latestActionAvail;
@@ -27,8 +25,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 
 	void Start () {
 		//Debug.Log("PlayerConnectionObj Start. Local: " + isLocalPlayer.ToString());
-		this.uic = GameObject.FindGameObjectWithTag("UIGroup").GetComponent<UIController>();
-		this.uic.DBPWrite("Player " +  this.playerId.ToString() + " joined!");
+		UIController.instance.DBPWrite("Player " +  this.playerId.ToString() + " joined!");
 		if (isServer){ //We're the object on the server, need to link up to logic core
 			//Debug.Log("pco init: This is the server");
 			GameObject logicCoreObj = GameObject.FindGameObjectWithTag("LogicCore");
@@ -44,12 +41,12 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			//distinguish name? bad idea?
 			gameObject.name = gameObject.name + "Local";
 			//Find our UIC and do it's setup
-			this.uic = GameObject.FindGameObjectWithTag("UIGroup").GetComponent<UIController>();
-			this.uic.DBPWrite("Player " +  this.playerId.ToString() + " joined!");
+			UIController.instance = GameObject.FindGameObjectWithTag("UIGroup").GetComponent<UIController>();
+			UIController.instance.DBPWrite("Player " +  this.playerId.ToString() + " joined!");
 			//Find our local playboard, and get grids
 			this.pb = GameObject.FindGameObjectWithTag("PlayBoard").GetComponent<PlayBoard2D>(); // Find the playboard in the scene	
-			this.ip = GameObject.FindGameObjectWithTag("InputProcessor").GetComponent<InputProcessor>();
-			this.ip.RegisterReport(this);
+			//this.ip = GameObject.FindGameObjectWithTag("InputProcessor").GetComponent<InputProcessor>();
+			InputProcessor.instance.RegisterReport(this);
 
 			this.isReady = true; //Now we can recieve RPC's ready's set
 			this.CmdRequestGameStateUpdate();
@@ -100,16 +97,18 @@ public class PlayerConnectionObj : NetworkBehaviour {
 
 	//Serialized RPC with ours and other's grid state
 	[ClientRpc]
-	public void RpcUpdateGrids(CellStruct[] our, CellStruct[] other, int dim1, int dim2, ActionAvail[] aaArray){
+	public void RpcUpdatePlayBoard(CellStruct[] our, CellStruct[] other, int dim1, int dim2, ActionAvail[] aaArray){
 		if (!isLocalPlayer || !this.ReadyGuard()){// Ignore info if not local or Start not called yet
 			return;
 		}
 		Debug.Log("Player: " + this.playerId + " got update to our grids.");
 		//Debug.Log("Ours: " + our.Length.ToString() + " :: Theirs: "  + other.Length.ToString());
 		Debug.Log("Got AA list: " + aaArray.Count().ToString());
-		this.uic.ActionSelectGroupUpdateActionInfo(aaArray.ToList());
+		UIController.instance.ActionSelectButtonGrpActionAvailUpdate(aaArray.ToList());
+		UIController.instance.ActionSelectGroupUpdateActionInfo(aaArray.ToList());
 		this.latestPlayerGrid = GUtils.Deserialize(our, dim1, dim2);
 		this.latestEnemyGrid =  GUtils.Deserialize(other, dim1, dim2);
+		UIController.instance.ActionSelectGroupUpdateTowerCount(this.latestPlayerGrid, this.latestEnemyGrid);
 		this.pb.SetGridStates(this.latestPlayerGrid, this.latestEnemyGrid);
 	}
 
@@ -121,40 +120,41 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		switch(si.ms){
 		case MatchState.waitForPlayers:
 			Debug.Log("RPC Game state: wait for players");
-			this.ip.SetActionProcState(ActionProcState.reject);
-			this.uic.GameStateUpdate("Hey We're waiting for players");
+			InputProcessor.instance.SetActionProcState(ActionProcState.reject);
+			UIController.instance.GameStateUpdate("Hey We're waiting for players");
 			break;
 		case MatchState.placeTowers:
 			Debug.Log("RPC Game state: placeTowers");
 			// you need to have filled in the action request on the server within in 60s
 			// After that it'll be read, set or not
-			this.ip.SetActionProcState(ActionProcState.multiTower);
-			this.uic.GameStateUpdate("Hey Time to place towers: You've got 60s");
-			this.uic.TimerStart(si.time);
+			InputProcessor.instance.SetActionProcState(ActionProcState.multiTower);
+			UIController.instance.GameStateUpdate("Hey Time to place towers: You've got 60s");
+			UIController.instance.TimerStart(si.time);
+			UIController.instance.ActionSelectButtonGrpEnable(true);
 			break;
 		case MatchState.actionSelect:
 			Debug.Log("RPC Game state: actionSelect");
-			this.ip.SetActionProcState(ActionProcState.basicActions);
-			this.uic.GameStateUpdate("Now you just enter an action every 30s");
-			this.uic.TimerStart(si.time);
-			this.uic.ActionSelectGroupEnable(true);
+			InputProcessor.instance.SetActionProcState(ActionProcState.basicActions);
+			UIController.instance.GameStateUpdate("Now you just enter an action every 30s");
+			UIController.instance.TimerStart(si.time);
+			UIController.instance.ActionSelectButtonGrpEnable(true);
 			break;
 		case MatchState.resolveState:
 			Debug.Log("RPC Game state: resolveState");
-			this.ip.SetActionProcState(ActionProcState.reject);
-			this.ip.pb.ClearSelectionState(false); // Clear selected squares while resolving
-			this.ip.ClearActionContext();
-			this.uic.TimerClear();
-			this.uic.GameStateUpdate("Hey we're resolving real quick");
-			this.uic.ActionSelectGroupEnable(false);
+			InputProcessor.instance.SetActionProcState(ActionProcState.reject);
+			InputProcessor.instance.pb.ClearSelectionState(false); // Clear selected squares while resolving
+			InputProcessor.instance.ClearActionContext();
+			UIController.instance.TimerClear();
+			UIController.instance.GameStateUpdate("Hey we're resolving real quick");
+			UIController.instance.ActionSelectButtonGrpEnable(false);
 			break;
 		case MatchState.gameEnd:
 			Debug.Log("Rpc Game state: gameEnd");
-			this.ip.SetActionProcState(ActionProcState.reject);
-			this.uic.TimerClear();
-			this.uic.GameStateUpdate("Game Over!");
-			this.uic.ActionSelectGroupEnable(false);
-			this.uic.GameOverDisplayShow(si.won);
+			InputProcessor.instance.SetActionProcState(ActionProcState.reject);
+			UIController.instance.TimerClear();
+			UIController.instance.GameStateUpdate("Game Over!");
+			UIController.instance.ActionSelectButtonGrpEnable(false);
+			UIController.instance.GameOverDisplayShow(si.won);
 			break;
 		default:
 			Debug.LogError("RPC Game state: Uh oh, default. State is: " + si.ms.ToString());
@@ -168,7 +168,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			return;
 		}
 		Debug.Log("RpcReportActionReqs from player " + this.playerId.ToString());
-		ActionReq[] qa = this.ip.GetQueuedActions().ToArray();
+		ActionReq[] qa = InputProcessor.instance.GetQueuedActions().ToArray();
 		// for(int i =0; i < qa.Count(); i ++){
 		// 	Debug.Log("Send " + i.ToString() + ": " + qa[i].coords[0].ToString());
 		// }
@@ -181,7 +181,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			return;
 		}
 		//Debug.Log("RpcResetPlayerLock id: " + this.playerId.ToString());
-		this.ip.UnlockAction();
+		InputProcessor.instance.UnlockAction();
 	}
 	
 	//Note about checking for local player. At the time of writing, the architecture of the networked game

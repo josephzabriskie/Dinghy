@@ -56,12 +56,14 @@ namespace PlayboardTypes{
 		public int intelCost; // intelCost
 		public int cooldown; // cooldown
 		public int maxUses; // max uses
-		public ActionParam(int offenceCost, int defenceCost, int intelCost, int cooldown, int maxUses){
+		public bool enabled; //If this is allowed at all
+		public ActionParam(int offenceCost, int defenceCost, int intelCost, int cooldown, int maxUses, bool enabled){
 			this.offenceCost = offenceCost;
 			this.defenceCost = defenceCost;
 			this.intelCost = intelCost;
 			this.cooldown = cooldown; // 0 means no cooldown
 			this.maxUses = maxUses; // 0 means no more uses, -1 means no limit
+			this.enabled = enabled; // false means player can't cause this
 		}
 		public override string ToString(){
 			return String.Format("APM: o:{0}, d:{1}, i:{2}, cd:{3}, mu: {4}",
@@ -94,27 +96,27 @@ namespace PlayboardTypes{
 	public class PlayerActionTracker{
 		static List<pAction> allActions = ((pAction[])Enum.GetValues(typeof(pAction))).ToList(); // How to get all pActions defined in the enum!
 		static Dictionary<pAction, ActionParam> actionParams = new Dictionary<pAction, ActionParam>{
-			//								ActionParam(costs..cd..uses) Note: you can set uses to 0 to disable
-			{pAction.noAction, 			new ActionParam(0,0,0, 0, -1)},
-			{pAction.buildOffenceTower, new ActionParam(0,0,0, 0, 7)},
-			{pAction.buildDefenceTower, new ActionParam(0,0,0, 0, 7)},
-			{pAction.buildIntelTower, 	new ActionParam(0,0,0, 0, 7)},
-			{pAction.buildWall, 		new ActionParam(0,3,0, 2, 5)},
-			{pAction.fireBasic, 		new ActionParam(0,0,0, 0, -1)},
-			{pAction.scout, 			new ActionParam(0,0,3, 0, 0)},
-			{pAction.fireAgain,			new ActionParam(3,0,0, 2, -1)},
-			{pAction.fireRow,			new ActionParam(0,0,0, 0, 0)},
-			{pAction.fireSquare,		new ActionParam(5,0,0, 4, -1)},
-			{pAction.blockingShot,		new ActionParam(0,3,3, 0, -1)},// this one's odd?
-			{pAction.hellFire,			new ActionParam(7,0,0, 4, -1)},
-			{pAction.flare,				new ActionParam(0,0,3, 0, -1)},
-			{pAction.placeMine,			new ActionParam(0,5,0, 1, 4)},
-			{pAction.buildDefenceGrid,	new ActionParam(0,7,0, 6, 3)},
-			{pAction.buildReflector,	new ActionParam(3,3,0, 2, 4)},
-			{pAction.fireReflected,		new ActionParam(0,0,0, 0, 0)}, // Player can't cause this
-			{pAction.firePiercing,		new ActionParam(3,0,3, 0, 0)},
-			{pAction.placeMole,			new ActionParam(0,0,5, 3, 2)},
-			{pAction.towerTakeover,		new ActionParam(0,0,7, 0, -1)},
+			//								ActionParam(costs..cd..uses..enabled)
+			{pAction.noAction, 			new ActionParam(0,0,0, 0, -1, true)},
+			{pAction.buildOffenceTower, new ActionParam(0,0,0, 1, 7, true)},
+			{pAction.buildDefenceTower, new ActionParam(0,0,0, 1, 7, true)},
+			{pAction.buildIntelTower, 	new ActionParam(0,0,0, 1, 7, true)},
+			{pAction.buildWall, 		new ActionParam(0,3,0, 2, 5, true)},
+			{pAction.fireBasic, 		new ActionParam(0,0,0, 0, -1, true)},
+			{pAction.scout, 			new ActionParam(0,0,3, 0, 0, true)},
+			{pAction.fireAgain,			new ActionParam(3,0,0, 2, -1, true)},
+			{pAction.fireRow,			new ActionParam(0,0,0, 0, 1, false)},
+			{pAction.fireSquare,		new ActionParam(5,0,0, 4, -1, true)},
+			{pAction.blockingShot,		new ActionParam(0,3,3, 3, 4, false)},// this one's odd, what should the cost be?
+			{pAction.hellFire,			new ActionParam(7,0,0, 6, -1, true)},
+			{pAction.flare,				new ActionParam(0,0,3, 1, -1, true)},
+			{pAction.placeMine,			new ActionParam(0,5,0, 1, 4, false)},
+			{pAction.buildDefenceGrid,	new ActionParam(0,7,0, 6, 3, true)},
+			{pAction.buildReflector,	new ActionParam(0,5,0, 2, 6, true)},
+			{pAction.fireReflected,		new ActionParam(0,0,0, 0, 0, false)}, // Player can't cause this
+			{pAction.firePiercing,		new ActionParam(3,0,3, 0, 0, false)},
+			{pAction.placeMole,			new ActionParam(0,0,5, 4, 2, true)},
+			{pAction.towerTakeover,		new ActionParam(0,0,7, 5, -1, true)},
 		};
 		Dictionary<pAction, int> actionCooldowns; //Use for tracking cooldowns
 		List<pAction> actionHistory; //Use for counting uses
@@ -135,16 +137,16 @@ namespace PlayboardTypes{
 
 		static List<pAction> CheckCostsMet(CellStruct[][,] gState){
 			//Game state from a specific player's perspetive
-			int offenceCount = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == CBldg.towerOffence && !cell.destroyed);
+			int offenceCount = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == CBldg.towerOffence && !cell.destroyed && !cell.defected);
 			offenceCount += GUtils.Serialize(gState[1]).Count(cell => cell.bldg == CBldg.towerOffence && !cell.destroyed && cell.defected);
-			int defenceCount = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == CBldg.towerDefence && !cell.destroyed);
+			int defenceCount = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == CBldg.towerDefence && !cell.destroyed && !cell.defected);
 			defenceCount += GUtils.Serialize(gState[1]).Count(cell => cell.bldg == CBldg.towerDefence && !cell.destroyed && cell.defected);
-			int intelCount = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == CBldg.towerIntel && !cell.destroyed);
+			int intelCount = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == CBldg.towerIntel && !cell.destroyed && !cell.defected);
 			intelCount += GUtils.Serialize(gState[1]).Count(cell => cell.bldg == CBldg.towerIntel && !cell.destroyed && cell.defected);
 			List<pAction> retList = new List<pAction>();
 			foreach(pAction action in actionParams.Keys){
 				ActionParam apm = actionParams[action];
-				if(apm.offenceCost <= offenceCount && apm.defenceCost <= defenceCount && apm.intelCost <= intelCount){
+				if(apm.enabled && apm.offenceCost <= offenceCount && apm.defenceCost <= defenceCount && apm.intelCost <= intelCount){
 					retList.Add(action);
 				}
 			}

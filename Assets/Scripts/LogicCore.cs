@@ -140,7 +140,7 @@ public class LogicCore : NetworkBehaviour {
 			break;
 		case MatchState.placeTowers:
 			Debug.Log("We're entering PlaceTowers state!");
-			this.stateTime = 60;
+			this.stateTime = 100;
 			this.PB.validator.SetAPC(ActionProcState.multiTower);
 			this.ClearCurrentCoroutine();
 			this.UpdatePlayersGameState();
@@ -150,7 +150,7 @@ public class LogicCore : NetworkBehaviour {
 			break;
 		case MatchState.actionSelect:
 			Debug.Log("We're entering actionSelect state!");
-			this.stateTime = 60;
+			this.stateTime = 100;
 			this.PB.validator.SetAPC(ActionProcState.basicActions);
 			this.ClearCurrentCoroutine();
 			this.UpdatePlayersGameState();
@@ -351,7 +351,7 @@ public class LogicCore : NetworkBehaviour {
 		CellStruct[] pOwnGrid = GUtils.Serialize(state[0]);
 		CellStruct[] pOtherGrid = GUtils.Serialize(state[1]);
 		List<ActionAvail> aaList=  this.PB.GetActionAvailable(p);
-		this.mnm.playerSlots[p].RpcUpdateGrids(pOwnGrid, pOtherGrid, this.sizex, this.sizey, aaList.ToArray());
+		this.mnm.playerSlots[p].RpcUpdatePlayBoard(pOwnGrid, pOtherGrid, this.sizex, this.sizey, aaList.ToArray());
 	}
 
 	//This guy is public for a reason (unlike most of my public stuff...) Player objs can request the game state

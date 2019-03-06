@@ -7,7 +7,6 @@ public class MyNetManager : NetworkManager {
 	const int maxPlayers = 2;
 	int currentPlayers = 0;
 	public LogicCore logicCore;
-	public UIController uic;
 	public PlayBoard2D pb;
 	public PlayerConnectionObj[] playerSlots = new PlayerConnectionObj[2];
 
@@ -86,10 +85,10 @@ public class MyNetManager : NetworkManager {
 
 	public override void OnStopClient(){ // you can use this to do stuff when the player disconencts
 		//Debug.Log("OnStopClient()");
-		this.uic.GameStateUpdate("Disconnected");
-		this.uic.TimerStop();
-		this.uic.ActionDisplayClear();
-		//this.uic.LockButtonDeregister();
+		UIController.instance.GameStateUpdate("Disconnected");
+		UIController.instance.TimerStop();
+		UIController.instance.ActionDisplayClear();
+		//UIController.instance.LockButtonDeregister();
 		this.pb.ClearGrids();
 		base.OnStopClient();
 	}

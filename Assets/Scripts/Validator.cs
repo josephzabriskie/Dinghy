@@ -98,7 +98,7 @@ public class Validator {
     //Main validators
     bool DefBuildValid(ActionReq ar, CellStruct[,] pGrid, Vector2 gridSize){
         //Checks: targets player grid, has only one listed coord
-        bool resl = TargetsSelf(ar) && LocCountEq(ar, 1) && BldgIs(pGrid, ar.loc[0], CBldg.empty, gridSize);
+        bool resl = TargetsSelf(ar) && LocCountEq(ar, 1) && BldgIs(pGrid, ar.loc[0], CBldg.empty, gridSize) && !Destroyed(pGrid, ar.loc[0]);
         //Debug.Log("DefBuildValid returning " + resl.ToString());
         return resl;
     }
@@ -151,6 +151,10 @@ public class Validator {
         bool resl = grid[(int)loc.x, (int)loc.y].bldg == bldg;
         //Debug.Log("BldgIs returning: " + resl + ": " + grid[(int)loc.x, (int)loc.y] + "?" + bldg.ToString());
         return resl;
+    }
+
+    public bool Destroyed(CellStruct[,] grid, Vector2 loc){
+        return grid[(int)loc.x, (int)loc.y].destroyed;
     }
 
     bool NextToBldg(CellStruct[,] grid, Vector2 loc, CBldg bldg, Vector2 gridSize){

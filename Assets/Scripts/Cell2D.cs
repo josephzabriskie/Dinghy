@@ -20,6 +20,7 @@ public class Cell2D : MonoBehaviour {
 	SpriteRenderer srdefected; // sr when we defect
 	SpriteRenderer srmoleArea; //sr for mole area 
 	SpriteRenderer srdefenceGridArea; // sr for def grid area
+	SpriteRenderer srmolePanel; // Background to read mole text
 	//BldgStatesprites
 	public Sprite fog;
 	public Sprite tower;
@@ -79,15 +80,16 @@ public class Cell2D : MonoBehaviour {
 			else if(sr.name == "DefenceGridArea"){
 				this.srdefenceGridArea = sr;
 			}
+			else if(sr.name == "MolePanel"){
+				this.srmolePanel = sr;
+			}
 			else{
 				Debug.LogError("Cell2D init: Unhandled name " + sr.name);
 			}
 		}
-		this.moleTextObj = this.transform.Find("MoleText").gameObject;
+		this.moleTextObj = this.transform.Find("MolePanel/MoleText").gameObject;
 		this.moleText = this.moleTextObj.GetComponent<TextMesh>();
-		this.moleTextObj.SetActive(false);
-		this.srbg = srlist[0];
-		this.srmain = srlist[1];
+		//this.moleTextObj.SetActive(false);
 		this.SetCellStruct(new CellStruct(CBldg.hidden));
 		this.SetBGColor(Color.white);
 	}
@@ -175,13 +177,15 @@ public class Cell2D : MonoBehaviour {
 		this.mole = newCS.mole;
 		if(this.mole){
 			this.molecount = newCS.molecount;
-			this.moleTextObj.SetActive(true);
+			//this.moleTextObj.SetActive(true);
+			this.srmolePanel.gameObject.SetActive(true);
 			this.moleText.text = this.molecount.ToString();
 			this.srmoleArea.sprite = this.moleArea;
 		}
 		else{
 			this.molecount = 0;
-			this.moleTextObj.SetActive(false);
+			this.srmolePanel.gameObject.SetActive(false);
+			//this.moleTextObj.SetActive(false);
 			this.srmoleArea.sprite = null;
 		}
 		//Update takeover info

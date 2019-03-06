@@ -5,49 +5,36 @@ using UnityEngine.UI;
 using PlayboardTypes;
 using System.Linq;
 using PlayerActions;
+using CellTypes;
 
 public class ActionSelectGroup : MonoBehaviour {
-    ActionSelectPanel[] panels;
-    public InputProcessor ip; // Really don't like that I have to put this here... TODO FIX ME/. IP should find us and register itself
+    List<ActionProgressBar> bars;
 
 	void Start () {
-        this.panels = GetComponentsInChildren<ActionSelectPanel>();
-        this.RegisterCallbacks();
+        this.bars = GetComponentsInChildren<ActionProgressBar>().ToList();
 	}
 
-    void RegisterCallbacks(){
-        foreach(ActionSelectPanel panel in this.panels){
-		    panel.RegisterCallback(this.ip);
-        }
-	}
+    public void EnableButtons(bool en){
 
-    public void DeregisterCallbacks(){
-        foreach(ActionSelectPanel panel in this.panels){
-		    panel.DeregisterCallbacks();
-        }
     }
 
-    public void SetButtonEnabled(bool en){
-        foreach(ActionSelectPanel panel in this.panels){
-            panel.SetEnabled(en);
-        }
-    }
-
+    //This takes the ruleset and places buttons on the bars
     public void UpdateActionInfo(List<ActionAvail> aaList){
-        foreach(ActionSelectPanel panel in this.panels){
-            ActionAvail aa = aaList.Find(elt => elt.action == panel.action);
-            panel.UpdateActionInfo(aa);
+        foreach(ActionProgressBar bar in this.bars){
+            bar.UpdateActionInfo(aaList);
         }
     }
 
-    public void HighlightPanel(pAction highlight){
-        foreach(ActionSelectPanel panel in this.panels){
-            if(panel.action == highlight){
-                panel.Highlight(true);
-            }
-            else{
-                panel.Highlight(false);
-            }
+    //this sends the gameboard to each bar so they can update their counts/fill/button-enabledness
+    public void UpdateTowerCounts(CellStruct[,] playerState, CellStruct[,] enemyState){
+        foreach(ActionProgressBar bar in this.bars){
+            bar.UpdateBar(playerState, enemyState);
         }
     }
+
+    // public void HighlightAction(pAction highlight){
+    //     foreach(ActionProgressBar bar in this.bars){
+    //         bar.HighlightButton(highlight);
+    //     }
+    // }
 }

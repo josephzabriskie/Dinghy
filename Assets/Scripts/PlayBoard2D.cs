@@ -13,7 +13,6 @@ public class PlayBoard2D : MonoBehaviour {
 	//Other
 	GameGrid2D playerGrid = null;
 	GameGrid2D enemyGrid = null;
-	public InputProcessor ip = null; // Link up the guy that will process our grid clicks
 	public int sizex;
 	public int sizey;
 
@@ -27,7 +26,7 @@ public class PlayBoard2D : MonoBehaviour {
 	}
 
 	public void RXGridInput(bool pGrid, InputType it, Vector2 pos, CellStruct cStruct){
-		this.ip.RXInput(pGrid, it, pos, cStruct);
+		InputProcessor.instance.RXInput(pGrid, it, pos, cStruct);
 	}
 
 	public void SetCellStruct(bool pGrid, Vector2 pos, CellStruct cStruct){
@@ -64,9 +63,8 @@ public class PlayBoard2D : MonoBehaviour {
 			g.SetSquare3Select(sel, hovered, ar.loc[0], 2); // 5x5 square
 			break;
 		case pAction.blockingShot: // these guys don't have any targeting or loc in their action
-		case pAction.hellFire: // for now just target (0,0) temp
+		case pAction.hellFire:
 		case pAction.flare:
-			g.SetSingleSelect(sel, hovered, new Vector2(0,0)); //TODO Add actions that don't need targeting
 			break;
 		case pAction.noAction:
 			if(hovered){
@@ -128,8 +126,10 @@ public class PlayBoard2D : MonoBehaviour {
 		//Debug.Log(string.Format("cent1 {0}, cent2 {1}", center1, center2));
 		this.playerGrid = Instantiate(gridPrefab, center1, Quaternion.identity).GetComponent<GameGrid2D>();
 		this.enemyGrid = Instantiate(gridPrefab, center2, Quaternion.identity).GetComponent<GameGrid2D>();
+		//Debug.Log("Width/Height " + width.ToString() + " " + height.ToString());
 		this.playerGrid.PlaceCells(width, height);
 		int[] size = this.playerGrid.GetGridSize();
+		//Debug.Log("size/size " + size[0].ToString() + " " + size[1].ToString());
 		this.sizex = size[0];
 		this.sizey = size[1];
 		this.playerGrid.parent = this;

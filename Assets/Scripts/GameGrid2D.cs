@@ -25,9 +25,10 @@ public class GameGrid2D : MonoBehaviour {
 	}
 
 	public void PlaceCells(float w, float h){
+		SpriteRenderer srbg = this.CellPrefab.transform.Find("Background").GetComponent<SpriteRenderer>(); // Grab background sprite size as cell size
 		//Debug.Log(string.Format("STARTED GRID w:{0}, h:{1}", w, h));
-		int fitx = (int)(w / (this.CellPrefab.GetComponentInChildren<SpriteRenderer>().size.x)); //Warning there are multiple sprites as obj children, assuming here all the same size
-		int fity = (int)(h / (this.CellPrefab.GetComponentInChildren<SpriteRenderer>().size.y));
+		int fitx = (int)(w / (srbg.size.x));
+		int fity = (int)(h / (srbg.size.y));
 		cells = new Cell2D[fitx,fity];
 		this.sizex = fitx;
 		this.sizey = fity;

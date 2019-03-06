@@ -183,7 +183,6 @@ namespace CellTypes{
 		}
 
 		public void DestroyCell(bool destroy){
-			this.destroyed = destroy;
 			if(destroy){ // blow it up
 				this.vis = true; // on boom, make visible
 				this.defenceGridBlock = false; // clear this, should really only ever have one of this or destroyed == true
@@ -194,6 +193,7 @@ namespace CellTypes{
 			else{// un-blow it up?
 				this.SetupSpecialCBs();
 			}
+			this.destroyed = destroy; // This has to be done last. TearDownspecialCb's checks to see if it's destroyed to acutally do it's thing
 		}
 
 		//////////////////////////
@@ -253,12 +253,12 @@ namespace CellTypes{
 		}
 
 		void TearDownSpecialCbs(){
-			if(this.bldg == CBldg.wall){
+			if(this.bldg == CBldg.wall && !this.destroyed){
 				//Debug.Log("removing the wall's special callbacks");
 				this.pb.RemCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -1), new PriorityCB(5, this.WallCB), PCBType.shoot);
 				this.pb.RemCellCallback(this.pNum, new Vector2Int(this.loc.x, this.loc.y -2), new PriorityCB(6, this.WallCB), PCBType.shoot);
 			}
-			if(this.bldg == CBldg.defenceGrid){
+			if(this.bldg == CBldg.defenceGrid && !this.destroyed){
 				for(int x = -2; x < 3; x++){
 					for(int y = -2; y < 3; y++){
 						if(!(x == 0 && y == 0)){
@@ -303,7 +303,7 @@ namespace CellTypes{
 				lst.Remove(rem);
 			}
 			else{
-				Debug.LogError("Found none or more than 1 matching item to remove: len" + lst.Count.ToString() + " pcb: " + rem.ToString());
+				Debug.LogError("Found none or more than 1 matching item to remove, rem is null: len" + lst.Count.ToString());
 				return false;
 			}
 			return true;

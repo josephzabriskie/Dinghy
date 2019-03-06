@@ -4,9 +4,12 @@ using UnityEngine;
 using UnityEngine.UI;
 using PlayerActions;
 using PlayboardTypes;
+using CellTypes;
 
 //Class handles player requests for modifications to the UI
+//Also now a singletonio
 public class UIController : MonoBehaviour {
+	public static UIController instance;
 	TimerUI tui;
 	ActionDisplay ad;
 	LockButton lb;
@@ -14,6 +17,18 @@ public class UIController : MonoBehaviour {
 	GameStateDisplay gsd;
 	ActionSelectGroup asg;
 	GameOverDisplay god;
+	List <ActionSelectButton> lasb;
+
+	void Awake(){
+		if(instance == null){
+			//Debug.Log("Setting UIController Singleton");
+			instance = this;
+		}
+		else if(instance != this){
+			Destroy(gameObject);
+			Debug.LogError("Singleton UIController instantiated multiple times, destroy all but first one to awaken");
+		}
+	}
 
 	void Start () {
 		this.tui = this.GetComponentInChildren<TimerUI>();
@@ -21,10 +36,46 @@ public class UIController : MonoBehaviour {
 		this.lb = this.GetComponentInChildren<LockButton>();
 		this.dbp = this.GetComponentInChildren<DebugPanel>();
 		this.gsd = this.GetComponentInChildren<GameStateDisplay>();
-		this.asg = this.GetComponentInChildren<ActionSelectGroup>();		
+		this.asg = this.GetComponentInChildren<ActionSelectGroup>();
 		this.god = this.GetComponentInChildren<GameOverDisplay>();
+		this.lasb = new List<ActionSelectButton>();
 		this.GameOverDisplayHide(); // Hide this till needed. Todo Warning, may depend on script execution order
 	}
+
+	//#############################################
+	//Functions to control all action select buttons
+	//Add
+	public void ActionSelectButtonGrpAdd(ActionSelectButton asb){
+		this.lasb.Add(asb);
+	}
+	//Remove -- probably not needed, why add a button to remove it?
+	public void ActionSelectButtonGrpRmv(ActionSelectButton asb){
+		this.lasb.Remove(asb);
+	}
+	//Highlight
+	public void ActionSelectButtonGrpHighlight(pAction action){
+		foreach(ActionSelectButton asb in this.lasb){
+			if(asb.action == action){
+				asb.Highlight(true);
+			}
+			else{
+				asb.Highlight(false);
+			}
+		}
+	}
+	//Enable/disable all
+	public void ActionSelectButtonGrpEnable(bool en){
+		foreach(ActionSelectButton asb in this.lasb){
+			asb.Enable(en);
+		}
+	}
+	//UpdateActionAvail info
+	public void ActionSelectButtonGrpActionAvailUpdate(List<ActionAvail> actionAvail){
+		foreach(ActionSelectButton asb in this.lasb){
+			asb.UpdationActionAvail(actionAvail.Find(aa => aa.action == asb.action));
+		}
+	}
+
 	//#############################################
 	//Functions to control our gameover display
 	//Show
@@ -36,25 +87,13 @@ public class UIController : MonoBehaviour {
 		this.god.Hide();
 	}
 	//#############################################
-	//Functions to control our action select button group
-	// //Register
-	// public void ActionSelectButtonsRegister(PlayerConnectionObj pobj){
-	// 	this.asg.RegisterCallbacks(pobj);
-	// }
-	//Deregister
-	public void ActionSelectGroupDeregister(){
-		this.asg.DeregisterCallbacks();
-	}
-	//Enable/disable
-	public void ActionSelectGroupEnable(bool en){
-		this.asg.SetButtonEnabled(en);
-	}
+	//Functions to control our action select bar group
 	//Update ActionInfo
 	public void ActionSelectGroupUpdateActionInfo(List<ActionAvail> aaList){
 		this.asg.UpdateActionInfo(aaList);
 	}
-	public void ActionSelectGroupHighlightPanel(pAction highlight){
-		this.asg.HighlightPanel(highlight);
+	public void ActionSelectGroupUpdateTowerCount(CellStruct[,] playerState, CellStruct[,] enemyState){
+		this.asg.UpdateTowerCounts(playerState, enemyState);
 	}
 	//#############################################
 	//Functions to control our timer UI
