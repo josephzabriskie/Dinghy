@@ -42,7 +42,7 @@ public class GameGrid2D : MonoBehaviour {
 		for(int x = 0; x < fitx; x++){
 			for(int y = 0; y < fity; y++){
 				count++;
-				Vector3 spot = start + new Vector3(offsetx * x, offsety * y, -0.2f);
+				Vector3 spot = start + new Vector3(offsetx * x, offsety * y, -0.01f);
 				GameObject c = Instantiate(this.CellPrefab, spot, Quaternion.identity, this.transform);
 				Cell2D tempCell = c.GetComponent<Cell2D>();
 				tempCell.coords = new Vector2(x, y);

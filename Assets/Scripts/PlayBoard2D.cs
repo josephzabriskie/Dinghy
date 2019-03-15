@@ -15,10 +15,17 @@ public class PlayBoard2D : MonoBehaviour {
 	GameGrid2D enemyGrid = null;
 	public int sizex;
 	public int sizey;
+	Transform shotOrig;
 
-	void Start(){
+	void Awake(){
 		this.InstantiateGrids();
+		shotOrig = this.transform.Find("ShotOrigin").transform;
 	}
+
+	// void Start(){
+	// 	this.InstantiateGrids();
+	// 	shotOrig = this.transform.Find("ShotOrigin").transform;
+	// }
 
 	public void SetGridStates(CellStruct[,] pGrid, CellStruct[,] eGrid){
 		this.playerGrid.SetCSArray(pGrid);
@@ -138,5 +145,10 @@ public class PlayBoard2D : MonoBehaviour {
 		this.enemyGrid.parent = this;
 		this.enemyGrid.playerOwnedGrid = false;
 		this.enemyGrid.Flip(); //This one's facing the player, needs to be flipped
+	}
+
+	public Vector3 GetShotOrigin(){ //Called by someone who wants to know where shots originate on this board
+		Debug.Log("Returning: " + shotOrig.position.ToString());
+		return shotOrig.position;
 	}
 }
