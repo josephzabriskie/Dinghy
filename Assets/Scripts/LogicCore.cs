@@ -30,6 +30,21 @@ namespace MatchSequence{
 			this.won = won;
 		}
 	}
+	public struct GameBoardInfo{
+		//CellStruct[] our, CellStruct[] other, int dim1, int dim2, ActionAvail[] aaArray
+		public CellStruct[] ourGrid;
+		public CellStruct[] theirGrid;
+		public int[] gridSize;
+		public ActionAvail[] aaArray;
+		public Vector2 [] capitolTowers;
+		public GameBoardInfo(CellStruct[] our, CellStruct[] other, int[] gridSize, ActionAvail[] aaArray, Vector2[] capitolTowers){
+			this.ourGrid = our;
+			this.theirGrid = other;
+			this.gridSize = gridSize;
+			this.aaArray = aaArray;
+			this.capitolTowers = capitolTowers;
+		}
+	}
 }
 
 //Logic core's job is to take action requests as inputs and then compute the new game state
@@ -141,7 +156,7 @@ public class LogicCore : NetworkBehaviour {
 		case MatchState.placeTowers:
 			Debug.Log("We're entering PlaceTowers state!");
 			this.stateTime = 100;
-			this.PB.validator.SetAPC(ActionProcState.multiTower);
+			this.PB.SetAPC(ActionProcState.multiTower);
 			this.ClearCurrentCoroutine();
 			this.UpdatePlayersGameState();
 			this.ResetRespTrack();
@@ -151,7 +166,7 @@ public class LogicCore : NetworkBehaviour {
 		case MatchState.actionSelect:
 			Debug.Log("We're entering actionSelect state!");
 			this.stateTime = 100;
-			this.PB.validator.SetAPC(ActionProcState.basicActions);
+			this.PB.SetAPC(ActionProcState.basicActions);
 			this.ClearCurrentCoroutine();
 			this.UpdatePlayersGameState();
 			this.ResetRespTrack();
@@ -351,7 +366,9 @@ public class LogicCore : NetworkBehaviour {
 		CellStruct[] pOwnGrid = GUtils.Serialize(state[0]);
 		CellStruct[] pOtherGrid = GUtils.Serialize(state[1]);
 		List<ActionAvail> aaList=  this.PB.GetActionAvailable(p);
-		this.mnm.playerSlots[p].RpcUpdatePlayBoard(pOwnGrid, pOtherGrid, this.sizex, this.sizey, aaList.ToArray());
+		Vector2 [] capitolLocs = this.PB.capitolTowerLocs[p].ToArray();
+		GameBoardInfo gbi = new GameBoardInfo(pOwnGrid, pOtherGrid, new int[]{this.sizex, this.sizey}, aaList.ToArray(), capitolLocs);
+		this.mnm.playerSlots[p].RpcUpdatePlayBoard(gbi);
 	}
 
 	//This guy is public for a reason (unlike most of my public stuff...) Player objs can request the game state

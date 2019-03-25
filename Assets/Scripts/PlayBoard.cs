@@ -30,6 +30,7 @@ namespace PlayerActions{
 		placeMole, // place a mole that 
 		towerTakeover, //Takeover enemy tower on hit. Tower now counts towards your cost requirements
 	}
+
 	public struct ActionReq	{
 		public int p; //player number
 		public int t; //target player number
@@ -98,9 +99,9 @@ namespace PlayboardTypes{
 		static Dictionary<pAction, ActionParam> actionParams = new Dictionary<pAction, ActionParam>{
 			//								ActionParam(costs..cd..uses..enabled)
 			{pAction.noAction, 			new ActionParam(0,0,0, 0, -1, true)},
-			{pAction.buildOffenceTower, new ActionParam(0,0,0, 1, 7, true)},
-			{pAction.buildDefenceTower, new ActionParam(0,0,0, 1, 7, true)},
-			{pAction.buildIntelTower, 	new ActionParam(0,0,0, 1, 7, true)},
+			{pAction.buildOffenceTower, new ActionParam(0,0,0, 0, 7, true)},
+			{pAction.buildDefenceTower, new ActionParam(0,0,0, 0, 7, true)},
+			{pAction.buildIntelTower, 	new ActionParam(0,0,0, 0, 7, true)},
 			{pAction.buildWall, 		new ActionParam(0,3,0, 2, 5, true)},
 			{pAction.fireBasic, 		new ActionParam(0,0,0, 0, -1, true)},
 			{pAction.scout, 			new ActionParam(0,0,3, 0, 0, true)},
@@ -234,11 +235,14 @@ namespace PlayboardTypes{
 		public int sizey;
 		public Validator validator;
 		PlayerActionTracker[] pats;
+		public List<Vector2>[] capitolTowerLocs; // Location list of the very first tower's placed for each player
+		ActionProcState actionProcState;
 		
 		public PlayBoard(int sizex, int sizey){
 			//Debug.Log("Hey, I'm making a Playboard: " + sizex.ToString() + "X" + sizey.ToString());
 			this.sizex = sizex;
 			this.sizey = sizey;
+			this.capitolTowerLocs = new List<Vector2>[]{new List<Vector2>(){},new List<Vector2>(){}};
 			this.InitializeCells();
 			validator = new Validator(ActionProcState.reject);
 			pats = new PlayerActionTracker[playercnt]{new PlayerActionTracker(), new PlayerActionTracker()};
@@ -365,7 +369,7 @@ namespace PlayboardTypes{
 			Debug.Log("PlayBoard processing Actions. Got " + ars.Count);
 			List<ActionReq> validARs = new List<ActionReq>();
 			foreach(ActionReq ar in ars){ // Trust no one, validate it allllll
-				if (this.validator.Validate(ar, this.GetGridSide(ar.p, 1), this.GetGridSide((ar.p + 1) % playercnt, 2), new Vector2(sizex, sizey))){
+				if (this.validator.Validate(ar, this.GetGridSide(ar.p, 1), this.GetGridSide((ar.p + 1) % playercnt, 2), new Vector2(sizex, sizey), this.capitolTowerLocs[ar.p])){
 					validARs.Add(ar);
 					Debug.Log("validated ar! :) " + ar.ToString());
 				}
@@ -397,8 +401,15 @@ namespace PlayboardTypes{
 				pAction.hellFire, pAction.fireReflected, pAction.firePiercing, pAction.towerTakeover};
 			List<pAction> scoutActions = new List<pAction>(){pAction.scout, pAction.flare};
 			//Here we order the list to make sure that building happens first
-			var buildARs = ars.Where(ar => buildActions.Contains(ar.a));
-			var otherARs = ars.Where(ar => !buildARs.Contains(ar));
+			List<ActionReq> buildARs = ars.Where(ar => buildActions.Contains(ar.a)).ToList();
+			//If this is the multi tower placement state, we want to save off the locations of the first tower to return to the pobjs
+			if(this.actionProcState == ActionProcState.multiTower){
+				this.capitolTowerLocs[0].AddRange(buildARs.Where(ar => ar.p == 0).Select(ar =>ar.loc[0])); // Here we assume that we've only grabbed tower placements, hopefully valid...
+				this.capitolTowerLocs[1].AddRange(buildARs.Where(ar => ar.p == 1).Select(ar =>ar.loc[0]));
+				Debug.Log("Got towerCapitols: len0: " + this.capitolTowerLocs[0].Count.ToString());
+				Debug.Log("Got towerCapitols: len1: " + this.capitolTowerLocs[1].Count.ToString());
+			}
+			List<ActionReq> otherARs = ars.Where(ar => !buildARs.Contains(ar)).ToList();
 			ars = buildARs.Concat(otherARs).ToList();
 			//Now we need to expande certain actions, usually ones that will trigger onXXXX() in many cells
 			ars = this.ActionExpansion(ars);
@@ -480,6 +491,11 @@ namespace PlayboardTypes{
 				}
 			}
 			return ret;
+		}
+
+		public void SetAPC(ActionProcState apc){
+			this.actionProcState = apc;
+			this.validator.SetAPC(apc);
 		}
 		
 		Cell GetCell(int targetPlayer, Vector2Int loc){ // TODO use this instead of 'this.cells[p][x,y]'

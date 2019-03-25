@@ -6,8 +6,13 @@ using UnityEngine.UI;
 
 public class ActionDisplay : MonoBehaviour {
 
-	public Text shoottxt;
-	public Text actiontxt;
+	Text shoottxt;
+	Text actiontxt;
+
+	void Awake(){
+		this.shoottxt = transform.Find("ShootText").GetComponent<Text>();
+		this.actiontxt = transform.Find("ActionText").GetComponent<Text>();
+	}
 
 	public void UpdateShoottxt(ActionReq newAR){
 		if (newAR.a == pAction.noAction){

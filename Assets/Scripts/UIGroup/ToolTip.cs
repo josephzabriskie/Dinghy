@@ -13,11 +13,12 @@ public class ToolTip : MonoBehaviour {
     private Text toolTipUses;
     private RectTransform bgRect;
 
-    [SerializeField]
+    //[SerializeField]
     private RectTransform canvasRectTransform;
 
     private void Awake(){
         instance = this;
+        canvasRectTransform = transform.parent.parent.GetComponent<RectTransform>(); // This is kinda wierd. But I'd rather define this in code than have it in the inspector
         toolTipTitle = transform.Find("TitleText").GetComponent<Text>();
         toolTipDesc = transform.Find("DescriptionText").GetComponent<Text>();
         toolTipCD = transform.Find("InfoTexts/CooldownText").GetComponent<Text>();

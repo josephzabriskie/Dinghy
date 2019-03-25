@@ -52,7 +52,7 @@ public class InputProcessor : MonoBehaviour {
 	public List<ActionReq> GetQueuedActions(){
 		List<ActionReq> retList = new List<ActionReq>{};
 		foreach(ActionReq ar in this.queuedActions){
-			if(this.v.Validate(ar, this.report.latestPlayerGrid, this.report.latestEnemyGrid, new Vector2(pb.sizex, pb.sizey))){
+			if(this.v.Validate(ar, this.report.latestPlayerGrid, this.report.latestEnemyGrid, new Vector2(pb.sizex, pb.sizey), this.report.latestCapitolLocs)){
 				retList.Add(ar);
 			}
 			else{
@@ -114,7 +114,7 @@ public class InputProcessor : MonoBehaviour {
 				Debug.Log("Setting single action: " + action.ToString());
 				//Right now, all non targeted actions hit enemy, may need to change in the future
 				ActionReq newAR = new ActionReq(this.report.playerId, this.report.enemyId, action, new Vector2[0]);
-				if(this.v.Validate(newAR, this.report.latestPlayerGrid, this.report.latestEnemyGrid, new Vector2(pb.sizex, pb.sizey))){ //TODO do we really need to validate here?
+				if(this.v.Validate(newAR, this.report.latestPlayerGrid, this.report.latestEnemyGrid, new Vector2(pb.sizex, pb.sizey), this.report.latestCapitolLocs)){ //TODO do we really need to validate here?
 					Debug.Log("Validated action: " + newAR.ToString());
 					this.pb.SetCellsSelect(this.queuedActions[1].t == this.report.playerId, false, false, this.queuedActions[1]); //clear old action selection
 					this.queuedActions[1] = newAR;
@@ -164,7 +164,7 @@ public class InputProcessor : MonoBehaviour {
 					{pAction.buildIntelTower, new CellStruct(CBldg.towerIntel)}};
 				CellStruct[][,] currentGrids = this.pb.GetGridStates();
 				ActionReq MultiTowerAR = new ActionReq(this.report.playerId, this.report.playerId, this.actionContext, new Vector2[]{pos});
-				if(this.v.Validate(MultiTowerAR, currentGrids[0], currentGrids[1], new Vector2(pb.sizex, pb.sizey))){
+				if(this.v.Validate(MultiTowerAR, currentGrids[0], currentGrids[1], new Vector2(pb.sizex, pb.sizey), this.report.latestCapitolLocs)){
 					idx = this.queuedActions.FindIndex(x => x.a == pAction.noAction);
 					if(idx >=0){
 						Debug.Log("Input processor: Valid Move: Add new AR at " + idx.ToString() + ", ar: " + MultiTowerAR.ToString());
@@ -176,7 +176,7 @@ public class InputProcessor : MonoBehaviour {
 				else{
 					Debug.Log("Input processor: Invalid request, don't add to list");
 				}
-				if (this.v.BldgIn(currentGrids[0], pos, buildDict.Values.ToList().Select(cstruct => cstruct.bldg).ToList(), new Vector2(pb.sizex, pb.sizey))){ // Now, if there is a tower here already, remove it
+				if (this.v.BldgIn(currentGrids[0], pos, buildDict.Values.ToList().Select(cstruct => cstruct.bldg).ToList())){ // Now, if there is a tower here already, remove it
 					idx = this.queuedActions.FindIndex(x => buildDict.Keys.ToList().Contains(x.a) && x.loc != null && x.loc[0] == pos);
 					if(idx >= 0){
 						Debug.Log("Input processor: Removing AR that is in this place");
@@ -219,7 +219,7 @@ public class InputProcessor : MonoBehaviour {
 					Debug.LogError("Input processor unhandled actionContext: " + this.actionContext.ToString());	
 					break;
 				}
-				if(this.v.Validate(singleAR, this.report.latestPlayerGrid, this.report.latestEnemyGrid, new Vector2(pb.sizex, pb.sizey))){
+				if(this.v.Validate(singleAR, this.report.latestPlayerGrid, this.report.latestEnemyGrid, new Vector2(pb.sizex, pb.sizey), this.report.latestCapitolLocs)){
 					Debug.Log("Validated action: " + singleAR.ToString());
 					if(singleAR.a == pAction.fireBasic){
 						this.pb.SetCellsSelect(pGrid, false, false, this.queuedActions[0]); //clear old action selection

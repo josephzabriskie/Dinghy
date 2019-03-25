@@ -19,6 +19,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	PlayBoard2D pb = null;
 	public CellStruct[,] latestPlayerGrid;
 	public CellStruct[,] latestEnemyGrid;
+	public List<Vector2> latestCapitolLocs;
 	ActionAvail latestActionAvail;
 
 	bool isReady = false;
@@ -97,17 +98,21 @@ public class PlayerConnectionObj : NetworkBehaviour {
 
 	//Serialized RPC with ours and other's grid state
 	[ClientRpc]
-	public void RpcUpdatePlayBoard(CellStruct[] our, CellStruct[] other, int dim1, int dim2, ActionAvail[] aaArray){
+	public void RpcUpdatePlayBoard(GameBoardInfo gbi){
 		if (!isLocalPlayer || !this.ReadyGuard()){// Ignore info if not local or Start not called yet
 			return;
 		}
 		Debug.Log("Player: " + this.playerId + " got update to our grids.");
 		//Debug.Log("Ours: " + our.Length.ToString() + " :: Theirs: "  + other.Length.ToString());
-		Debug.Log("Got AA list: " + aaArray.Count().ToString());
-		UIController.instance.ActionSelectButtonGrpActionAvailUpdate(aaArray.ToList());
-		UIController.instance.ActionSelectGroupUpdateActionInfo(aaArray.ToList());
-		this.latestPlayerGrid = GUtils.Deserialize(our, dim1, dim2);
-		this.latestEnemyGrid =  GUtils.Deserialize(other, dim1, dim2);
+		//Debug.Log("Got AA list: " + gbi.aaArray.Count().ToString());
+		foreach(Vector2 vec in gbi.capitolTowers){
+			Debug.Log("Capitol towers: " + vec.ToString());
+		}
+		this.latestCapitolLocs = gbi.capitolTowers.ToList();
+		UIController.instance.ActionSelectButtonGrpActionAvailUpdate(gbi.aaArray.ToList());
+		UIController.instance.ActionSelectGroupUpdateActionInfo(gbi.aaArray.ToList());
+		this.latestPlayerGrid = GUtils.Deserialize(gbi.ourGrid, gbi.gridSize[0], gbi.gridSize[1]);
+		this.latestEnemyGrid =  GUtils.Deserialize(gbi.theirGrid, gbi.gridSize[0], gbi.gridSize[1]);
 		UIController.instance.ActionSelectGroupUpdateTowerCount(this.latestPlayerGrid, this.latestEnemyGrid);
 		this.pb.SetGridStates(this.latestPlayerGrid, this.latestEnemyGrid);
 	}

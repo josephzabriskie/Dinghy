@@ -17,7 +17,7 @@ public class Validator {
         this.apc = newAPC;
     }
 
-    public bool Validate(ActionReq ar, CellStruct[,] pGrid, CellStruct[,] eGrid, Vector2 gridSize){
+    public bool Validate(ActionReq ar, CellStruct[,] pGrid, CellStruct[,] eGrid, Vector2 gridSize, List<Vector2> capitolLocs){
         switch(this.apc){
         case ActionProcState.reject:
             return false;
@@ -38,6 +38,7 @@ public class Validator {
             case pAction.buildOffenceTower:
             case pAction.buildDefenceTower:
             case pAction.buildIntelTower:
+                return BuildTowerValid(ar, pGrid, gridSize, capitolLocs);
             case pAction.buildWall:
             case pAction.placeMine:
             case pAction.buildDefenceGrid:
@@ -98,8 +99,17 @@ public class Validator {
     //Main validators
     bool DefBuildValid(ActionReq ar, CellStruct[,] pGrid, Vector2 gridSize){
         //Checks: targets player grid, has only one listed coord
-        bool resl = TargetsSelf(ar) && LocCountEq(ar, 1) && BldgIs(pGrid, ar.loc[0], CBldg.empty, gridSize) && !Destroyed(pGrid, ar.loc[0]);
+        bool resl = TargetsSelf(ar) && LocCountEq(ar, 1) && BldgIs(pGrid, ar.loc[0], CBldg.empty) && !Destroyed(pGrid, ar.loc[0]);
         //Debug.Log("DefBuildValid returning " + resl.ToString());
+        return resl;
+    }
+
+    bool BuildTowerValid(ActionReq ar, CellStruct[,] pGrid, Vector2 gridSize, List<Vector2> capLocs){
+        //Does the more complicated checking for valid tower placement
+        List<CBldg> bldgs = new List<CBldg>{CBldg.towerOffence, CBldg.towerIntel, CBldg.towerDefence};
+        bool resl = DefBuildValid(ar, pGrid, gridSize) && AdjacentToCountBldgs(pGrid, ar.loc[0], bldgs, gridSize, 1) && TowerPlacementOnEnd(pGrid, ar.loc[0], new List<Vector2>(), gridSize)
+                && CheckChainAlive(pGrid, ar.loc[0], gridSize, capLocs) && CheckChainLengthValid(pGrid, ar.loc[0], gridSize, capLocs);
+        //Debug.Log("BuildTowerValid returning " + resl.ToString());
         return resl;
     }
 
@@ -112,7 +122,7 @@ public class Validator {
 
     bool ScoutValid(ActionReq ar, CellStruct[,] eGrid, Vector2 gridSize){
         //Checks: target enemy, has only 1 loc, target is hidden
-        bool resl = !TargetsSelf(ar) && LocCountEq(ar, 1) && BldgIs(eGrid, ar.loc[0], CBldg.hidden, gridSize);
+        bool resl = !TargetsSelf(ar) && LocCountEq(ar, 1) && BldgIs(eGrid, ar.loc[0], CBldg.hidden);
         //Debug.Log("ScoutValid returned " + resl.ToString());
         return resl;
     }
@@ -141,13 +151,13 @@ public class Validator {
         return resl;
     }
 
-    public bool BldgIn(CellStruct[,] grid, Vector2 loc, List<CBldg> bldgs, Vector2 gridSize){
+    public bool BldgIn(CellStruct[,] grid, Vector2 loc, List<CBldg> bldgs){
         bool resl = bldgs.Contains(grid[(int)loc.x, (int)loc.y].bldg);
         //Debug.Log("BldgIn returning: " + resl);
         return resl;
     }
 
-    public bool BldgIs(CellStruct[,] grid, Vector2 loc, CBldg bldg, Vector2 gridSize){
+    public bool BldgIs(CellStruct[,] grid, Vector2 loc, CBldg bldg){
         bool resl = grid[(int)loc.x, (int)loc.y].bldg == bldg;
         //Debug.Log("BldgIs returning: " + resl + ": " + grid[(int)loc.x, (int)loc.y] + "?" + bldg.ToString());
         return resl;
@@ -164,7 +174,7 @@ public class Validator {
                 if(!LocInGrid(testpos, gridSize)){
                     continue;
                 }
-                if(BldgIs(grid, testpos, bldg, gridSize)){
+                if(BldgIs(grid, testpos, bldg)){
                     return true;
                 }
             }
@@ -181,6 +191,111 @@ public class Validator {
         }
         //Debug.Log("NextToBldgs ret false");
         return false;
+    }
+
+    List<Vector2> GetAdjacentLocs(Vector2 loc, Vector2 gridSize){
+        List<Vector2> l = new List<Vector2>();
+        for(int x = -1; x<= 1; x += 2){ // Add x mod values
+            Vector2 newpos = new Vector2(loc.x + x, loc.y);
+            l.Add(newpos);
+        }
+        for(int y = -1; y <= 1; y += 2){ // Add y mod values
+            Vector2 newpos = new Vector2(loc.x, loc.y + y);
+            l.Add(newpos);
+        }
+        List<Vector2> resl = new List<Vector2>();
+        foreach(Vector2 vec in l){
+            if(LocInGrid(vec, gridSize)){
+                resl.Add(vec);
+            }
+        }
+        return resl;
+    }
+
+    //Check immediately left/right, up/down
+    bool AdjacentToBldg(CellStruct [,] grid, Vector2 loc, CBldg bldg, Vector2 gridSize){
+        bool resl = false;
+        List<Vector2> adjLocs = GetAdjacentLocs(loc, gridSize);
+        foreach(Vector2 vec in adjLocs){
+            if(BldgIs(grid, loc, bldg)){
+                resl = true;
+            }
+        }
+        return resl;
+    }
+
+    //Return true if we're adjacent to any of the buildings in the list
+    bool AdjacentToBldgsCellStruct(CellStruct [,] grid, Vector2 loc, List<CBldg> bldgs, Vector2 gridSize){
+        bool resl = false;
+        foreach(CBldg bldg in bldgs){
+            if(AdjacentToBldg(grid, loc, bldg, gridSize)){
+                resl = true;
+            }
+        }
+        return resl;
+    }
+
+    //Return the count of matching buildings adjacent to us
+    int CountBldgAdjacent(CellStruct [,] grid, Vector2 loc, CBldg bldg, Vector2 gridSize){
+        //Debug.Log("CountBldgAdjacent of bldg: " + bldg.ToString());
+        int count = 0;
+        List<Vector2> adjLocs = GetAdjacentLocs(loc, gridSize);
+        foreach(Vector2 vec in adjLocs){
+            //Debug.Log("CountBldgAdjacent loc: " + vec.ToString());
+            if(BldgIs(grid, vec, bldg)){
+                count++;
+            }
+        }
+        //Debug.Log("CountBldgAdjacent returning: " + count.ToString());
+        return count;
+    }
+
+    //Given location and grid, are we adjacent to exactly N bldgs in given list?
+    bool AdjacentToCountBldgs(CellStruct [,] grid, Vector2 loc, List<CBldg> bldgs, Vector2 gridSize, int inCount){
+        int foundCount = 0;
+        foreach(CBldg bldg in bldgs){
+            foundCount += CountBldgAdjacent(grid, loc, bldg, gridSize);
+        }
+        bool resl = foundCount == inCount; 
+        //Debug.Log("AdjacentToCountBldgs returning: " + resl + ". inCnt: " + inCount.ToString() + ". found: " + foundCount.ToString());
+        return resl;
+    }
+
+    bool TowerPlacementOnEnd(CellStruct [,] pGrid, Vector2 loc, List<Vector2> ignoreLocs, Vector2 gridSize){
+        //Recursively make sure that we don't ever have more than one adjacent building
+        //Debug.Log(string.Format("TowerPlacementOnEnd: loc {0}", loc));
+        List<CBldg> towers = new List<CBldg>{CBldg.towerOffence, CBldg.towerIntel, CBldg.towerDefence};
+        bool resl = true;
+        List<Vector2> adjTowers = GetAdjLocationsOfBldgs(pGrid, loc, towers, gridSize);
+        adjTowers = adjTowers.Except(ignoreLocs).ToList();
+        if(adjTowers.Count == 0){ // We're at the end of a line return true
+            //Debug.Log("At end of line!");
+            resl = true;
+        }
+        else if(adjTowers.Count == 1){ // We're stil. traveling along the tower group, recursive call on the next one
+            //Debug.Log("Not at end yet!");
+            ignoreLocs.Add(adjTowers[0]);
+            resl = TowerPlacementOnEnd(pGrid, adjTowers[0], ignoreLocs, gridSize);
+        }
+        else if(adjTowers.Count > 1){ // Found position where there's two paths we can go, meaning placement is fucked. Return false
+            //Debug.Log("Determined placement is bad");
+            resl = false;
+        }
+        else{
+            //Debug.LogError("Got here? count: " + adjTowers.Count);
+        }
+        return resl;
+    }
+
+    List<Vector2> GetAdjLocationsOfBldgs(CellStruct[,] grid, Vector2 loc, List<CBldg> bldgs, Vector2 gridSize){
+        List<Vector2> resl = new List<Vector2>();
+        List<Vector2> adjLocs = GetAdjacentLocs(loc, gridSize);
+        foreach(Vector2 vec in adjLocs){
+            if(BldgIn(grid, vec, bldgs)){
+                resl.Add(vec);
+            }
+        }
+        return resl;
     }
 
     bool LocInGrid(Vector2 loc, Vector2 gridSize){
@@ -200,5 +315,106 @@ public class Validator {
         }
         //Debug.Log("GridContainsBldg ret false: " + bldg.ToString());
         return false;
+    }
+    
+    bool CheckChainAlive(CellStruct[,] pGrid, Vector2 loc, Vector2 gridSize, List<Vector2> capLocs){
+        Dictionary<Vector2, int> chainLens = this.GetTowerChainLengths(pGrid, gridSize, capLocs);
+        Vector2 chainAttached = GetChainAttached(pGrid, loc, gridSize, capLocs);
+        bool resl = chainLens[chainAttached] != -1;
+        Debug.Log("CheckChainAlive: returning: " + resl.ToString());
+        return resl;
+    }   
+
+    bool CheckChainLengthValid(CellStruct[,] pGrid, Vector2 loc, Vector2 gridSize, List<Vector2> capLocs){
+        Debug.Log("Count of our caplocs: " + capLocs.Count.ToString());
+        bool resl = true;
+        int maxDiff = 3;
+        Dictionary<Vector2, int> chainDict = GetTowerChainLengths(pGrid, gridSize, capLocs);
+        Debug.Log("Count of our chainDict: " + chainDict.Count.ToString());
+        Vector2 attachedCapitol = GetChainAttached(pGrid, loc, gridSize, capLocs);
+        Debug.Log("Found that we were attached to capitol location: " + attachedCapitol.ToString());
+        foreach(KeyValuePair<Vector2, int> entry in chainDict){
+            Debug.Log("ChainDict:key " + entry.Key.ToString() + ", val: " + entry.Value.ToString());
+            if(attachedCapitol != entry.Key && entry.Value != -1){ // Check this only if not looking at the chain we're adding to and that the chain is not destroyed
+                resl &= maxDiff >= (chainDict[attachedCapitol] + 1 - entry.Value); // If we added 1 to this location's chain, would we 
+            }
+        }
+        Debug.Log("CheckChainLengthValid: returning: " + resl.ToString());
+        return resl;
+    }
+
+    //Return dict of capitol location and length of chain. Length of -1 if any destroyed tower attached
+    Dictionary<Vector2, int> GetTowerChainLengths(CellStruct[,] pGrid, Vector2 gridSize, List<Vector2> capLocs){
+        List<CBldg> towers = new List<CBldg>{CBldg.towerOffence, CBldg.towerIntel, CBldg.towerDefence};
+        Dictionary<Vector2, int> resl = new Dictionary<Vector2, int>();
+        foreach(Vector2 loc in capLocs){
+            //Look for ends and count on the way
+            int count = 1;
+            List<Vector2> adjTowers = GetAdjLocationsOfBldgs(pGrid, loc, towers, gridSize);
+            if(adjTowers.Count > 2){
+                Debug.LogError("This tower capitol has more than two offshoots what do? Found: " + adjTowers.Count.ToString());
+                return null;
+            }
+            bool chainAlive = !pGrid[(int)loc.x, (int)loc.y].destroyed;
+            foreach(Vector2 towerLoc in adjTowers){
+                List<Vector2> ignoreLocs = new List<Vector2>(){loc};
+                bool alive;
+                count += _countUntilEnd(pGrid, towerLoc, gridSize, ignoreLocs, out alive);
+                chainAlive &= alive;
+                Debug.Log("Calculated that chain at: " + loc.ToString() + " is length " + count.ToString());
+            }
+            if(!chainAlive){ // If we find that the chain is destroyed, we return -1 to indicate as much
+                count = -1;
+            }
+            resl.Add(loc, count);
+        }
+        return resl;
+    }
+
+    //Recursive function only to be used in GetTowerChainLengths
+    int _countUntilEnd(CellStruct [,] pGrid, Vector2 loc, Vector2 gridSize, List<Vector2> ignoreLocs, out bool chainAlive){
+        int count;
+        List<CBldg> towers = new List<CBldg>{CBldg.towerOffence, CBldg.towerIntel, CBldg.towerDefence};
+        List<Vector2> adjTowers = GetAdjLocationsOfBldgs(pGrid, loc, towers, gridSize);
+        adjTowers = adjTowers.Except(ignoreLocs).ToList();
+        bool nextAlive = true;
+        if(adjTowers.Count == 0){ // We're at the end!
+            Debug.Log("At the end of the chain, loc: " + loc.ToString());
+            count = 1;
+        }
+        else if(adjTowers.Count == 1){ //Not at end yet, recurse
+            Debug.Log("Not the end of the chain, loc: " + loc.ToString() + ", next: " + adjTowers[0].ToString());
+            ignoreLocs.Add(loc);
+            count = 1 + _countUntilEnd(pGrid, adjTowers[0], gridSize, ignoreLocs, out nextAlive);
+        }
+        else{
+            Debug.LogError("Found that count of adjacent towers was > 2 while recursing? found: " + adjTowers.Count.ToString());
+            count = 0;
+        }
+        chainAlive = nextAlive && !pGrid[(int)loc.x, (int)loc.y].destroyed;
+        return count;
+    }
+
+    //Given a location return the capitol of the chain that this would be attached to. Return Null if any errors
+    //We assume that you've already checked that this location is at the end of a chain.
+    //We just walk down the chain until we find a capitol location.
+    Vector2 GetChainAttached(CellStruct[,] pGrid, Vector2 loc, Vector2 gridSize, List<Vector2> capLocs){
+        List<CBldg> towers = new List<CBldg>{CBldg.towerOffence, CBldg.towerIntel, CBldg.towerDefence};
+        Vector2 resl = new Vector2(-1,-1);
+        List<Vector2> adjTowers = GetAdjLocationsOfBldgs(pGrid, loc, towers, gridSize);
+        List<Vector2> ignoreLocs = new List<Vector2>(){loc};
+        const int bailAt = 100;
+        int count = 0; // Use this in case someone tries to use it incorrectly. Just bail if we loop 100 times
+        while(adjTowers.Count == 1 && !capLocs.Contains(adjTowers[0]) && bailAt > count){
+            count++;
+            Vector2 temploc = adjTowers[0];
+            adjTowers = GetAdjLocationsOfBldgs(pGrid, temploc, towers, gridSize).Except(ignoreLocs).ToList();
+            adjTowers = adjTowers.Except(ignoreLocs).ToList();
+            ignoreLocs.Add(temploc);
+        }
+        if(capLocs.Contains(adjTowers[0])){
+            resl = adjTowers[0];
+        }
+        return resl;
     }
 }

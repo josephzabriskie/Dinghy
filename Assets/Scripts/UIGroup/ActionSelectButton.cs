@@ -22,7 +22,7 @@ public class ActionSelectButton : MonoBehaviour {
 			{pAction.buildDefenceTower, new ToolTipInfo("Defence Tower", "Build a new Defence tower, gives 1 defence point")},
 			{pAction.buildIntelTower, 	new ToolTipInfo("Intel Tower", "Build a new Intel tower, gives 1 Intel point")},
 			{pAction.buildWall, 		new ToolTipInfo("Wall", "Build a wall that protects the two spaces behind it")},
-			{pAction.fireBasic, 		new ToolTipInfo("Fire", "Lanuch a single attack at your opponent")},
+			{pAction.fireBasic, 		new ToolTipInfo("Fire", "Launch a single attack at your opponent")},
 			{pAction.scout, 			new ToolTipInfo("Scout", "Reveal a target location for 4 turns")},
 			{pAction.fireAgain,			new ToolTipInfo("Fire Again", "Fire a second attack at your opponent")},
 			{pAction.fireRow,			new ToolTipInfo("Fire Row", "default")},
