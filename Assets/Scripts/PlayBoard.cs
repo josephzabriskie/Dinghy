@@ -51,76 +51,134 @@ namespace PlayerActions{
 
 namespace PlayboardTypes{
 
+	public enum Faction{
+		NoFaction,
+		Offence,
+		Defence,
+		Intel
+	}
+
 	public struct ActionParam{
-		public int offenceCost; // offenceCost
-		public int defenceCost; // defenceCost
-		public int intelCost; // intelCost
+		public pAction action;
+		public Faction faction; // Faction this action is associated with
+		public int factionCost; // number of towers in faction to use
 		public int cooldown; // cooldown
 		public int maxUses; // max uses
 		public bool enabled; //If this is allowed at all
-		public ActionParam(int offenceCost, int defenceCost, int intelCost, int cooldown, int maxUses, bool enabled){
-			this.offenceCost = offenceCost;
-			this.defenceCost = defenceCost;
-			this.intelCost = intelCost;
+		public ActionParam(pAction action, Faction faction, int factionCost, int cooldown, int maxUses, bool enabled){
+			this.action = action;
+			this.faction = faction;
+			this.factionCost = factionCost;
 			this.cooldown = cooldown; // 0 means no cooldown
 			this.maxUses = maxUses; // 0 means no more uses, -1 means no limit
 			this.enabled = enabled; // false means player can't cause this
 		}
 		public override string ToString(){
-			return String.Format("APM: o:{0}, d:{1}, i:{2}, cd:{3}, mu: {4}",
-				this.offenceCost, this.defenceCost, this.intelCost, this.cooldown, this.maxUses);
+			return String.Format("APM: A:{0} f:{1}, c:{2}, cd:{3}, mu: {4}",
+				this.action, this.faction, this.factionCost, this.cooldown, this.maxUses);
 		}
 	}
 
 	//This can be requested by a player so they know what the server thinks they can do.
 	public struct ActionAvail{
-		public pAction action;
 		public bool available;
 		public bool costsMet;
 		public int cooldown;
 		public int usesLeft;
 		public ActionParam actionParam;
-		public ActionAvail(pAction action, bool costsMet, int cooldown, int usesLeft, ActionParam actionParam){
-			this.action = action;
-			this.available = costsMet && cooldown == 0 && usesLeft != 0; //Just cal this for the player
+		public ActionAvail(bool costsMet, int cooldown, int usesLeft, ActionParam actionParam){
+			this.available = costsMet && cooldown == 0 && usesLeft != 0; //Just cal this for easier use
 			this.costsMet = costsMet;
 			this.cooldown = cooldown;
 			this.usesLeft = usesLeft;
 			this.actionParam = actionParam;
 		}
 		public override string ToString(){
-			return String.Format("Action Avail: a:{0}, av: {4} cm:{1}, cd: {2}, ul: {3}. APM {5}",
-				this.action, this.costsMet, this.cooldown, this.usesLeft, this.available, this.actionParam);
+			return String.Format("Action Avail: av: {3} cm:{0}, cd: {1}, ul: {2}. APM {4}",
+				this.costsMet, this.cooldown, this.usesLeft, this.available, this.actionParam);
+		}
+	}
+
+	//class for keeping track of the maximum progress, can return list of progress indexed by
+	public class FactionProgress{ // How to make a structure that contains count of all faction towers?
+		static List<Faction> allFactions = ((Faction[])Enum.GetValues(typeof(Faction))).ToList();
+		public Dictionary<Faction, int> progress;
+		public FactionProgress(){
+			progress = new Dictionary<Faction, int>{};
+			foreach(Faction f in allFactions){
+				progress.Add(f, 0);
+			}
+		}
+		public FactionProgress(int[] inProgress){
+			progress = new Dictionary<Faction, int>{};
+			foreach(Faction f in allFactions){
+				progress.Add(f, 0);
+			}
+			for(int i = 0; i < inProgress.Count(); i++){
+				progress[(Faction)i] = inProgress[i];
+			}
+		}
+		public int GetProgress(Faction faction){
+			return this.progress[faction];
+		}
+		//Set progress to exact value
+		public void SetProgress(Faction faction, int progress){
+			this.progress[faction] = progress;
+		}
+		//Update faction progress if input progress is greater than current
+		public void UpdateProgress(Dictionary<Faction, int> inProgress){
+			foreach(Faction f in inProgress.Keys){
+				if(this.progress[f] < inProgress[f]){
+					this.progress[f] = inProgress[f];
+				}
+			}
+		}
+		//Return array that can be indexed by (int)Faction enum
+		public int[] GetArray(){
+			int[] resl = new int[this.progress.Count];
+			for(int i = 0; i < allFactions.Count; i++){
+				resl[i] = this.progress[(Faction)i];
+			}
+			return resl;
 		}
 	}
 
 	public class PlayerActionTracker{
+		//Useful static values
 		static List<pAction> allActions = ((pAction[])Enum.GetValues(typeof(pAction))).ToList(); // How to get all pActions defined in the enum!
 		static Dictionary<pAction, ActionParam> actionParams = new Dictionary<pAction, ActionParam>{
-			//								ActionParam(costs..cd..uses..enabled)
-			{pAction.noAction, 			new ActionParam(0,0,0, 0, -1, true)},
-			{pAction.buildOffenceTower, new ActionParam(0,0,0, 0, 7, true)},
-			{pAction.buildDefenceTower, new ActionParam(0,0,0, 0, 7, true)},
-			{pAction.buildIntelTower, 	new ActionParam(0,0,0, 0, 7, true)},
-			{pAction.buildWall, 		new ActionParam(0,3,0, 2, 5, true)},
-			{pAction.fireBasic, 		new ActionParam(0,0,0, 0, -1, true)},
-			{pAction.scout, 			new ActionParam(0,0,3, 0, 0, true)},
-			{pAction.fireAgain,			new ActionParam(3,0,0, 2, -1, true)},
-			{pAction.fireRow,			new ActionParam(0,0,0, 0, 1, false)},
-			{pAction.fireSquare,		new ActionParam(5,0,0, 4, -1, true)},
-			{pAction.blockingShot,		new ActionParam(0,3,3, 3, 4, false)},// this one's odd, what should the cost be?
-			{pAction.hellFire,			new ActionParam(7,0,0, 6, -1, true)},
-			{pAction.flare,				new ActionParam(0,0,3, 1, -1, true)},
-			{pAction.placeMine,			new ActionParam(0,5,0, 1, 4, false)},
-			{pAction.buildDefenceGrid,	new ActionParam(0,7,0, 6, 3, true)},
-			{pAction.buildReflector,	new ActionParam(0,5,0, 2, 6, true)},
-			{pAction.fireReflected,		new ActionParam(0,0,0, 0, 0, false)}, // Player can't cause this
-			{pAction.firePiercing,		new ActionParam(3,0,3, 0, 0, false)},
-			{pAction.placeMole,			new ActionParam(0,0,5, 4, 2, true)},
-			{pAction.towerTakeover,		new ActionParam(0,0,7, 5, -1, true)},
+			//Action					ActionParam(	action 						faction            cost.cd.uses.enabled)
+			{pAction.noAction, 			new ActionParam(pAction.noAction, 			Faction.NoFaction,	0, 0, -1,	true)},
+			{pAction.buildOffenceTower, new ActionParam(pAction.buildOffenceTower,	Faction.Offence,	0, 1, 7,	true)},
+			{pAction.buildDefenceTower, new ActionParam(pAction.buildDefenceTower,	Faction.Defence,	0, 1, 7,	true)},
+			{pAction.buildIntelTower, 	new ActionParam(pAction.buildIntelTower, 	Faction.Intel,		0, 1, 7,	true)},
+			{pAction.buildWall, 		new ActionParam(pAction.buildWall,			Faction.Defence,	3, 2, 5,	true)},
+			{pAction.fireBasic, 		new ActionParam(pAction.fireBasic,			Faction.Offence,	0, 0, -1,	true)},
+			{pAction.scout, 			new ActionParam(pAction.scout,				Faction.Intel,		3, 0, 0,	true)},
+			{pAction.fireAgain,			new ActionParam(pAction.fireAgain,			Faction.Offence,	3, 2, -1,	true)},
+			{pAction.fireRow,			new ActionParam(pAction.fireRow,			Faction.Offence,	7, 0, 1,	false)},
+			{pAction.fireSquare,		new ActionParam(pAction.fireSquare,			Faction.Offence,	5, 4, -1,	true)},
+			{pAction.blockingShot,		new ActionParam(pAction.blockingShot,		Faction.Offence,	5, 3, 4,	false)},// this one's odd, what should the cost be?
+			{pAction.hellFire,			new ActionParam(pAction.hellFire,			Faction.Offence,	7, 6, -1,	true)},
+			{pAction.flare,				new ActionParam(pAction.flare,				Faction.Intel,		3, 1, -1,	true)},
+			{pAction.placeMine,			new ActionParam(pAction.placeMine,			Faction.Defence,	5, 1, 4,	false)},
+			{pAction.buildDefenceGrid,	new ActionParam(pAction.buildDefenceGrid, 	Faction.Defence,	7, 6, 3,	true)},
+			{pAction.buildReflector,	new ActionParam(pAction.buildReflector,	 	Faction.Defence,	5, 2, 6,	true)},
+			{pAction.fireReflected,		new ActionParam(pAction.fireReflected,		Faction.NoFaction,	0, 0, 0,	false)}, // Player can't cause this
+			{pAction.firePiercing,		new ActionParam(pAction.firePiercing,		Faction.Intel,		5, 0, 0,	false)},
+			{pAction.placeMole,			new ActionParam(pAction.placeMole,			Faction.Intel,		5, 4, 2,	true)},
+			{pAction.towerTakeover,		new ActionParam(pAction.towerTakeover,		Faction.Intel,		7, 5, -1,	true)},
 		};
+		static Dictionary<Faction, CBldg> factionBldgMap = new Dictionary<Faction, CBldg>{
+			{Faction.Offence, CBldg.towerOffence},
+			{Faction.Defence, CBldg.towerDefence},
+			{Faction.Intel, CBldg.towerIntel},
+		};
+
+		//Instance Members
 		Dictionary<pAction, int> actionCooldowns; //Use for tracking cooldowns
 		List<pAction> actionHistory; //Use for counting uses
+		public FactionProgress factionProgress;
 
 		//Constructor
 		public PlayerActionTracker(){
@@ -134,20 +192,22 @@ namespace PlayboardTypes{
 				this.actionCooldowns.Add(action, 0);
 			}
 			this.actionHistory = new List<pAction>();
+			this.factionProgress = new FactionProgress();
 		}
 
-		static List<pAction> CheckCostsMet(CellStruct[][,] gState){
-			//Game state from a specific player's perspetive
-			int offenceCount = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == CBldg.towerOffence && !cell.destroyed && !cell.defected);
-			offenceCount += GUtils.Serialize(gState[1]).Count(cell => cell.bldg == CBldg.towerOffence && !cell.destroyed && cell.defected);
-			int defenceCount = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == CBldg.towerDefence && !cell.destroyed && !cell.defected);
-			defenceCount += GUtils.Serialize(gState[1]).Count(cell => cell.bldg == CBldg.towerDefence && !cell.destroyed && cell.defected);
-			int intelCount = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == CBldg.towerIntel && !cell.destroyed && !cell.defected);
-			intelCount += GUtils.Serialize(gState[1]).Count(cell => cell.bldg == CBldg.towerIntel && !cell.destroyed && cell.defected);
+		//Get list of actions that can be used based on the current game state
+		List<pAction> CheckCostsMet(CellStruct[][,] gState){
+			Dictionary<Faction, int> curProg = new Dictionary<Faction, int>(); // Current progress based on this game state
+			foreach(Faction f in factionBldgMap.Keys){
+				int count = GUtils.Serialize(gState[0]).Count(cell => cell.bldg == factionBldgMap[f] && !cell.destroyed && !cell.defected);
+				count += GUtils.Serialize(gState[1]).Count(cell => cell.bldg == factionBldgMap[f] && !cell.destroyed && cell.defected);
+				curProg.Add(f, count);
+			}
+			this.factionProgress.UpdateProgress(curProg);
 			List<pAction> retList = new List<pAction>();
 			foreach(pAction action in actionParams.Keys){
 				ActionParam apm = actionParams[action];
-				if(apm.enabled && apm.offenceCost <= offenceCount && apm.defenceCost <= defenceCount && apm.intelCost <= intelCount){
+				if(apm.enabled && this.factionProgress.GetProgress(apm.faction) >= apm.factionCost){
 					retList.Add(action);
 				}
 			}
@@ -175,7 +235,7 @@ namespace PlayboardTypes{
 			List<ActionAvail> retList = new List<ActionAvail>();
 			List<pAction> costsMetActions = CheckCostsMet(playerGameState); // Check cost of actions met
 			foreach(pAction action in allActions){
-				retList.Add(new ActionAvail(action, costsMetActions.Contains(action), this.actionCooldowns[action], this.GetUsesLeft(action), actionParams[action]));
+				retList.Add(new ActionAvail(costsMetActions.Contains(action), this.actionCooldowns[action], this.GetUsesLeft(action), actionParams[action]));
 			}
 			return retList;
 		}
@@ -342,6 +402,10 @@ namespace PlayboardTypes{
 
 		public List<ActionAvail> GetActionAvailable(int playerId){
 			return this.pats[playerId].GetActionAvailibility(this.GetPlayerGameState(playerId, true));
+		}
+
+		public FactionProgress GetFactionProgress(int playerId){
+			return this.pats[playerId].factionProgress;
 		}
 
 		//Here we do the cleanup/calcs/etc that needs to happen at the end of apply

@@ -27,6 +27,7 @@ public class ActionProgressBar : MonoBehaviour {
     public List<pAction> actions;
     public pAction bldgAction;
     public CBldg displayBldg;
+    public Faction faction;
     ActionSelectButton mainBldgButton;
 
     void Start(){
@@ -55,19 +56,9 @@ public class ActionProgressBar : MonoBehaviour {
     public void UpdateActionInfo(List<ActionAvail> aaList){
         //Todo delete old buttons first
         foreach(pAction action in this.actions){ // For each action we're specifying, find place it based on cost
-            ActionAvail aa = aaList.Find(x=>x.action == action); // What happens if we don't find it?
+            ActionAvail aa = aaList.Find(x=>x.actionParam.action == action); // What happens if we don't find it?
             //Determine which parameter we care about
-            int cost;
-            if(this.bldgAction == pAction.buildOffenceTower)
-                cost = aa.actionParam.offenceCost;
-            else if (this.bldgAction ==pAction.buildDefenceTower)
-                cost = aa.actionParam.defenceCost;
-            else if (this.bldgAction == pAction.buildIntelTower)
-                cost = aa.actionParam.intelCost;
-            else{
-                Debug.LogError("Bad ActionType: " + this.bldgAction.ToString());
-                return;
-            }
+            int cost = aa.actionParam.factionCost;
             ActionSelectButton button = this.buttons.Find(x=>x.action == action);
             if(button == null){ // If we don't have a button, spawn one and init
                 GameObject go = Instantiate(this.actionSelButtonPrefab, transform.position, transform.rotation, transform.Find("Bar/Buttons").transform);
@@ -83,11 +74,13 @@ public class ActionProgressBar : MonoBehaviour {
         }
     }
 
-    public void UpdateBar(CellStruct[,] playerState, CellStruct[,] enemyState){
-        int count = GUtils.Serialize(playerState).Count(cell => cell.bldg == this.displayBldg && !cell.destroyed && !cell.defected); //count all friendly spaces not taken over
-        count += GUtils.Serialize(enemyState).Count(cell => cell.bldg == this.displayBldg && !cell.destroyed && cell.defected); //count all enemy spaces taken over
+    public void UpdateBar(FactionProgress fp, CellStruct[,] playerState, CellStruct[,] enemyState){
+        int boardCount = GUtils.Serialize(playerState).Count(cell => cell.bldg == this.displayBldg && !cell.destroyed && !cell.defected); //count all friendly spaces not taken over
+        boardCount += GUtils.Serialize(enemyState).Count(cell => cell.bldg == this.displayBldg && !cell.destroyed && cell.defected); //count all enemy spaces taken over
+        this.countText.text = boardCount.ToString();
+        //Fill the bar based on total progress
+        int count = fp.GetProgress(this.faction);
         this.fill.fillAmount = (float)count/this.maxInterval;
-        this.countText.text = count.ToString();
     }
 
     // public void HighlightButton(pAction action){

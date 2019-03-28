@@ -26,9 +26,9 @@ public class ActionSelectGroup : MonoBehaviour {
     }
 
     //this sends the gameboard to each bar so they can update their counts/fill/button-enabledness
-    public void UpdateTowerCounts(CellStruct[,] playerState, CellStruct[,] enemyState){
+    public void UpdateFactionProgress(FactionProgress fp, CellStruct[,] playerState, CellStruct[,] enemyState){
         foreach(ActionProgressBar bar in this.bars){
-            bar.UpdateBar(playerState, enemyState);
+            bar.UpdateBar(fp, playerState, enemyState);
         }
     }
 

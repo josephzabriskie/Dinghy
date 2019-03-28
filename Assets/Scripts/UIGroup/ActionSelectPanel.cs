@@ -93,9 +93,9 @@ public class ActionSelectPanel : MonoBehaviour {
 		//Some actions can be set on cooldown by other actions, check both max cd and current before blanking
 		this.cooldownText.text = aa.actionParam.cooldown == 0 && aa.cooldown == 0 ? "-" : string.Format("{0}/{1}", aa.cooldown, aa.actionParam.cooldown);
 		this.usesLeftText.text = aa.usesLeft < 0 ? "∞" : aa.usesLeft.ToString();
-		this.offenceCostText.text = aa.actionParam.offenceCost.ToString();
-		this.defenceCostText.text = aa.actionParam.defenceCost.ToString();
-		this.intelCostText.text = aa.actionParam.intelCost.ToString();
+		this.offenceCostText.text = aa.actionParam.factionCost.ToString();
+		this.defenceCostText.text = aa.actionParam.factionCost.ToString();
+		this.intelCostText.text = aa.actionParam.factionCost.ToString();
 		this.latestAA = aa;
 		this.RefreshEnabled();
 	}

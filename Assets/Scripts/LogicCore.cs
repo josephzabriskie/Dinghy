@@ -36,12 +36,14 @@ namespace MatchSequence{
 		public CellStruct[] theirGrid;
 		public int[] gridSize;
 		public ActionAvail[] aaArray;
+		public int[] factionProgress;
 		public Vector2 [] capitolTowers;
-		public GameBoardInfo(CellStruct[] our, CellStruct[] other, int[] gridSize, ActionAvail[] aaArray, Vector2[] capitolTowers){
+		public GameBoardInfo(CellStruct[] our, CellStruct[] other, int[] gridSize, ActionAvail[] aaArray, int[] factionProgress, Vector2[] capitolTowers){
 			this.ourGrid = our;
 			this.theirGrid = other;
 			this.gridSize = gridSize;
 			this.aaArray = aaArray;
+			this.factionProgress = factionProgress;
 			this.capitolTowers = capitolTowers;
 		}
 	}
@@ -365,9 +367,10 @@ public class LogicCore : NetworkBehaviour {
 		CellStruct[][,] state = this.PB.GetPlayerGameState(p, false);
 		CellStruct[] pOwnGrid = GUtils.Serialize(state[0]);
 		CellStruct[] pOtherGrid = GUtils.Serialize(state[1]);
-		List<ActionAvail> aaList=  this.PB.GetActionAvailable(p);
+		List<ActionAvail> aaList =  this.PB.GetActionAvailable(p);
+		int[] factionProgress = this.PB.GetFactionProgress(p).GetArray();
 		Vector2 [] capitolLocs = this.PB.capitolTowerLocs[p].ToArray();
-		GameBoardInfo gbi = new GameBoardInfo(pOwnGrid, pOtherGrid, new int[]{this.sizex, this.sizey}, aaList.ToArray(), capitolLocs);
+		GameBoardInfo gbi = new GameBoardInfo(pOwnGrid, pOtherGrid, new int[]{this.sizex, this.sizey}, aaList.ToArray(), factionProgress, capitolLocs);
 		this.mnm.playerSlots[p].RpcUpdatePlayBoard(gbi);
 	}
 

@@ -72,7 +72,7 @@ public class UIController : MonoBehaviour {
 	//UpdateActionAvail info
 	public void ActionSelectButtonGrpActionAvailUpdate(List<ActionAvail> actionAvail){
 		foreach(ActionSelectButton asb in this.lasb){
-			asb.UpdationActionAvail(actionAvail.Find(aa => aa.action == asb.action));
+			asb.UpdationActionAvail(actionAvail.Find(aa => aa.actionParam.action == asb.action));
 		}
 	}
 
@@ -92,8 +92,8 @@ public class UIController : MonoBehaviour {
 	public void ActionSelectGroupUpdateActionInfo(List<ActionAvail> aaList){
 		this.asg.UpdateActionInfo(aaList);
 	}
-	public void ActionSelectGroupUpdateTowerCount(CellStruct[,] playerState, CellStruct[,] enemyState){
-		this.asg.UpdateTowerCounts(playerState, enemyState);
+	public void ActionSelectGroupUpdateFactionProgress(FactionProgress factionProgress, CellStruct[,] playerState, CellStruct[,] enemyState){
+		this.asg.UpdateFactionProgress(factionProgress, playerState, enemyState);
 	}
 	//#############################################
 	//Functions to control our timer UI

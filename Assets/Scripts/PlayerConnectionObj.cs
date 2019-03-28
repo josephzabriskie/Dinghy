@@ -113,7 +113,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		UIController.instance.ActionSelectGroupUpdateActionInfo(gbi.aaArray.ToList());
 		this.latestPlayerGrid = GUtils.Deserialize(gbi.ourGrid, gbi.gridSize[0], gbi.gridSize[1]);
 		this.latestEnemyGrid =  GUtils.Deserialize(gbi.theirGrid, gbi.gridSize[0], gbi.gridSize[1]);
-		UIController.instance.ActionSelectGroupUpdateTowerCount(this.latestPlayerGrid, this.latestEnemyGrid);
+		UIController.instance.ActionSelectGroupUpdateFactionProgress(new FactionProgress(gbi.factionProgress), this.latestPlayerGrid, this.latestEnemyGrid);
 		this.pb.SetGridStates(this.latestPlayerGrid, this.latestEnemyGrid);
 	}
 
