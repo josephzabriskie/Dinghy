@@ -297,12 +297,15 @@ namespace PlayboardTypes{
 		PlayerActionTracker[] pats;
 		public List<Vector2>[] capitolTowerLocs; // Location list of the very first tower's placed for each player
 		ActionProcState actionProcState;
+		Dictionary<Vector2, bool>[] towerChainsSunk; //Keep track of tower chains sunk, send notification to client on changef
+
 		
 		public PlayBoard(int sizex, int sizey){
 			//Debug.Log("Hey, I'm making a Playboard: " + sizex.ToString() + "X" + sizey.ToString());
 			this.sizex = sizex;
 			this.sizey = sizey;
 			this.capitolTowerLocs = new List<Vector2>[]{new List<Vector2>(){},new List<Vector2>(){}};
+			this.towerChainsSunk = new Dictionary<Vector2, bool>[playercnt];
 			this.InitializeCells();
 			validator = new Validator(ActionProcState.reject);
 			pats = new PlayerActionTracker[playercnt]{new PlayerActionTracker(), new PlayerActionTracker()};

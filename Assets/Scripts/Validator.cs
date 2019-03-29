@@ -110,6 +110,7 @@ public class Validator {
         bool resl = DefBuildValid(ar, pGrid, gridSize) && AdjacentToCountBldgs(pGrid, ar.loc[0], bldgs, gridSize, 1) && TowerPlacementOnEnd(pGrid, ar.loc[0], new List<Vector2>(), gridSize)
                 && CheckChainAlive(pGrid, ar.loc[0], gridSize, capLocs) && CheckChainLengthValid(pGrid, ar.loc[0], gridSize, capLocs);
         //Debug.Log("BuildTowerValid returning " + resl.ToString());
+        GetTowerChainsSunk(pGrid, gridSize, capLocs);
         return resl;
     }
 
@@ -318,25 +319,22 @@ public class Validator {
     }
     
     bool CheckChainAlive(CellStruct[,] pGrid, Vector2 loc, Vector2 gridSize, List<Vector2> capLocs){
-        Dictionary<Vector2, int> chainLens = this.GetTowerChainLengths(pGrid, gridSize, capLocs);
+        Dictionary<Vector2, bool> chainsAlive = this.GetTowerChainsAlive(pGrid, gridSize, capLocs);
         Vector2 chainAttached = GetChainAttached(pGrid, loc, gridSize, capLocs);
-        bool resl = chainLens[chainAttached] != -1;
+        bool resl = chainsAlive[chainAttached];
         Debug.Log("CheckChainAlive: returning: " + resl.ToString());
         return resl;
     }   
 
     bool CheckChainLengthValid(CellStruct[,] pGrid, Vector2 loc, Vector2 gridSize, List<Vector2> capLocs){
-        Debug.Log("Count of our caplocs: " + capLocs.Count.ToString());
-        bool resl = true;
         int maxDiff = 3;
-        Dictionary<Vector2, int> chainDict = GetTowerChainLengths(pGrid, gridSize, capLocs);
-        Debug.Log("Count of our chainDict: " + chainDict.Count.ToString());
+        Dictionary<Vector2, int> chainsLen = GetTowerChainsLength(pGrid, gridSize, capLocs);
+        Dictionary<Vector2, bool> chainsAlive =  GetTowerChainsAlive(pGrid, gridSize, capLocs);
         Vector2 attachedCapitol = GetChainAttached(pGrid, loc, gridSize, capLocs);
-        Debug.Log("Found that we were attached to capitol location: " + attachedCapitol.ToString());
-        foreach(KeyValuePair<Vector2, int> entry in chainDict){
-            Debug.Log("ChainDict:key " + entry.Key.ToString() + ", val: " + entry.Value.ToString());
-            if(attachedCapitol != entry.Key && entry.Value != -1){ // Check this only if not looking at the chain we're adding to and that the chain is not destroyed
-                resl &= maxDiff >= (chainDict[attachedCapitol] + 1 - entry.Value); // If we added 1 to this location's chain, would we 
+        bool resl = true;
+        foreach(Vector2 cap in capLocs){
+            if(attachedCapitol != cap && chainsAlive[cap]){ // Check this only if not looking at the chain we're adding to and that the chain is not destroyed
+                resl &= maxDiff >= (chainsLen[attachedCapitol] + 1 - chainsLen[cap]); // If we added 1 to this location's chain, would we be over our limit
             }
         }
         Debug.Log("CheckChainLengthValid: returning: " + resl.ToString());
@@ -344,55 +342,74 @@ public class Validator {
     }
 
     //Return dict of capitol location and length of chain. Length of -1 if any destroyed tower attached
-    Dictionary<Vector2, int> GetTowerChainLengths(CellStruct[,] pGrid, Vector2 gridSize, List<Vector2> capLocs){
-        List<CBldg> towers = new List<CBldg>{CBldg.towerOffence, CBldg.towerIntel, CBldg.towerDefence};
+    Dictionary<Vector2, int> GetTowerChainsLength(CellStruct[,] pGrid, Vector2 gridSize, List<Vector2> capLocs){
+        Dictionary<Vector2, List<Vector2>> towerChains = GetTowerChains(pGrid, gridSize, capLocs);
         Dictionary<Vector2, int> resl = new Dictionary<Vector2, int>();
-        foreach(Vector2 loc in capLocs){
-            //Look for ends and count on the way
-            int count = 1;
-            List<Vector2> adjTowers = GetAdjLocationsOfBldgs(pGrid, loc, towers, gridSize);
-            if(adjTowers.Count > 2){
-                Debug.LogError("This tower capitol has more than two offshoots what do? Found: " + adjTowers.Count.ToString());
-                return null;
-            }
-            bool chainAlive = !pGrid[(int)loc.x, (int)loc.y].destroyed;
-            foreach(Vector2 towerLoc in adjTowers){
-                List<Vector2> ignoreLocs = new List<Vector2>(){loc};
-                bool alive;
-                count += _countUntilEnd(pGrid, towerLoc, gridSize, ignoreLocs, out alive);
-                chainAlive &= alive;
-                Debug.Log("Calculated that chain at: " + loc.ToString() + " is length " + count.ToString());
-            }
-            if(!chainAlive){ // If we find that the chain is destroyed, we return -1 to indicate as much
-                count = -1;
-            }
-            resl.Add(loc, count);
+        foreach(Vector2 cap in capLocs){
+            resl.Add(cap, towerChains[cap].Count);
         }
         return resl;
     }
 
-    //Recursive function only to be used in GetTowerChainLengths
-    int _countUntilEnd(CellStruct [,] pGrid, Vector2 loc, Vector2 gridSize, List<Vector2> ignoreLocs, out bool chainAlive){
-        int count;
+    //Recursively check to see if a towerchain is sunk
+    Dictionary<Vector2, bool> GetTowerChainsSunk(CellStruct [,] pGrid, Vector2 gridSize, List<Vector2> capLocs){
+        Dictionary<Vector2, List<Vector2>> towerChains = GetTowerChains(pGrid, gridSize, capLocs);
+        Dictionary<Vector2, bool> resl = new Dictionary<Vector2, bool>();
+        foreach(Vector2 cap in capLocs){
+            resl.Add(cap, towerChains[cap].All(loc => pGrid[(int)loc.x, (int)loc.y].destroyed));
+        }
+        return resl;
+    }
+
+    //Recursively check to see if a towerchain is alive (no destroyed cells)
+    Dictionary<Vector2, bool> GetTowerChainsAlive(CellStruct [,] pGrid, Vector2 gridSize, List<Vector2> capLocs){
+        Dictionary<Vector2, List<Vector2>> towerChains = GetTowerChains(pGrid, gridSize, capLocs);
+        Dictionary<Vector2, bool> resl = new Dictionary<Vector2, bool>();
+        foreach(Vector2 cap in capLocs){
+            resl.Add(cap, !towerChains[cap].Any(loc => pGrid[(int)loc.x, (int)loc.y].destroyed));
+        }
+        return resl;
+    }
+
+    Dictionary<Vector2, List<Vector2>> GetTowerChains(CellStruct[,] pGrid, Vector2 gridSize, List<Vector2> capLocs){
+        List<CBldg> towers = new List<CBldg>{CBldg.towerOffence, CBldg.towerIntel, CBldg.towerDefence};
+        Dictionary<Vector2, List<Vector2>> resl = new Dictionary<Vector2, List<Vector2>>();
+        foreach(Vector2 loc in capLocs){
+            //Look for ends and count on the way
+            List<Vector2> chainLocs = new List<Vector2>(){loc};
+            List<Vector2> adjTowers = GetAdjLocationsOfBldgs(pGrid, loc, towers, gridSize);
+            if(adjTowers.Count > 2){
+                Debug.LogError("This tower capitol has more than two offshoots, what do? Found: " + adjTowers.Count.ToString());
+                return null;
+            }
+            foreach(Vector2 towerLoc in adjTowers){
+                List<Vector2> ignoreLocs = new List<Vector2>(){loc};
+                chainLocs.AddRange( _accumulateChainLocs(pGrid, towerLoc, gridSize, ignoreLocs));
+                //Debug.Log("Calculated that chain at: " + loc.ToString() + " is length " + count.ToString());
+            }
+            resl.Add(loc, chainLocs);
+        }
+        return resl;
+    }
+
+    //Recursive function only to be used in GetTowerChains
+    List<Vector2> _accumulateChainLocs(CellStruct [,] pGrid, Vector2 loc, Vector2 gridSize, List<Vector2> ignoreLocs){
         List<CBldg> towers = new List<CBldg>{CBldg.towerOffence, CBldg.towerIntel, CBldg.towerDefence};
         List<Vector2> adjTowers = GetAdjLocationsOfBldgs(pGrid, loc, towers, gridSize);
         adjTowers = adjTowers.Except(ignoreLocs).ToList();
-        bool nextAlive = true;
+        List<Vector2> outList = new List<Vector2>(){loc};
         if(adjTowers.Count == 0){ // We're at the end!
             Debug.Log("At the end of the chain, loc: " + loc.ToString());
-            count = 1;
         }
         else if(adjTowers.Count == 1){ //Not at end yet, recurse
             Debug.Log("Not the end of the chain, loc: " + loc.ToString() + ", next: " + adjTowers[0].ToString());
             ignoreLocs.Add(loc);
-            count = 1 + _countUntilEnd(pGrid, adjTowers[0], gridSize, ignoreLocs, out nextAlive);
+            outList.AddRange(_accumulateChainLocs(pGrid, adjTowers[0], gridSize, ignoreLocs));
         }
         else{
             Debug.LogError("Found that count of adjacent towers was > 2 while recursing? found: " + adjTowers.Count.ToString());
-            count = 0;
         }
-        chainAlive = nextAlive && !pGrid[(int)loc.x, (int)loc.y].destroyed;
-        return count;
+        return outList;
     }
 
     //Given a location return the capitol of the chain that this would be attached to. Return Null if any errors
