@@ -38,13 +38,15 @@ namespace MatchSequence{
 		public ActionAvail[] aaArray;
 		public int[] factionProgress;
 		public Vector2 [] capitolTowers;
-		public GameBoardInfo(CellStruct[] our, CellStruct[] other, int[] gridSize, ActionAvail[] aaArray, int[] factionProgress, Vector2[] capitolTowers){
+		public bool hitSunk;
+		public GameBoardInfo(CellStruct[] our, CellStruct[] other, int[] gridSize, ActionAvail[] aaArray, int[] factionProgress, Vector2[] capitolTowers, bool hitSunk){
 			this.ourGrid = our;
 			this.theirGrid = other;
 			this.gridSize = gridSize;
 			this.aaArray = aaArray;
 			this.factionProgress = factionProgress;
 			this.capitolTowers = capitolTowers;
+			this.hitSunk = hitSunk;
 		}
 	}
 }
@@ -370,7 +372,9 @@ public class LogicCore : NetworkBehaviour {
 		List<ActionAvail> aaList =  this.PB.GetActionAvailable(p);
 		int[] factionProgress = this.PB.GetFactionProgress(p).GetArray();
 		Vector2 [] capitolLocs = this.PB.capitolTowerLocs[p].ToArray();
-		GameBoardInfo gbi = new GameBoardInfo(pOwnGrid, pOtherGrid, new int[]{this.sizex, this.sizey}, aaList.ToArray(), factionProgress, capitolLocs);
+		int[] gridSize = new int[]{sizex, sizey};
+		bool hitSunk = this.PB.hitSunk[p]; // Player's last actions sunk one or more enemy ships
+		GameBoardInfo gbi = new GameBoardInfo(pOwnGrid, pOtherGrid, gridSize, aaList.ToArray(), factionProgress, capitolLocs, hitSunk);
 		this.mnm.playerSlots[p].RpcUpdatePlayBoard(gbi);
 	}
 

@@ -11,6 +11,10 @@ public class UIFader : MonoBehaviour{
         this.coroutine = null;
     }
 
+    public void ImmediateHide(){
+        uiElt.alpha = 0;
+    }
+
     public void FadeIn(float time = 0.5f){
         _StartFade(time, true);
     }

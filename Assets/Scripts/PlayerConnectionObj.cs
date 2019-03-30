@@ -114,6 +114,9 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		this.latestPlayerGrid = GUtils.Deserialize(gbi.ourGrid, gbi.gridSize[0], gbi.gridSize[1]);
 		this.latestEnemyGrid =  GUtils.Deserialize(gbi.theirGrid, gbi.gridSize[0], gbi.gridSize[1]);
 		UIController.instance.ActionSelectGroupUpdateFactionProgress(new FactionProgress(gbi.factionProgress), this.latestPlayerGrid, this.latestEnemyGrid);
+		if(gbi.hitSunk){
+			UIController.instance.HitSunkDisplayFlash();
+		}
 		this.pb.SetGridStates(this.latestPlayerGrid, this.latestEnemyGrid);
 	}
 

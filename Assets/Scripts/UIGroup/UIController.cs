@@ -18,6 +18,7 @@ public class UIController : MonoBehaviour {
 	ActionSelectGroup asg;
 	GameOverDisplay god;
 	List <ActionSelectButton> lasb;
+	HitSunkDisplay hsd;
 
 	void Awake(){
 		if(instance == null){
@@ -38,8 +39,9 @@ public class UIController : MonoBehaviour {
 		this.gsd = this.GetComponentInChildren<GameStateDisplay>();
 		this.asg = this.GetComponentInChildren<ActionSelectGroup>();
 		this.god = this.GetComponentInChildren<GameOverDisplay>();
-		this.lasb = new List<ActionSelectButton>();
 		this.GameOverDisplayHide(); // Hide this till needed. Todo Warning, may depend on script execution order
+		this.lasb = new List<ActionSelectButton>();
+		this.hsd = this.GetComponentInChildren<HitSunkDisplay>();
 	}
 
 	//#############################################
@@ -155,5 +157,11 @@ public class UIController : MonoBehaviour {
 	//Functions to update our game state display
 	public void GameStateUpdate(string msg){
 		this.gsd.SetDisplay(msg);
+	}
+
+	//#############################################
+	//Functions to control our "Hit Sunk!" message
+	public void HitSunkDisplayFlash(){
+		this.hsd.ShowHitSunk();
 	}
 }

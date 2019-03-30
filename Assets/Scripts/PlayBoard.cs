@@ -297,15 +297,16 @@ namespace PlayboardTypes{
 		PlayerActionTracker[] pats;
 		public List<Vector2>[] capitolTowerLocs; // Location list of the very first tower's placed for each player
 		ActionProcState actionProcState;
-		Dictionary<Vector2, bool>[] towerChainsSunk; //Keep track of tower chains sunk, send notification to client on changef
+		public bool[] hitSunk; //Does either player need a hitsunk message. (e.g get hitSunk[1] to tell if player 1 has sunk a ship this turn)
+		Dictionary<Vector2, bool>[] sunkDicts;
 
-		
 		public PlayBoard(int sizex, int sizey){
 			//Debug.Log("Hey, I'm making a Playboard: " + sizex.ToString() + "X" + sizey.ToString());
 			this.sizex = sizex;
 			this.sizey = sizey;
 			this.capitolTowerLocs = new List<Vector2>[]{new List<Vector2>(){},new List<Vector2>(){}};
-			this.towerChainsSunk = new Dictionary<Vector2, bool>[playercnt];
+			this.hitSunk = new bool[playercnt];
+			this.sunkDicts = new Dictionary<Vector2, bool>[playercnt]; // Dictionary of capitol and if it's sunk
 			this.InitializeCells();
 			validator = new Validator(ActionProcState.reject);
 			pats = new PlayerActionTracker[playercnt]{new PlayerActionTracker(), new PlayerActionTracker()};
@@ -330,19 +331,19 @@ namespace PlayboardTypes{
 			int enemyIdx = (playerIdx + 1) % playercnt;
 			CellStruct[][,] boardOut = new CellStruct[playercnt][,];
 			if(showall){
-				boardOut[0] = this.GetGridSide(playerIdx, 0); //playerGrid
-				boardOut[1] = this.GetGridSide(enemyIdx, 0); //enemyGrid	
+				boardOut[0] = this.GetGridSide(playerIdx, CellPerspective.All); //playerGrid
+				boardOut[1] = this.GetGridSide(enemyIdx, CellPerspective.All); //enemyGrid	
 			}
 			else{
-				boardOut[0] = this.GetGridSide(playerIdx, 1); //playerGrid
-				boardOut[1] = this.GetGridSide(enemyIdx, 2); //enemyGrid
+				boardOut[0] = this.GetGridSide(playerIdx, CellPerspective.PlayersOwn); //playerGrid
+				boardOut[1] = this.GetGridSide(enemyIdx, CellPerspective.PlayersEnemy); //enemyGrid
 			}
 			return boardOut; 
 		}
 
 		////////////////////////Helper functions for game logic
 		//Get specific side of grid (indexed by playerID)
-		CellStruct[,] GetGridSide(int idx, int perspective){
+		CellStruct[,] GetGridSide(int idx, CellPerspective perspective){
 			CellStruct [,] gridOut = new CellStruct[sizex,sizey];
 			for(int x = 0; x < this.sizex; x++){
 				for(int y = 0; y < this.sizey; y++){
@@ -369,19 +370,17 @@ namespace PlayboardTypes{
 		}
 
 		//Used to help our randomizer functions that don't want to hit
-		List<Vector2> GetLocsOfBldgs(int idx,  List<CBldg> bldgs, int perspective, bool negate=false){
+		List<Vector2> GetLocsOfBldgs(int p,  List<CBldg> bldgs, CellPerspective perspective, bool negate=false){
 			List<Vector2> ret = new List<Vector2>();
-			for(int x = 0; x < this.sizex; x++){
-				for(int y = 0; y < this.sizey; y++){
-					if(!negate){
-						if (bldgs.Contains(cells[idx][x,y].GetCellStruct(perspective).bldg)){
-							ret.Add(new Vector2(x,y));
-						}
+			foreach(Cell c in this.cells[p]){
+				if(!negate){ // I think I can simplify this logic...
+					if (bldgs.Contains(c.GetCellStruct(perspective).bldg)){
+						ret.Add(c.loc);
 					}
-					else{
-						if (!bldgs.Contains(cells[idx][x,y].GetCellStruct(perspective).bldg)){
-							ret.Add(new Vector2(x,y));
-						}
+				}
+				else{
+					if (!bldgs.Contains(c.GetCellStruct(perspective).bldg)){
+						ret.Add(c.loc);
 					}
 				}
 			}
@@ -392,12 +391,10 @@ namespace PlayboardTypes{
 			List<CBldg> s = new List<CBldg>(){CBldg.towerOffence, CBldg.towerDefence, CBldg.towerIntel};
 			//Debug.Log("GameOverChecking for player: " + p.ToString());
 			bool playerlose = true;
-			for(int x = 0; x < this.sizex; x++){ //TODO replace these nested loops with a foreach (think that should work on jagged array)
-				for(int y = 0; y < this.sizey; y++){
-					CellStruct cs = this.cells[p][x,y].GetCellStruct(0);
-					if (s.Contains(cs.bldg) && !cs.destroyed && !cs.defected){
-						playerlose = false; // as long as they have one tower, they're still in it!
-					}
+			foreach(Cell c in this.cells[p]){
+				CellStruct cs = c.GetCellStruct(0);
+				if (s.Contains(cs.bldg) && !cs.destroyed && !cs.defected){
+					playerlose = false; // as long as they have one tower, they're still in it!
 				}
 			}
 			return playerlose;
@@ -411,23 +408,47 @@ namespace PlayboardTypes{
 			return this.pats[playerId].factionProgress;
 		}
 
+		void UpdateSunkDicts(){
+			for(int p = 0; p < playercnt; p++){
+				int otherPlayer = (p + 1) % playercnt;
+				Dictionary<Vector2, bool> newTowerSunk = this.validator.GetTowerChainsSunk(this.GetGridSide(p, CellPerspective.All), new Vector2(sizex, sizey), this.capitolTowerLocs[p]);
+				if (this.sunkDicts[p] == null){ // first time through it's easier, nothing can be sunk at this point, just assign dict
+					this.sunkDicts[p] = newTowerSunk;
+					continue; // continue, no point checking if sunk. Nothing can be sunk at this point
+				}
+				this.hitSunk[otherPlayer] = false; // False until detected
+				foreach(Vector2 cap in capitolTowerLocs[p]){
+					if(!this.sunkDicts[p][cap] && newTowerSunk[cap]){ // If sunk state has changed from false to true, the other player's got
+						this.hitSunk[otherPlayer] = true;
+					}
+				}
+				this.sunkDicts[p] = newTowerSunk;
+			}
+		}
+
+		void ClearLastHitFlag(){
+			for(int p = 0; p < playercnt; p++){
+				foreach(Cell c in this.cells[p]){
+					c.lastHit = false;
+				}
+			}
+		}
+		
+
 		//Here we do the cleanup/calcs/etc that needs to happen at the end of apply
 		void FinalizeApply(){
 			//Increment the counters in the cells
 			for(int p = 0; p < playercnt; p++){
-				for(int x = 0; x < this.sizex; x++){
-					for(int y = 0; y < this.sizey; y++){
-						//Increment the counters in the cells
-						this.cells[p][x,y].IncrementCounters();
-						//Moles do their thing at the end of every action apply
-						if(this.cells[p][x,y].mole){
-							this.cells[p][x,y].molecount = this.GetMoleCount(p, new Vector2Int(x,y));
-						}
+				foreach(Cell c in this.cells[p]){
+					//Increment the counters in the cells
+					c.IncrementCounters();
+					//Moles do their thing at the end of every action apply
+					if(c.mole){
+						c.molecount = this.GetMoleCount(p, c.loc);
 					}
 				}
 			}
-			//Moles do their thing at the end of every action apply
-
+			UpdateSunkDicts();
 		}
 
 
@@ -436,7 +457,7 @@ namespace PlayboardTypes{
 			Debug.Log("PlayBoard processing Actions. Got " + ars.Count);
 			List<ActionReq> validARs = new List<ActionReq>();
 			foreach(ActionReq ar in ars){ // Trust no one, validate it allllll
-				if (this.validator.Validate(ar, this.GetGridSide(ar.p, 1), this.GetGridSide((ar.p + 1) % playercnt, 2), new Vector2(sizex, sizey), this.capitolTowerLocs[ar.p])){
+				if (this.validator.Validate(ar, this.GetGridSide(ar.p, CellPerspective.PlayersOwn), this.GetGridSide((ar.p + 1) % playercnt, CellPerspective.PlayersEnemy), new Vector2(sizex, sizey), this.capitolTowerLocs[ar.p])){
 					validARs.Add(ar);
 					Debug.Log("validated ar! :) " + ar.ToString());
 				}
@@ -455,6 +476,8 @@ namespace PlayboardTypes{
 			ars.AddRange(player0ARs);
 			ars.AddRange(player1ARs);
 			//Validation is done, now we can apply these as like normal
+			//First clear the old flags from last turn
+			ClearLastHitFlag();
 			this.ApplyActions(ars);
 			//Now update the timed parameters of each cell
 			this.FinalizeApply();
@@ -520,7 +543,7 @@ namespace PlayboardTypes{
 					}
 					break;
 				case pAction.blockingShot:
-					List<Vector2> emptyLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){CBldg.empty}, 0);
+					List<Vector2> emptyLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){CBldg.empty}, CellPerspective.All);
 					for(int i = 0; i < 3; i++){
 						if(emptyLocs.Count() == 0){
 							break;
@@ -531,7 +554,7 @@ namespace PlayboardTypes{
 					}
 					break;
 				case pAction.hellFire:
-					List<Vector2> allLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){}, 0, negate:true);
+					List<Vector2> allLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){}, CellPerspective.All, negate:true);
 					for(int i = 0; i < 5; i++){
 						if(allLocs.Count() == 0){
 							break;
@@ -542,7 +565,7 @@ namespace PlayboardTypes{
 					}
 					break;
 				case pAction.flare:
-					List<Vector2> noTowerLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){}, 0, negate:true);
+					List<Vector2> noTowerLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){}, CellPerspective.All, negate:true);
 					for(int i = 0; i < 2; i++){
 						if(noTowerLocs.Count() == 0){
 							break;

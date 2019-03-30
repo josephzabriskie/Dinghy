@@ -351,8 +351,8 @@ public class Validator {
         return resl;
     }
 
-    //Recursively check to see if a towerchain is sunk
-    Dictionary<Vector2, bool> GetTowerChainsSunk(CellStruct [,] pGrid, Vector2 gridSize, List<Vector2> capLocs){
+    //Recursively check to see if a towerchain is sunk// public as this is nice as a utility for playboard
+    public Dictionary<Vector2, bool> GetTowerChainsSunk(CellStruct [,] pGrid, Vector2 gridSize, List<Vector2> capLocs){
         Dictionary<Vector2, List<Vector2>> towerChains = GetTowerChains(pGrid, gridSize, capLocs);
         Dictionary<Vector2, bool> resl = new Dictionary<Vector2, bool>();
         foreach(Vector2 cap in capLocs){

@@ -44,6 +44,7 @@ public class Cell2D : MonoBehaviour {
 	public GameGrid2D parentGrid;
 	//Hit States
 	public Sprite destroyed;
+	public Sprite destroyedOld;
 	public Sprite defenceGridBlock;
 	//Molestuff
 	public Sprite moleArea; // Area that the mole detects
@@ -165,7 +166,8 @@ public class Cell2D : MonoBehaviour {
 		}
 		//Set destroyed state
 		if(newCS.destroyed){
-			this.srdestroyed.sprite = this.destroyed;
+			this.srdestroyed.sprite = newCS.lastHit? this.destroyed : this.destroyedOld;
+
 		}
 		else if(newCS.defenceGridBlock){
 			this.srdestroyed.sprite = this.defenceGridBlock;

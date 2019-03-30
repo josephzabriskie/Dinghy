@@ -6,9 +6,13 @@ using UnityEngine.UI;
 
 public class GameOverDisplay : MonoBehaviour {
 
-	public Text txt;
+	Text txt;
     public string wintext = "Game Over\nYou Win!";
     public string losetext = "Game Over\nYou Lose!";
+
+	void Awake(){
+		txt = GetComponentInChildren<Text>();
+	}
 
 	public void Show(bool won){
 		if (won){

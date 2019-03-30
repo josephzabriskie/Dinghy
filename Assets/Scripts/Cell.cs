@@ -27,14 +27,16 @@ namespace CellTypes{
 		public bool mole;
 		public int molecount;
 		public bool defected;
+		public bool lastHit;
 		//Explicit Constructor
-		public CellStruct(CBldg bldg, bool destroyed, bool defenceGridBlock, bool mole, int molecount, bool defected){
+		public CellStruct(CBldg bldg, bool destroyed, bool defenceGridBlock, bool mole, int molecount, bool defected, bool lastHit){
 			this.bldg = bldg;
 			this.destroyed = destroyed;
 			this. defenceGridBlock = defenceGridBlock;
 			this.mole = mole;
 			this.molecount = molecount;
 			this.defected = defected;
+			this.lastHit = lastHit;
 		}
 		//Default constructor? Useful?
 		public CellStruct(CBldg bldg){
@@ -44,7 +46,14 @@ namespace CellTypes{
 			this.mole = false;
 			this.molecount = 0;
 			this.defected = false;
+			this.lastHit = false;
 		}
+	}
+
+	public enum CellPerspective{
+		All,
+		PlayersOwn,
+		PlayersEnemy
 	}
 
 	public enum PCBType{ //prioritycallback type
@@ -93,6 +102,8 @@ namespace CellTypes{
 		public int molecount;
 		//For tower takeover
 		public bool defected;
+		//Flag for telling UI what to emphasize
+		public bool lastHit;
 
 		//Called externally to decrement/increment counting elements on each turn
 		//Take action here if needed
@@ -108,36 +119,36 @@ namespace CellTypes{
 			this.defenceGridActive = false;
 		}
 		// perspectives: 0 = Show all, 1 = player's owngrid, 2 = player's enemygrid
-		public CellStruct GetCellStruct(int perspective){
+		public CellStruct GetCellStruct(CellPerspective perspective){
 			//Default values
-			CBldg s = CBldg.hidden;
+			CBldg bldg = CBldg.hidden;
 			bool ded = false;
 			bool dgb = false; //defenceGridBlock
 			bool mole = false;
 			int mcnt = 0; // mole count
 			bool defect = false;
-			if (perspective == 0 ){ // Show everything as is
-				s = this.bldg;
+			bool lastHit = false;
+			if (perspective == CellPerspective.All ){ // Show everything as is
+				bldg = this.bldg;
 				ded = this.destroyed;
 				dgb = this.defenceGridBlock;
 				mole = this.mole;
 				mcnt = mole ? this.molecount : 0;
 				defect = this.defected;
+				lastHit = this.lastHit;
 			}
-			else if (perspective == 1){ // Show player's view
-				s = this.bldg;
+			else if (perspective == CellPerspective.PlayersOwn){ // Show player's view
+				bldg = this.bldg;
 				ded = this.destroyed;
-				dgb = this.defenceGridBlock; // don't show the player this on their own side
+				dgb = this.defenceGridBlock;
 				defect = this.defected;
+				lastHit = this.lastHit;
 			}
-			else if (perspective == 2){ // perspective 2 enemy's grid
+			else if (perspective == CellPerspective.PlayersEnemy){ // perspective 2 enemy's grid
 				if(this.vis || this.scouted){
-					s = this.bldg;
+					bldg = this.bldg;
 					ded = this.destroyed;
-				}
-				else{ //We're supposed to be hidden, show nothing!
-					s = CBldg.hidden;
-					ded = false;
+					lastHit = this.lastHit;
 				}
 				dgb = this.defenceGridBlock; //always show these
 				mole = this.mole;
@@ -147,7 +158,7 @@ namespace CellTypes{
 			else{
 				Debug.LogError("Big ol Warning! GetCellStruct unhandled perspective: " + perspective.ToString());
 			}
-			return new CellStruct(s, ded, dgb, mole, mcnt, defect);
+			return new CellStruct(bldg, ded, dgb, mole, mcnt, defect, lastHit);
 		}
 
 		public Cell(CBldg bldg, int pNum, Vector2Int loc, PlayBoard pb, bool visibleToEnemy){
@@ -167,6 +178,7 @@ namespace CellTypes{
 			this.mole = false;
 			this.molecount = 0;
 			this.defected = false;
+			this.lastHit = false;
 			this.ChangeCellBldg(bldg, init:true);
 		}
 		
@@ -188,6 +200,7 @@ namespace CellTypes{
 				this.defenceGridBlock = false; // clear this, should really only ever have one of this or destroyed == true
 				this.mole = false; // well, the mole dies too :( why'd you shoot him?
 				this.molecount = 0;
+				this.lastHit = true;
 				this.TearDownSpecialCbs();
 			}
 			else{// un-blow it up?
