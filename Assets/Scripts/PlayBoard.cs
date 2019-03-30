@@ -160,7 +160,7 @@ namespace PlayboardTypes{
 			{pAction.fireSquare,		new ActionParam(pAction.fireSquare,			Faction.Offence,	5, 4, -1,	true)},
 			{pAction.blockingShot,		new ActionParam(pAction.blockingShot,		Faction.Offence,	5, 3, 4,	false)},// this one's odd, what should the cost be?
 			{pAction.hellFire,			new ActionParam(pAction.hellFire,			Faction.Offence,	7, 6, -1,	true)},
-			{pAction.flare,				new ActionParam(pAction.flare,				Faction.Intel,		3, 1, -1,	true)},
+			{pAction.flare,				new ActionParam(pAction.flare,				Faction.Intel,		3, 2, -1,	true)},
 			{pAction.placeMine,			new ActionParam(pAction.placeMine,			Faction.Defence,	5, 1, 4,	false)},
 			{pAction.buildDefenceGrid,	new ActionParam(pAction.buildDefenceGrid, 	Faction.Defence,	7, 6, 3,	true)},
 			{pAction.buildReflector,	new ActionParam(pAction.buildReflector,	 	Faction.Defence,	5, 2, 6,	true)},
@@ -565,14 +565,14 @@ namespace PlayboardTypes{
 					}
 					break;
 				case pAction.flare:
-					List<Vector2> noTowerLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){}, CellPerspective.All, negate:true);
+					List<Vector2> flareLocs =  this.GetLocsOfBldgs(ar.t, new List<CBldg>(){}, CellPerspective.All, negate:true);
 					for(int i = 0; i < 2; i++){
-						if(noTowerLocs.Count() == 0){
+						if(flareLocs.Count() == 0){
 							break;
 						}
-						int randVal = UnityEngine.Random.Range(0,noTowerLocs.Count());
-						ret.Add(new ActionReq(ar.p, ar.t, ar.a, new Vector2[]{noTowerLocs[randVal]}));
-						noTowerLocs.RemoveAt(randVal);
+						int randVal = UnityEngine.Random.Range(0,flareLocs.Count());
+						ret.Add(new ActionReq(ar.p, ar.t, ar.a, new Vector2[]{flareLocs[randVal]}));
+						flareLocs.RemoveAt(randVal);
 					}
 					break;
 				default:
