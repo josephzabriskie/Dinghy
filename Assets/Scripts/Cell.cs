@@ -28,8 +28,10 @@ namespace CellTypes{
 		public int molecount;
 		public bool defected;
 		public bool lastHit;
+		public bool scouted;
+		public bool reflected; // reflector was hit
 		//Explicit Constructor
-		public CellStruct(CBldg bldg, bool destroyed, bool defenceGridBlock, bool mole, int molecount, bool defected, bool lastHit){
+		public CellStruct(CBldg bldg, bool destroyed, bool defenceGridBlock, bool mole, int molecount, bool defected, bool lastHit, bool scouted, bool reflected){
 			this.bldg = bldg;
 			this.destroyed = destroyed;
 			this. defenceGridBlock = defenceGridBlock;
@@ -37,6 +39,8 @@ namespace CellTypes{
 			this.molecount = molecount;
 			this.defected = defected;
 			this.lastHit = lastHit;
+			this.scouted = scouted;
+			this.reflected = reflected;
 		}
 		//Default constructor? Useful?
 		public CellStruct(CBldg bldg){
@@ -47,6 +51,8 @@ namespace CellTypes{
 			this.molecount = 0;
 			this.defected = false;
 			this.lastHit = false;
+			this.scouted = false;
+			this.reflected = false;
 		}
 	}
 
@@ -104,6 +110,8 @@ namespace CellTypes{
 		public bool defected;
 		//Flag for telling UI what to emphasize
 		public bool lastHit;
+		//reflectors can't be destroyed, need way to indicate they've been hit
+		bool reflected;
 
 		//Called externally to decrement/increment counting elements on each turn
 		//Take action here if needed
@@ -128,6 +136,8 @@ namespace CellTypes{
 			int mcnt = 0; // mole count
 			bool defect = false;
 			bool lastHit = false;
+			bool scouted = false;
+			bool reflected = false;
 			if (perspective == CellPerspective.All ){ // Show everything as is
 				bldg = this.bldg;
 				ded = this.destroyed;
@@ -136,6 +146,8 @@ namespace CellTypes{
 				mcnt = mole ? this.molecount : 0;
 				defect = this.defected;
 				lastHit = this.lastHit;
+				scouted = this.scouted;
+				reflected = this.reflected;
 			}
 			else if (perspective == CellPerspective.PlayersOwn){ // Show player's view
 				bldg = this.bldg;
@@ -143,13 +155,16 @@ namespace CellTypes{
 				dgb = this.defenceGridBlock;
 				defect = this.defected;
 				lastHit = this.lastHit;
+				reflected = this.reflected;
 			}
 			else if (perspective == CellPerspective.PlayersEnemy){ // perspective 2 enemy's grid
 				if(this.vis || this.scouted){
 					bldg = this.bldg;
 					ded = this.destroyed;
 					lastHit = this.lastHit;
+					reflected = this.reflected;
 				}
+				scouted = this.scouted;
 				dgb = this.defenceGridBlock; //always show these
 				mole = this.mole;
 				mcnt = mole ? this.molecount : 0;
@@ -158,7 +173,7 @@ namespace CellTypes{
 			else{
 				Debug.LogError("Big ol Warning! GetCellStruct unhandled perspective: " + perspective.ToString());
 			}
-			return new CellStruct(bldg, ded, dgb, mole, mcnt, defect, lastHit);
+			return new CellStruct(bldg, ded, dgb, mole, mcnt, defect, lastHit, scouted, reflected);
 		}
 
 		public Cell(CBldg bldg, int pNum, Vector2Int loc, PlayBoard pb, bool visibleToEnemy){
@@ -475,8 +490,9 @@ namespace CellTypes{
 			}
 			else{
 				this.vis = true;
+				this.reflected = true; // mark as reflected so that UI can display the difference to owner
 				Vector2 loc = new Vector2(Random.Range(0,this.pb.sizex - 1), Random.Range(0,this.pb.sizey - 1));
-				//Debug.Log("Ping! Deflected that shot");
+				//Debug.Log("Ping! Deflected that shot : " + this.reflected.ToString());
 				pb.CellApplyActionReqs(new List<ActionReq>{new ActionReq(ar.t, ar.p, pAction.fireReflected, new Vector2[]{loc})});
 			}
 			return true;

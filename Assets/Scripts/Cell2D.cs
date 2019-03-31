@@ -21,6 +21,7 @@ public class Cell2D : MonoBehaviour {
 	SpriteRenderer srmoleArea; //sr for mole area 
 	SpriteRenderer srdefenceGridArea; // sr for def grid area
 	SpriteRenderer srmolePanel; // Background to read mole text
+	SpriteRenderer srScouted;
 	//BldgStatesprites
 	public Sprite fog;
 	public Sprite tower;
@@ -33,6 +34,7 @@ public class Cell2D : MonoBehaviour {
 	public Sprite mine;
 	public Sprite defenceGrid;
 	public Sprite reflector;
+	public Sprite reflectorHidden;
 	public Sprite defenceGridArea; // area tha defence grid protects
 	//bgState
 	public Sprite defaultBG;
@@ -58,6 +60,8 @@ public class Cell2D : MonoBehaviour {
 	//Selections states
 	bool hovered = false;
 	bool selected = false;
+	//Scouted sprite
+	public Sprite scouted;
 
 	// Use this for initialization
 	void Start () {
@@ -83,6 +87,9 @@ public class Cell2D : MonoBehaviour {
 			}
 			else if(sr.name == "MolePanel"){
 				this.srmolePanel = sr;
+			}
+			else if(sr.name == "Scouted"){
+				this.srScouted = sr;
 			}
 			else{
 				Debug.LogError("Cell2D init: Unhandled name " + sr.name);
@@ -158,7 +165,7 @@ public class Cell2D : MonoBehaviour {
 			this.srmain.sprite = this.defenceGrid;
 			break;
 		case CBldg.reflector:
-			this.srmain.sprite = this.reflector;
+			this.srmain.sprite = newCS.reflected ? this.reflector : this.reflectorHidden;
 			break;
 		default:
 			Debug.LogError("Unhandled state: " + this.cStruct.ToString());
@@ -205,6 +212,14 @@ public class Cell2D : MonoBehaviour {
 		else{
 			this.srdefenceGridArea.sprite = null;
 		}
+		//Update Scouted
+		if(newCS.scouted){
+			this.srScouted.sprite = scouted;
+		}
+		else{
+			this.srScouted.sprite = null;
+		}
+
 	}
 
 	public void SetHovered(bool hov){

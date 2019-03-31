@@ -105,9 +105,6 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		Debug.Log("Player: " + this.playerId + " got update to our grids.");
 		//Debug.Log("Ours: " + our.Length.ToString() + " :: Theirs: "  + other.Length.ToString());
 		//Debug.Log("Got AA list: " + gbi.aaArray.Count().ToString());
-		foreach(Vector2 vec in gbi.capitolTowers){
-			Debug.Log("Capitol towers: " + vec.ToString());
-		}
 		this.latestCapitolLocs = gbi.capitolTowers.ToList();
 		UIController.instance.ActionSelectButtonGrpActionAvailUpdate(gbi.aaArray.ToList());
 		UIController.instance.ActionSelectGroupUpdateActionInfo(gbi.aaArray.ToList());
