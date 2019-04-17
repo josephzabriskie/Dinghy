@@ -1,16 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using CellUIInfo;
 using CellTypes;
 
-namespace CellUIInfo{
-	public enum InputType{
-		clickDown,
-		hoverEnter,
-		hoverExit
-	}
-}
 
 public class Cell2D : MonoBehaviour {
 	//Sprite Renderers
@@ -116,16 +108,16 @@ public class Cell2D : MonoBehaviour {
 	}
 
 	void OnMouseEnter(){
-		this.parentGrid.RXCellInput(this.coords, InputType.hoverEnter, this.cStruct);
+		parentGrid.RXCellHover(coords, true);
 	}
 
 	void OnMouseExit(){
-		this.parentGrid.RXCellInput(this.coords, InputType.hoverExit, this.cStruct);
+		this.parentGrid.RXCellHover(coords, false);
 	}
 
 	void OnMouseDown(){
 		Debug.Log("Clicked on: " + this.coords.ToString() + "State currently " + this.cStruct.ToString());
-		this.parentGrid.RXCellInput(this.coords, InputType.clickDown, this.cStruct);
+		this.parentGrid.RXCellInput(this.coords, this.cStruct);
 	}
 
 	public void SetCellStruct(CellStruct newCS){

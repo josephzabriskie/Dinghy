@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using CellTypes;
-using CellUIInfo;
+
 
 public class GameGrid2D : MonoBehaviour {
 
@@ -68,9 +68,13 @@ public class GameGrid2D : MonoBehaviour {
 		}
 	}
 
-	public void RXCellInput(Vector2 pos, InputType it, CellStruct cs){
+	public void RXCellInput(Vector2 pos, CellStruct cs){
 		//Debug.Log("RCCellInfo, send to parent. " + this.playerOwnedGrid.ToString() + pos.ToString() + cs.ToString());
-		this.parent.RXGridInput(this.playerOwnedGrid, it, pos, cs);
+		this.parent.RXGridInput(this.playerOwnedGrid, pos, cs);
+	}
+
+	public void RXCellHover(Vector2 pos, bool enter){
+		parent.RXGridHover(playerOwnedGrid, pos, enter);
 	}
 
 	public CellStruct[,] GetCSArray(){
@@ -113,27 +117,27 @@ public class GameGrid2D : MonoBehaviour {
 	}
 	////////////////////////////////////////////////////
 	//Selection Functions
-	public void SetSingleSelect(bool sel, bool hovered, Vector2 loc){
+	public void SetSingleSelect(bool hovered, Vector2 loc){
 		if(hovered){
-			this.cells[(int)loc.x, (int)loc.y].SetHovered(sel);
+			this.cells[(int)loc.x, (int)loc.y].SetHovered(true);
 		}
 		else{
-			this.cells[(int)loc.x, (int)loc.y].SetSelected(sel);
+			this.cells[(int)loc.x, (int)loc.y].SetSelected(true);
 		}
 	}
 
-	public void SetRowSelect(bool sel, bool hovered, int row){
+	public void SetRowSelect(bool hovered, int row){
 		for(int x = 0; x < this.sizex; x++){
 			if(hovered){
-				this.cells[x,row].SetHovered(sel);
+				this.cells[x,row].SetHovered(true);
 			}
 			else{
-				this.cells[x,row].SetSelected(sel);
+				this.cells[x,row].SetSelected(true);
 			}
 		}
 	}
 
-	public void SetEmptySquareSelect(bool sel, bool hovered, Vector2 loc){
+	public void SetEmptySquareSelect(bool hovered, Vector2 loc){
 		for(int x = -1; x < 2; x+=2){
 			for(int y = -1; y < 2; y+=2){
 				Vector2 newLoc = new Vector2(loc.x + x, loc.y + y);
@@ -141,17 +145,17 @@ public class GameGrid2D : MonoBehaviour {
 					continue;
 				}
 				if(hovered){
-					this.cells[(int)newLoc.x, (int)newLoc.y].SetHovered(sel);
+					this.cells[(int)newLoc.x, (int)newLoc.y].SetHovered(true);
 				}
 				else{
-					this.cells[(int)newLoc.x, (int)newLoc.y].SetSelected(sel);
+					this.cells[(int)newLoc.x, (int)newLoc.y].SetSelected(true);
 				}
 			}
 		}
 	}
 
 	//Set square. Size is the diagonal count from center to edge.
-	public void SetSquare3Select(bool sel, bool hovered, Vector2 loc, int size){
+	public void SetSquare3Select(bool hovered, Vector2 loc, int size){
 		if(size < 0){ // Bad input
 			return;
 		}
@@ -162,23 +166,23 @@ public class GameGrid2D : MonoBehaviour {
 					continue;
 				}
 				if(hovered){
-					this.cells[(int)newLoc.x, (int)newLoc.y].SetHovered(sel);
+					this.cells[(int)newLoc.x, (int)newLoc.y].SetHovered(true);
 				}
 				else{
-					this.cells[(int)newLoc.x, (int)newLoc.y].SetSelected(sel);
+					this.cells[(int)newLoc.x, (int)newLoc.y].SetSelected(true);
 				}
 			}
 		}
 	}
 
-	public void SetAllSelect(bool sel, bool hovered){
+	public void SetAllSelect(bool hovered){
 		for(int x = 0; x < this.sizex; x++){
 			for(int y = 0; y < this.sizey; y++){
 				if(hovered){
-				this.cells[x,y].SetHovered(sel);
+				this.cells[x,y].SetHovered(true);
 				}
 				else{
-					this.cells[x,y].SetSelected(sel);
+					this.cells[x,y].SetSelected(true);
 				}
 			}
 		}

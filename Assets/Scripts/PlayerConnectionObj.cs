@@ -147,7 +147,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		case MatchState.resolveState:
 			Debug.Log("RPC Game state: resolveState");
 			InputProcessor.instance.SetActionProcState(ActionProcState.reject);
-			InputProcessor.instance.pb.ClearSelectionState(false); // Clear selected squares while resolving
+			InputProcessor.instance.pb2d.ClearSelectionState(false); // Clear selected squares while resolving
 			InputProcessor.instance.ClearActionContext();
 			UIController.instance.TimerClear();
 			UIController.instance.GameStateUpdate("Hey we're resolving real quick");

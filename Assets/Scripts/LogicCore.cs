@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
-using CellUIInfo;
 using CellTypes;
 using PlayerActions;
 using MatchSequence;

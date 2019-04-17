@@ -157,7 +157,7 @@ namespace PlayboardTypes{
 			{pAction.scout, 			new ActionParam(pAction.scout,				Faction.Intel,		3, 0, 0,	true)},
 			{pAction.fireAgain,			new ActionParam(pAction.fireAgain,			Faction.Offence,	3, 2, -1,	true)},
 			{pAction.fireRow,			new ActionParam(pAction.fireRow,			Faction.Offence,	7, 0, 1,	false)},
-			{pAction.fireSquare,		new ActionParam(pAction.fireSquare,			Faction.Offence,	5, 4, -1,	true)},
+			{pAction.fireSquare,		new ActionParam(pAction.fireSquare,			Faction.Offence,	1, 4, -1,	true)},
 			{pAction.blockingShot,		new ActionParam(pAction.blockingShot,		Faction.Offence,	5, 3, 4,	false)},// this one's odd, what should the cost be?
 			{pAction.hellFire,			new ActionParam(pAction.hellFire,			Faction.Offence,	7, 6, -1,	true)},
 			{pAction.flare,				new ActionParam(pAction.flare,				Faction.Intel,		3, 3, -1,	true)},

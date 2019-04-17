@@ -1149,8 +1149,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 250, y: 61.4}
+  m_AnchoredPosition: {x: -15.3, y: 0}
+  m_SizeDelta: {x: 280.6, y: 90.6}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &356112289
 MonoBehaviour:
@@ -1323,7 +1323,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 58, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &598752468
@@ -1390,7 +1390,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: afc94f95c34be2e48a57064c78c37830, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pb: {fileID: 985081541}
+  pb2d: {fileID: 985081541}
 --- !u!4 &768907116
 Transform:
   m_ObjectHideFlags: 0
@@ -1933,6 +1933,7 @@ MonoBehaviour:
   gridPrefab: {fileID: 1337773559365778, guid: fccf1acb8cbb5534994164f0276106a1, type: 2}
   sizex: 0
   sizey: 0
+  actionContext: 0
 --- !u!224 &1031177759 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 224020275612696856, guid: 98db4e120915f31408e2688450ec03cd,

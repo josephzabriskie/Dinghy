@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using CellTypes;
-using CellUIInfo;
 using PlayerActions;
 
 //!! Important This script should be high priority in execution order
@@ -16,6 +15,8 @@ public class PlayBoard2D : MonoBehaviour {
 	public int sizex;
 	public int sizey;
 	Transform shotOrig;
+	List<ActionReq> lastActions = new List<ActionReq>{};
+	public pAction actionContext = pAction.noAction;
 
 	void Awake(){
 		this.InstantiateGrids();
@@ -32,8 +33,18 @@ public class PlayBoard2D : MonoBehaviour {
 		this.enemyGrid.SetCSArray(eGrid);
 	}
 
-	public void RXGridInput(bool pGrid, InputType it, Vector2 pos, CellStruct cStruct){
-		InputProcessor.instance.RXInput(pGrid, it, pos, cStruct);
+	public void RXGridInput(bool pGrid, Vector2 pos, CellStruct cStruct){
+		InputProcessor.instance.RXInput(pGrid, pos, cStruct);
+	}
+
+	public void RXGridHover(bool pGrid, Vector2 pos, bool enter){
+		if(!enter){ // On hover Exit, just clear the hover states
+			ClearSelectionState(true);
+			return;
+		}
+		int target = pGrid ? 0 : 1; // This is janky, but we want the target to match sender if on player's grid
+		ActionReq ar =  new ActionReq(0, target, actionContext, new Vector2[]{pos});
+		HoverAction(ar);
 	}
 
 	public void SetCellStruct(bool pGrid, Vector2 pos, CellStruct cStruct){
@@ -41,8 +52,27 @@ public class PlayBoard2D : MonoBehaviour {
 		g.SetCellStruct(pos, cStruct);
 	}
 	
-	public void SetCellsSelect(bool pGrid, bool sel, bool hovered, ActionReq ar){
-		GameGrid2D g = (pGrid) ? this.playerGrid : this.enemyGrid;
+	public void ClearActions(){
+		ClearSelectionState(false);
+		lastActions = new List<ActionReq>{};
+	}
+
+	//Given list of actions, highlight them on the board
+	public void SetActions(List<ActionReq> inputActions){
+		ClearSelectionState(false);
+		foreach(ActionReq ar in inputActions){
+			SetCellAction(ar, false);
+		}
+		lastActions = inputActions;
+	}
+
+	public void HoverAction(ActionReq inputAction){
+		ClearSelectionState(true);
+		SetCellAction(inputAction, true);
+	}
+
+	void SetCellAction(ActionReq ar, bool hover){
+		GameGrid2D g = ar.p == ar.t ? this.playerGrid : this.enemyGrid;
 		switch(ar.a){
 		case pAction.fireBasic:
 		case pAction.fireAgain:
@@ -55,28 +85,25 @@ public class PlayBoard2D : MonoBehaviour {
 		case pAction.buildReflector:
 		case pAction.firePiercing:
 		case pAction.towerTakeover:
-			g.SetSingleSelect(sel, hovered, ar.loc[0]);
+			g.SetSingleSelect(hover, ar.loc[0]);
 			break;
 		case pAction.fireRow:
-			g.SetRowSelect(sel, hovered, (int)ar.loc[0].y);
+			g.SetRowSelect(hover, (int)ar.loc[0].y);
 			break;
 		case pAction.fireSquare:
-			g.SetEmptySquareSelect(sel, hovered, ar.loc[0]);
+			g.SetEmptySquareSelect(hover, ar.loc[0]);
 			break;
 		case pAction.placeMole:
-			g.SetSquare3Select(sel, hovered, ar.loc[0], 1); // 3x3 square
+			g.SetSquare3Select(hover, ar.loc[0], 1); // 3x3 square
 			break;
 		case pAction.buildDefenceGrid:
-			g.SetSquare3Select(sel, hovered, ar.loc[0], 2); // 5x5 square
+			g.SetSquare3Select(hover, ar.loc[0], 2); // 5x5 square
 			break;
 		case pAction.blockingShot: // these guys don't have any targeting or loc in their action
 		case pAction.hellFire:
 		case pAction.flare:
 			break;
 		case pAction.noAction:
-			if(hovered){
-				g.SetSingleSelect(sel, hovered, ar.loc[0]);
-			}
 			break;
 		default:
 			Debug.Log("Unhandled pAction Type: " + ar.a.ToString());
@@ -97,6 +124,10 @@ public class PlayBoard2D : MonoBehaviour {
 	public int[] GetGridSize(){
 		int[] ret = {this.sizex, this.sizey};
 		return ret;
+	}
+
+	public Vector2 GetGridVec2Size(){
+		return new Vector2(this.sizex, this.sizey);
 	}
 
 	public CellStruct[][,] GetGridStates(){
