@@ -15,7 +15,7 @@ namespace CellTypes{
 		towerDefence,
 		towerIntel,
 		wall,
-		blocked,
+		blocker,
 		mine,
 		defenceGrid,
 		reflector,
@@ -248,7 +248,7 @@ namespace CellTypes{
 				this.buildDef = new PriorityCB(0, DefBuiltCB);
 				this.scoutDef = new PriorityCB(0, DefScoutedCB);
 				break;
-			case CBldg.blocked:
+			case CBldg.blocker:
 			 	this.shootDef = new PriorityCB(0, NullCB);
 				this.buildDef = new PriorityCB(0, NullCB);
 				this.scoutDef = new PriorityCB(0, NullCB);
@@ -340,7 +340,7 @@ namespace CellTypes{
 		void SetCellParams(CBldg newBldg){
 			this.bldg = newBldg;
 			switch(this.bldg){
-			case CBldg.blocked:
+			case CBldg.blocker:
 				//Debug.Log("SetCellParams: Since we're destroyed, reveal us: " + this.newBldg.ToString());
 				this.vis = true; // Set visibility permanently
 				break;
@@ -458,7 +458,7 @@ namespace CellTypes{
 			//Always check if we're a mine first, must punish
 			if(ar.a == pAction.blockingShot){
 				if (this.bldg == CBldg.empty){
-					this.ChangeCellBldg(CBldg.blocked);
+					this.ChangeCellBldg(CBldg.blocker);
 				}
 				else{
 					Debug.LogError("Trying to block a non empty cell! " + ar.ToString());

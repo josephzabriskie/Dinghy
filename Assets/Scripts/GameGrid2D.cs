@@ -12,14 +12,6 @@ public class GameGrid2D : MonoBehaviour {
 	int sizex, sizey;
 	public bool playerOwnedGrid = false;
 
-	public void SetColor(Color c){
-		for(int x = 0; x < this.sizex; x++){
-			for(int y = 0; y < this.sizey; y++){
-				this.cells[x,y].SetBGColor(c);
-			}
-		}
-	}
-
 	public void SetCellStruct(Vector2 pos, CellStruct s){
 		this.cells[(int)pos.x, (int)pos.y].SetCellStruct(s);
 	}
