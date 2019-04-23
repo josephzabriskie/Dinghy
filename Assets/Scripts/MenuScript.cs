@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.Networking;
+using Mirror;
 
 public class MenuScript : MonoBehaviour {
 

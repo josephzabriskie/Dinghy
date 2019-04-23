@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
+using Mirror;
 
 public class MyNetManager : NetworkManager {
 	const int maxPlayers = 2;
@@ -10,11 +10,8 @@ public class MyNetManager : NetworkManager {
 	public PlayBoard2D pb;
 	public PlayerConnectionObj[] playerSlots = new PlayerConnectionObj[2];
 
-	void Awake(){
-		LogFilter.currentLogLevel = LogFilter.Debug;
-	}
 
-	public override void OnServerAddPlayer(NetworkConnection conn, short playerControllerId)
+	public override void OnServerAddPlayer(NetworkConnection conn, AddPlayerMessage extraMessage)
 	{
 		//Debug.Log("OnServerAddPlayer: Adding new player");
 		// find empty player slot
@@ -31,7 +28,7 @@ public class MyNetManager : NetworkManager {
 				player.enemyId = (slot + 1) % maxPlayers;
 				playerSlots[slot] = player;
 
-				NetworkServer.AddPlayerForConnection(conn, playerObj, playerControllerId);
+				NetworkServer.AddPlayerForConnection(conn, playerObj);
 				currentPlayers++;
 				if (currentPlayers == maxPlayers){
 					logicCore.StartGameProcess();
@@ -44,26 +41,23 @@ public class MyNetManager : NetworkManager {
 		conn.Disconnect();
 	}
 
-	public override void OnServerRemovePlayer(NetworkConnection conn, PlayerController playerController){
+	public override void OnServerRemovePlayer(NetworkConnection conn, NetworkIdentity playerNetId){
 		//Debug.Log("OnServerRemovePlayer: removing player");
 		// remove players from slots
-		var player = playerController.gameObject.GetComponent<PlayerConnectionObj>();
+		var player = playerNetId.gameObject.GetComponent<PlayerConnectionObj>();
 		playerSlots[player.playerId] = null;
 		currentPlayers--;
 		if(currentPlayers != maxPlayers){
 			logicCore.PauseGameProcess();
 		}
-		base.OnServerRemovePlayer(conn, playerController);
+		base.OnServerRemovePlayer(conn, playerNetId);
 	}
 
 	public override void OnServerDisconnect(NetworkConnection conn){
 		//Debug.Log("OnServerDisconnect: removing player");
-		foreach (var playerController in conn.playerControllers)
-		{
-			currentPlayers--;
-			var player = playerController.gameObject.GetComponent<PlayerConnectionObj>();
-			playerSlots[player.playerId] = null;
-		}
+		currentPlayers--;
+		var player = conn.playerController.gameObject.GetComponent<PlayerConnectionObj>();
+		playerSlots[player.playerId] = null;
 		if(currentPlayers != maxPlayers){
 			logicCore.PauseGameProcess();
 		}
@@ -73,14 +67,6 @@ public class MyNetManager : NetworkManager {
 	public override void OnClientConnect(NetworkConnection conn){
 		//Debug.Log("OnClientConnect");
 		base.OnClientConnect(conn);
-	}
-
-	public override void OnStartClient(NetworkClient client){
-		//Debug.Log("OnStartClient...");
-		//Player object not instantiated yet...
-		// GameObject obj = GameObject.Find("PlayerConnObject(Clone)");
-		// Debug.Log("Looking for player obj. " + obj.ToString());
-		base.OnStartClient(client);
 	}
 
 	public override void OnStopClient(){ // you can use this to do stuff when the player disconencts
