@@ -43,8 +43,16 @@ namespace PlayerActions{
 			loc=inCoords;
 		}
 		public override string ToString()
-    	{	string locStr = loc==null ? "null" : loc.Count()==0 ? "0 len" : loc.ToString();
-        	return "P: " + p + " T: " + t + " A: " + a + " loc0: " + locStr;
+    	{	string locStr = "";
+			if(loc==null){
+				locStr = "null";
+			}
+			else{
+				foreach(Vector2 l in loc){
+					locStr += l.ToString();
+				}
+			}
+        	return "P: " + p + " T: " + t + " A: " + a + " loc: " + locStr;
     	}
 	}
 }

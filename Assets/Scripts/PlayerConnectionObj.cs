@@ -12,11 +12,12 @@ using PlayboardTypes;
 
 public class PlayerConnectionObj : NetworkBehaviour {
 	GameObject baseboard;
-	[SyncVar]
+	//[SyncVar(hook = nameof(SetPID))]
 	public int playerId;
+	//[SyncVar(hook = nameof(SetEID))]
 	public int enemyId;
-	LogicCore lc = null;
-	PlayBoard2D pb = null;
+	public LogicCore lc = null;
+	public PlayBoard2D pb = null;
 	public CellStruct[,] latestPlayerGrid;
 	public CellStruct[,] latestEnemyGrid;
 	public List<Vector2> latestCapitolLocs;
@@ -25,34 +26,14 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	bool isReady = false;
 
 	void Start () {
-		//Debug.Log("PlayerConnectionObj Start. Local: " + isLocalPlayer.ToString());
-		UIController.instance.DBPWrite("Player " +  this.playerId.ToString() + " joined!");
-		if (isServer){ //We're the object on the server, need to link up to logic core
-			//Debug.Log("pco init: This is the server");
-			GameObject logicCoreObj = GameObject.FindGameObjectWithTag("LogicCore");
-			if (logicCoreObj != null){
-				this.lc = logicCoreObj.GetComponent<LogicCore>();
-				//Debug.Log("pco init: Logic core found by server instance of player: " + this.lc.ToString());
-			}
-			//else
-				//Debug.Log("pco init: Found no logic Core server instance of player");
-		}
-		if (isLocalPlayer){ // We're the local player, need to grab out grids, set their owner, set color
-			//Debug.Log("pco init: This is the local player");
-			//distinguish name? bad idea?
-			gameObject.name = gameObject.name + "Local";
-			//Find our UIC and do it's setup
-			UIController.instance = GameObject.FindGameObjectWithTag("UIGroup").GetComponent<UIController>();
-			UIController.instance.DBPWrite("Player " +  this.playerId.ToString() + " joined!");
-			//Find our local playboard, and get grids
-			this.pb = GameObject.FindGameObjectWithTag("PlayBoard").GetComponent<PlayBoard2D>(); // Find the playboard in the scene	
-			//this.ip = GameObject.FindGameObjectWithTag("InputProcessor").GetComponent<InputProcessor>();
-			InputProcessor.instance.RegisterReport(this);
 
-			this.isReady = true; //Now we can recieve RPC's ready's set
-			this.CmdRequestGameStateUpdate();
-			this.CmdRequestGridUpdate();
-		}
+	}
+
+	void SetPID(int pid){
+		Debug.LogFormat("Setting new PID: {0}, cls: {1}, name: {2}", pid, playerId, gameObject.name);
+	}
+	void SetEID(int eid){
+		Debug.LogFormat("Setting new EID: {0}, cls: {1}, name: {2}", eid, playerId, gameObject.name);
 	}
 
 	public void ClearGrids(){ // mostly just used to make sure we clean up on disconnect
@@ -63,7 +44,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	///Special functions that only get executed on the server
 	[Command]
 	void CmdSendPlayerActions( ActionReq[] qa){
-		//Debug.Log("Player '" + this.playerId.ToString() + "' obj on server sending RX action to logic core!");
+		Debug.Log("Player '" + this.playerId.ToString() + "' obj on server sending RX action to logic core!");
 		//Debug.Log("CmdSendPlayerActions on server player " + this.playerId.ToString());
 		// for(int i =0; i < qa.Count(); i ++){
 		// 	Debug.Log("Got " + i.ToString() + ": " + qa[i].coords[0].ToString());
@@ -72,17 +53,17 @@ public class PlayerConnectionObj : NetworkBehaviour {
 	}
 	[Command]
 	void CmdRequestGridUpdate(){ // This guy should only be called internally on startup
-		//Debug.Log("Player '" + this.playerId.ToString() + "' requesting CmdRequestGridUpdate");
+		Debug.Log("Player '" + this.playerId.ToString() + "' requesting CmdRequestGridUpdate");
 		this.lc.ReportGridState(this.playerId); // this simply gets the logic core to call our RPC update grid
 	}
 	[Command]
 	void CmdRequestGameStateUpdate(){ // This guy should only be called internally on startup
-		//Debug.Log("Player '" + this.playerId.ToString() + "' requesting CmdRequestGameStateUpdate");
+		Debug.Log("Player '" + this.playerId.ToString() + "' requesting CmdRequestGameStateUpdate");
 		this.lc.ReportGameState(this.playerId);
 	}
 	[Command]
 	public void CmdSendPlayerLock(){ //Public so that Input processor can call it
-		//Debug.Log("Sending action lock in for player " + this.playerId);
+		Debug.Log("Sending action lock in for player " + this.playerId);
 		this.lc.SetPlayerLock(this.playerId);
 	}
 
@@ -94,6 +75,42 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			return false;
 		}
 		return true;
+	}
+
+	[ClientRpc]
+	public void RpcInit(GameObject logicCoreObj, int pid, int eid){
+		if (!isLocalPlayer){
+			Debug.Log("Bail early! I'm not the one you want!");
+			return;
+		}
+		if (logicCoreObj){
+			Debug.Log("RPC Init player connection obj: " + logicCoreObj.ToString());
+		}
+		UIController.instance.DBPWrite("Player " +  this.playerId.ToString() + " Starting!");  // distinguish name? bad idea?
+		gameObject.name = gameObject.name + "Local";
+		UIController.instance = GameObject.FindGameObjectWithTag("UIGroup").GetComponent<UIController>();  // Find our UIC and do it's setup
+		UIController.instance.DBPWrite("Player " +  this.playerId.ToString() + " joined!");
+		this.pb = GameObject.FindGameObjectWithTag("PlayBoard").GetComponent<PlayBoard2D>(); // Find the playboard in the scene	
+		InputProcessor.instance.RegisterReport(this);
+		playerId = pid;
+		enemyId = eid;
+
+ 		//Now we can recieve RPC's ready's set
+		this.isReady = true;
+		this.CmdRequestGameStateUpdate();
+		this.CmdRequestGridUpdate();
+	}
+
+	public void ServerInit(GameObject logicCoreObj, int pid, int eid){
+		Debug.Log("Server Init player connection obj");
+		playerId = pid;
+		enemyId = eid;
+		if (logicCoreObj != null){
+			this.lc = logicCoreObj.GetComponent<LogicCore>();
+			Debug.Log("pco init: Logic core found by server instance of player: " + this.lc.ToString());
+		}
+		else
+			Debug.Log("pco init: Found no logic Core server instance of player");
 	}
 
 	//Serialized RPC with ours and other's grid state

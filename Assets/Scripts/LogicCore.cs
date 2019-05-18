@@ -52,11 +52,11 @@ namespace MatchSequence{
 
 //Logic core's job is to take action requests as inputs and then compute the new game state
 public class LogicCore : NetworkBehaviour {
-	//Need to added from scene
-	public MyNetManager mnm;
+
+	int pNum = 2; // max player number
+	public PlayerConnectionObj[] players;
 	public PlayBoard2D pb2D;
-	//Other
-	public PlayerConnectionObj[] playersObjs;
+	public int matchIndex = -1;
 	public List<ActionReq> playerActions;
 	public List<bool> playerLocks;
 	public List<bool> playerResps; // Keeps track of which players have send in action requests since we last cleared
@@ -65,14 +65,22 @@ public class LogicCore : NetworkBehaviour {
 	public MatchState pausedMS = MatchState.placeTowers;
 	public int stateTime;
 	PlayBoard PB;
-	int pNum = 2; // max player number
 	Coroutine currentCoroutine = null;
 	public int sizex;
 	public int sizey;
+	//public NetworkConnection[] allowedConnections = new NetworkConnection[2];
 
 	// Use this for initialization
 	void Start () {
+
+	}
+
+	public void SpawnStart(PlayerConnectionObj player0, PlayerConnectionObj player1){
 		//Debug.Log("Starting Logic Core!");
+		this.players = new PlayerConnectionObj[this.pNum];
+		this.players[0] = player0;
+		this.players[1] = player1;
+		this.pb2D = GameObject.FindWithTag("PlayBoard").GetComponent<PlayBoard2D>();
 		int[] size = this.pb2D.GetGridSize();
 		this.sizex = size[0];
 		this.sizey = size[1];
@@ -83,9 +91,15 @@ public class LogicCore : NetworkBehaviour {
 		this.ResetGame();
 	}
 
-	bool testcb(ActionReq ar){
-		return true;
-	}
+	// called when a new player enters
+	// public override bool OnCheckObserver(NetworkConnection newObserver){
+	// 	return allowedConnections.Contains(newObserver);
+	// }
+
+	//For now leave this at default, returns only False
+	// public override bool OnRebuildObservers(HashSet<NetworkConnection> observers, bool initial){
+	// 	return allowedConnections.Contains(newObserver);
+	// }
 	
 	/////////////////////////////////
 	//Player Lock functions
@@ -94,14 +108,14 @@ public class LogicCore : NetworkBehaviour {
 		//Debug.Log("Logic Core: Resetting all Player Locks");
 		for(int i = 0; i < this.playerLocks.Count; i++){
 			this.playerLocks[i] = false;
-			if(this.mnm.playerSlots[i]){
-				this.mnm.playerSlots[i].RpcResetPlayerLock();
+			if(this.players[i]){
+				this.players[i].RpcResetPlayerLock();
 			}
 		}
 	}
 
 	public void SetPlayerLock(int playerNum){
-		//Debug.Log("LogicCore got setPlayerLock for player " + playerNum.ToString());
+		Debug.Log("LogicCore got setPlayerLock for player " + playerNum.ToString());
 		this.playerLocks[playerNum] = true;
 	}
 	////////////////////////////////////
@@ -205,7 +219,7 @@ public class LogicCore : NetworkBehaviour {
 
 	void UpdatePlayersGameState(){
 		for(int i = 0; i < this.pNum; i++){
-			if(this.mnm.playerSlots[i]){
+			if(this.players[i]){
 				this.ReportGameState(i);
 			}
 		}
@@ -330,7 +344,7 @@ public class LogicCore : NetworkBehaviour {
 		for(int i = 0; i < this.pNum; i++){
 			//Debug.Log("GetActionReqs: i = " + i.ToString());
 			if (!this.playerResps[i]){
-				this.mnm.playerSlots[i].RpcReportActionReqs();
+				this.players[i].RpcReportActionReqs();
 			}
 		}
 	}
@@ -338,9 +352,10 @@ public class LogicCore : NetworkBehaviour {
 	//TODO how do we verify that this request set actually came from player x?
 	public void RXActionReq(int playerId, List<ActionReq> reqs){
 		Debug.Log("LogicCore RXActionReq: Got input action reqs");
-		// for(int i =0; i < reqs.Count; i ++){
-		// 	Debug.Log("Gotem " + i.ToString() + ": " + reqs[i].coords[0].ToString());
-		// }
+		Debug.Log("Got " + reqs.Count + " Actions...");
+		foreach(ActionReq ar in reqs){
+			Debug.Log(ar.ToString());
+		}
 		//Allow the player to input no actions, but don' process
 		if (!(reqs.Count > 0)){ // boom, we've got at least 1 req
 			Debug.LogWarning("RXActionReq: We recieved an empty request list");
@@ -374,15 +389,15 @@ public class LogicCore : NetworkBehaviour {
 		int[] gridSize = new int[]{sizex, sizey};
 		bool hitSunk = this.PB.hitSunk[p]; // Player's last actions sunk one or more enemy ships
 		GameBoardInfo gbi = new GameBoardInfo(pOwnGrid, pOtherGrid, gridSize, aaList.ToArray(), factionProgress, capitolLocs, hitSunk);
-		this.mnm.playerSlots[p].RpcUpdatePlayBoard(gbi);
+		this.players[p].RpcUpdatePlayBoard(gbi);
 	}
 
 	//This guy is public for a reason (unlike most of my public stuff...) Player objs can request the game state
 	//Called by
 	public void ReportGameState(int p){
 		Debug.Log("Reporting game state to player " + p.ToString());
-		if (this.mnm.playerSlots[p]){
-			this.mnm.playerSlots[p].RpcUpdateGameState(new StateInfo(this.currMS, this.stateTime, this.playerWin[p]));
+		if (this.players[p]){
+			this.players[p].RpcUpdateGameState(new StateInfo(this.currMS, this.stateTime, this.playerWin[p]));
 		}
 	}
 
