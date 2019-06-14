@@ -10,12 +10,12 @@ public abstract class Cell2D : MonoBehaviour {
 	public CellStruct cStruct;
 	public GameGrid2D parentGrid;
 
-	// Public functions, you shouldn't add new public functions to anything but the base class
-	public abstract void SetCellStruct(CellStruct newCS);
-	
 	public CellStruct GetCellStruct(){
 		return this.cStruct;
 	}
+
+	// Public functions, you shouldn't add new public functions to anything but the base class
+	public abstract void SetCellStruct(CellStruct newCS);
 
 	public abstract void SetHovered(bool hov);
 

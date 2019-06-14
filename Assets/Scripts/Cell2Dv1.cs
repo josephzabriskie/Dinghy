@@ -6,7 +6,7 @@ using CellTypes;
 
 public class Cell2Dv1 : Cell2D {
 	//Sprite Renderers
-	SpriteRenderer srbg; // sr of the bg
+	SpriteRenderer srsel; // sr of selection state
 	SpriteRenderer srmain; // sr of the covering image
 	SpriteRenderer srdestroyed; // sr of the destroyed image
 	SpriteRenderer srdefected; // sr when we defect
@@ -29,9 +29,9 @@ public class Cell2Dv1 : Cell2D {
 	public Sprite reflectorHidden;
 	public Sprite defenceGridArea; // area tha defence grid protects
 	//bgState
-	public Sprite defaultBG;
-	public Sprite selectBG;
-	public Sprite selectHoverBG;
+	public Sprite selectionDefault;
+	public Sprite selectionAction;
+	public Sprite selectionHovered;
 	//Hit States
 	public Sprite destroyed;
 	public Sprite destroyedOld;
@@ -55,8 +55,8 @@ public class Cell2Dv1 : Cell2D {
 	void Start () {
 		SpriteRenderer[] srlist = this.GetComponentsInChildren<SpriteRenderer>();
 		foreach(SpriteRenderer sr in srlist){
-			if(sr.name == "Background"){
-				this.srbg = sr;
+			if(sr.name == "Selection"){
+				this.srsel = sr;
 			}
 			else if(sr.name == "MainState"){
 				this.srmain = sr;
@@ -78,6 +78,9 @@ public class Cell2Dv1 : Cell2D {
 			}
 			else if(sr.name == "Scouted"){
 				this.srScouted = sr;
+			}
+			else if(sr.name == "Background"){
+				//Don't need to modify this yet
 			}
 			else{
 				Debug.LogError("Cell2D init: Unhandled name " + sr.name);
@@ -195,7 +198,7 @@ public class Cell2Dv1 : Cell2D {
 	}
 
 	void SetBGColor(Color c){
-		this.srbg.color = c;
+		this.srsel.color = c;
 	}
 
 	
@@ -209,7 +212,7 @@ public class Cell2Dv1 : Cell2D {
 	}
 
 	void OnMouseExit(){
-		this.parentGrid.RXCellHover(coords, false);
+		parentGrid.RXCellHover(coords, false);
 	}
 
 	void OnMouseDown(){
@@ -219,13 +222,13 @@ public class Cell2Dv1 : Cell2D {
 
 	void UpdateBGState(){
 		if(this.hovered){
-			this.srbg.sprite = this.selectHoverBG;
+			this.srsel.sprite = this.selectionHovered;
 		}
 		else if(this.selected){
-			this.srbg.sprite = this.selectBG;
+			this.srsel.sprite = this.selectionAction;
 		}
 		else{
-			this.srbg.sprite = this.defaultBG;
+			this.srsel.sprite = this.selectionDefault;
 		}
 	}
 }

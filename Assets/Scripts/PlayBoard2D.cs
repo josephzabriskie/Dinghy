@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using CellTypes;
 using PlayerActions;
+using UnityEngine.Tilemaps;
 
 //!! Important This script should be high priority in execution order
 public class PlayBoard2D : MonoBehaviour {
-	//For Setting up
 	public GameObject gridPrefab;
 	float midSpace = 1.0f;
-	//Other
 	GameGrid2D playerGrid = null;
 	GameGrid2D enemyGrid = null;
 	public int sizex;
@@ -22,11 +21,6 @@ public class PlayBoard2D : MonoBehaviour {
 		this.InstantiateGrids();
 		shotOrig = this.transform.Find("ShotOrigin").transform;
 	}
-
-	// void Start(){
-	// 	this.InstantiateGrids();
-	// 	shotOrig = this.transform.Find("ShotOrigin").transform;
-	// }
 
 	public void SetGridStates(CellStruct[,] pGrid, CellStruct[,] eGrid){
 		this.playerGrid.SetCSArray(pGrid);
@@ -84,6 +78,7 @@ public class PlayBoard2D : MonoBehaviour {
 		case pAction.placeMine:
 		case pAction.buildReflector:
 		case pAction.firePiercing:
+		case pAction.noAction:
 		case pAction.towerTakeover:
 			g.SetSingleSelect(hover, ar.loc[0]);
 			break;
@@ -102,8 +97,6 @@ public class PlayBoard2D : MonoBehaviour {
 		case pAction.blockingShot: // these guys don't have any targeting or loc in their action
 		case pAction.hellFire:
 		case pAction.flare:
-			break;
-		case pAction.noAction:
 			break;
 		default:
 			Debug.Log("Unhandled pAction Type: " + ar.a.ToString());
@@ -176,6 +169,8 @@ public class PlayBoard2D : MonoBehaviour {
 		this.enemyGrid.parent = this;
 		this.enemyGrid.playerOwnedGrid = false;
 		this.enemyGrid.Flip(); //This one's facing the player, needs to be flipped
+		//Now fill out the decorative cells
+		//
 	}
 
 	public Vector3 GetShotOrigin(){ //Called by someone who wants to know where shots originate on this board

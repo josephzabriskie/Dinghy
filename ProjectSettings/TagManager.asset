@@ -47,6 +47,9 @@ TagManager:
     uniqueID: 0
     locked: 0
   - name: Background
+    uniqueID: 2912057391
+    locked: 0
+  - name: CellBackground
     uniqueID: 2515204799
     locked: 0
   - name: MainState
