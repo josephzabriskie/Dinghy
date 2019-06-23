@@ -85,10 +85,6 @@ public class LogicCore : NetworkBehaviour {
 		this.playerWin = new List<bool>(new bool[this.pNum]); // Defaults to false
 		this.ResetGame();
 	}
-
-	bool testcb(ActionReq ar){
-		return true;
-	}
 	
 	/////////////////////////////////
 	//Player Lock functions
