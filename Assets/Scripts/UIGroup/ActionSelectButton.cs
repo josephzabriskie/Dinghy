@@ -79,6 +79,9 @@ public class ActionSelectButton : MonoBehaviour {
     //Info about action availibility
     ActionAvail actionAvail;
 
+    //Sounds
+    AudioSource audSrc;
+
     void Start(){
         Init();
     }
@@ -113,6 +116,7 @@ public class ActionSelectButton : MonoBehaviour {
         UIController.instance.ActionSelectButtonGrpAdd(this);
         this.buttonEn = false; //Default Button to off
         this.Enable(this.buttonEn); // Refresh enabled state
+        this.audSrc = this.GetComponentInChildren<AudioSource>();
         //Do this last
         this.updateButton();
     }
@@ -136,10 +140,12 @@ public class ActionSelectButton : MonoBehaviour {
         if(!this.selected){
             Debug.Log("Clicked set to: " + this.action);
             InputProcessor.instance.SetActionContext(this.action);
+            audSrc.PlayOneShot(AudioLib.instance.defaultButtonPress);
         }
         else{
             Debug.Log("Deselected: " + this.action.ToString());
             InputProcessor.instance.ClearActionContext();
+            audSrc.PlayOneShot(AudioLib.instance.defaultButtonUp);
         }
     }
 

@@ -24,7 +24,7 @@ public class InputProcessor : MonoBehaviour {
 	PlayerConnectionObj report = null;
 	bool actionLocked = false;
 	ActionProcState apc = ActionProcState.reject;
-	pAction actionContext = pAction.noAction;
+	public pAction actionContext = pAction.noAction;
 	public PlayBoard2D pb2d;
 	Validator v;
 
@@ -164,7 +164,7 @@ public class InputProcessor : MonoBehaviour {
 				}
 			}
 			else{
-				Debug.Log("Input processor: Invalid request, don't add to list");
+				Debug.LogFormat("Input processor: Invalid request, don't add to list: {0}",MultiTowerAR.ToString());
 			}
 			if (this.v.BldgIn(currentGrids[0], pos, buildDict.Values.ToList().Select(cstruct => cstruct.bldg).ToList())){ // Now, if there is a tower here already, remove it
 				idx = this.queuedActions.FindIndex(x => buildDict.Keys.ToList().Contains(x.a) && x.loc != null && x.loc[0] == pos);

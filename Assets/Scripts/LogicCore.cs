@@ -36,9 +36,11 @@ namespace MatchSequence{
 		public int[] gridSize;
 		public ActionAvail[] aaArray;
 		public int[] factionProgress;
-		public Vector2 [] capitolTowers;
+		public Vector2[] capitolTowers;
 		public bool hitSunk;
-		public GameBoardInfo(CellStruct[] our, CellStruct[] other, int[] gridSize, ActionAvail[] aaArray, int[] factionProgress, Vector2[] capitolTowers, bool hitSunk){
+		public ActionReq[] lastArs;
+		public GameBoardInfo(CellStruct[] our, CellStruct[] other, int[] gridSize, ActionAvail[] aaArray, int[] factionProgress,
+							 Vector2[] capitolTowers, bool hitSunk, ActionReq[] lastArs){
 			this.ourGrid = our;
 			this.theirGrid = other;
 			this.gridSize = gridSize;
@@ -46,6 +48,7 @@ namespace MatchSequence{
 			this.factionProgress = factionProgress;
 			this.capitolTowers = capitolTowers;
 			this.hitSunk = hitSunk;
+			this.lastArs = lastArs;
 		}
 	}
 }
@@ -153,11 +156,11 @@ public class LogicCore : NetworkBehaviour {
 	void GameProcess(){
 		switch(this.currMS){
 		case MatchState.waitForPlayers:
-			Debug.Log("We're entering waiting for players state");
+			Debug.Log("GameProcess: We're entering waiting for players state");
 			this.UpdatePlayersGameState();
 			break;
 		case MatchState.placeTowers:
-			Debug.Log("We're entering PlaceTowers state!");
+			Debug.Log("GameProcess: We're entering PlaceTowers state!");
 			this.stateTime = 100;
 			this.PB.SetAPC(ActionProcState.multiTower);
 			this.ClearCurrentCoroutine();
@@ -167,7 +170,7 @@ public class LogicCore : NetworkBehaviour {
 			this.currentCoroutine = StartCoroutine(this.PlaceTowerIE(this.stateTime, MatchState.actionSelect));
 			break;
 		case MatchState.actionSelect:
-			Debug.Log("We're entering actionSelect state!");
+			Debug.Log("GameProcess: We're entering actionSelect state!");
 			this.stateTime = 100;
 			this.PB.SetAPC(ActionProcState.basicActions);
 			this.ClearCurrentCoroutine();
@@ -177,14 +180,14 @@ public class LogicCore : NetworkBehaviour {
 			this.currentCoroutine = StartCoroutine(this.SingleInputIE(this.stateTime, MatchState.resolveState));
 			break;
 		case MatchState.resolveState:
-			Debug.Log("We're entering resolveState state!");
+			Debug.Log("GameProcess: We're entering resolveState state!");
 			this.stateTime = 0; // Time here is 0, players don't need to know how long we're here since timer shouldnt get set
 			this.ClearCurrentCoroutine();
 			this.UpdatePlayersGameState();
 			this.currentCoroutine = StartCoroutine(this.ResolveIE(1, MatchState.actionSelect));
 			break;
 		case MatchState.gameEnd:
-			Debug.Log("We're entering gameEnd state!");
+			Debug.Log("GameProcess: We're entering gameEnd state!");
 			this.stateTime = 0;
 			this.ClearCurrentCoroutine();
 			this.UpdatePlayersGameState();
@@ -224,7 +227,7 @@ public class LogicCore : NetworkBehaviour {
 			// 	Debug.Log(this.currMS.ToString() + " :testIE time left: " + currTime.ToString());
 			// }
 			if(this.playerLocks.All(x => x)){
-				Debug.Log("All " + this.playerLocks.Count() + " of our locks are true!");
+				Debug.Log("All " + this.playerLocks.Count() + " players have locked their actions");
 				break;
 			}
 			yield return new WaitForSeconds(interval);
@@ -240,7 +243,7 @@ public class LogicCore : NetworkBehaviour {
 			// 	Debug.Log(this.currMS.ToString() + ":testIE time left: " + currTime.ToString());
 			// }
 			if (this.playerResps.All(x => x)){
-				Debug.Log("All " + this.playerResps.Count() + " of our responses are in!");
+				Debug.Log("All " + this.playerResps.Count() + " players have send their action reqs");
 				break;
 			}
 			this.GetActionReqs(); // This is ok to call multiple times like this. Input rx is gated to 1 response before reset
@@ -337,11 +340,11 @@ public class LogicCore : NetworkBehaviour {
 
 	//TODO how do we verify that this request set actually came from player x?
 	public void RXActionReq(int playerId, List<ActionReq> reqs){
-		Debug.Log("LogicCore RXActionReq: Got input action reqs");
+		Debug.LogFormat("LogicCore RXActionReq: Got {0} new action reqs from {1}", reqs.Count(), playerId);
 		// for(int i =0; i < reqs.Count; i ++){
 		// 	Debug.Log("Gotem " + i.ToString() + ": " + reqs[i].coords[0].ToString());
 		// }
-		//Allow the player to input no actions, but don' process
+		//Allow the player to input no actions, but don't process
 		if (!(reqs.Count > 0)){ // boom, we've got at least 1 req
 			Debug.LogWarning("RXActionReq: We recieved an empty request list");
 			this.SetRespTrack(playerId);
@@ -358,7 +361,7 @@ public class LogicCore : NetworkBehaviour {
 		//At this point we're satisfied, say we've recieved a player responses and add them
 		this.SetRespTrack(playerId);
 		this.playerActions.AddRange(reqs);
-		Debug.Log("Added to playerActions. Count now " + this.playerActions.Count);
+		//Debug.Log("Added to playerActions. Count now " + this.playerActions.Count);
 	}
 
 	//Called by logic core after eval actions
@@ -373,7 +376,8 @@ public class LogicCore : NetworkBehaviour {
 		Vector2 [] capitolLocs = this.PB.capitolTowerLocs[p].ToArray();
 		int[] gridSize = new int[]{sizex, sizey};
 		bool hitSunk = this.PB.hitSunk[p]; // Player's last actions sunk one or more enemy ships
-		GameBoardInfo gbi = new GameBoardInfo(pOwnGrid, pOtherGrid, gridSize, aaList.ToArray(), factionProgress, capitolLocs, hitSunk);
+		ActionReq[] lastActions = this.PB.GetLastActions(p).ToArray();
+		GameBoardInfo gbi = new GameBoardInfo(pOwnGrid, pOtherGrid, gridSize, aaList.ToArray(), factionProgress, capitolLocs, hitSunk, lastActions);
 		this.mnm.playerSlots[p].RpcUpdatePlayBoard(gbi);
 	}
 
@@ -393,9 +397,10 @@ public class LogicCore : NetworkBehaviour {
 		this.playerActions.Clear();
 		//Now forward the results on to the world
 		//This would be nice to iterate over, but there's only two players for now
-		Debug.Log("Pushing updates to players");
+		//Debug.Log("Pushing updates to players");
 		for (int i = 0; i < this.pNum; i++){
 			this.ReportGridState(i);
+
 		}
 	}
 }

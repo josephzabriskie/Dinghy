@@ -20,7 +20,7 @@ public class ZArcRenderer : MonoBehaviour {
 	}
 
 	void Start () {
-		shotOrigin = pb.GetShotOrigin();
+		shotOrigin = pb.playerShotOrig;
 		//Debug.Log("Test1: " + test1.ToString() + ", Test2: " + test2.ToString());
 		//RenderArc(test1, test2);
 	}

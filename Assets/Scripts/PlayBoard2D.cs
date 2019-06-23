@@ -9,22 +9,117 @@ using UnityEngine.Tilemaps;
 public class PlayBoard2D : MonoBehaviour {
 	public GameObject gridPrefab;
 	float midSpace = 1.0f;
-	GameGrid2D playerGrid = null;
-	GameGrid2D enemyGrid = null;
+	public GameGrid2D playerGrid = null;
+	public GameGrid2D enemyGrid = null;
 	public int sizex;
 	public int sizey;
-	Transform shotOrig;
+	public PlayerConnectionObj pobj;
+	public Vector3 playerShotOrig;
+	public Vector3 enemyShotOrig;
 	List<ActionReq> lastActions = new List<ActionReq>{};
 	public pAction actionContext = pAction.noAction;
+	public GameObject defaultProjectile;
+	public GameObject defaultBuild;
+	public GameObject fireMultiObj;
+	bool fancyUpdateRunning = false;
 
 	void Awake(){
 		this.InstantiateGrids();
-		shotOrig = this.transform.Find("ShotOrigin").transform;
+		playerShotOrig = this.transform.Find("PlayerOrigin").transform.position;
+		enemyShotOrig = this.transform.Find("EnemyOrigin").transform.position;
 	}
 
+	//Just set the gridstates with no ceremony
 	public void SetGridStates(CellStruct[,] pGrid, CellStruct[,] eGrid){
 		this.playerGrid.SetCSArray(pGrid);
 		this.enemyGrid.SetCSArray(eGrid);
+	}
+
+	public void UpdateBoardFancy(List<ActionReq> actions, CellStruct[,] pGrid, CellStruct[,] eGrid){
+		StartCoroutine(IEUpdateBoardFancy(actions, pGrid, eGrid));
+		fancyUpdateRunning = true;
+	}
+
+
+	public IEnumerator IEUpdateBoardFancy(List<ActionReq> actions, CellStruct[,] pGrid, CellStruct[,] eGrid){
+		Debug.Log("Got input of " + actions.Count.ToString() + " actions");
+		int rem;
+		List<ActionReq> nextActions = getNextActions(actions, out rem);
+		int maxloops = 20; // TODO remove when done
+		int loops = 0; // TODO remove when done
+		while(nextActions != null && loops < maxloops){
+			loops++;
+			Debug.LogFormat("input ac count: {0}, next ac count: {1}", actions.Count, nextActions.Count);
+			switch(nextActions[0].a){
+			case pAction.buildIntelTower:
+			case pAction.buildOffenceTower:
+			case pAction.buildDefenceTower:
+			case pAction.buildWall:
+			case pAction.buildReflector:
+			case pAction.buildDefenceGrid:
+			case pAction.placeMine:
+			{
+				Debug.Log("In the build section of fancy update");
+				ActionResolution buildRes = Instantiate(defaultBuild).GetComponent<ActionResolution>();
+				buildRes.Init(nextActions, this, pGrid, eGrid);
+				yield return buildRes.IEResolve();
+				break;
+			}
+			case pAction.fireBasic:
+			case pAction.fireAgain:
+			case pAction.firePiercing:
+			{
+				Debug.Log("In the fire section of fancy update");
+				ActionResolution fireRes = Instantiate(defaultProjectile).GetComponent<ActionResolution>();
+				fireRes.Init(nextActions, this, pGrid, eGrid);
+				yield return fireRes.IEResolve();
+				break;
+			}
+			case pAction.fireSquare:
+			case pAction.hellFire:
+			case pAction.fireRow:
+			{
+				Debug.Log("In the fire multi section of fancy update");
+				ActionResolution fireMultiRes = Instantiate(fireMultiObj).GetComponent<ActionResolution>();
+				fireMultiRes.Init(nextActions, this, pGrid, eGrid);
+				yield return fireMultiRes.IEResolve();
+				break;
+			}
+			default:
+				Debug.Log("OtherAction happened");
+				break;
+			}
+			nextActions = getNextActions(actions, out rem);
+		}
+		SetGridStates(pGrid,eGrid); // At end, make sure to set the board incase we muck up...
+
+		//Interior function to get next action(s) feels janky, probably needs to be simplified
+		//Goal is to get the next action or set of matching actions that were expanded
+		List<ActionReq> getNextActions(List<ActionReq> inActions, out int remove){
+			List<pAction> multiArs = new List<pAction>(){
+				pAction.hellFire, pAction.fireSquare, pAction.fireRow, pAction.blockingShot,
+				pAction.flare
+			};
+			List<ActionReq> outActions = null;
+			remove = 0;
+			if(inActions.Count > 0){
+				outActions = new List<ActionReq>();
+				outActions.Add(inActions[0]);
+				inActions.RemoveAt(0);
+				remove++;
+			}
+			else{
+				return outActions;
+			}
+			if(multiArs.Contains(outActions[0].a)){
+				while(inActions.Count > 0 && inActions[0].a == outActions[0].a && inActions[0].p == outActions[0].p){ //While we've got more matching actions from same player
+					outActions.Add(inActions[0]);
+					inActions.RemoveAt(0);
+					remove++;
+				}
+			}
+			return outActions;
+		}
 	}
 
 	public void RXGridInput(bool pGrid, Vector2 pos, CellStruct cStruct){
@@ -67,6 +162,9 @@ public class PlayBoard2D : MonoBehaviour {
 
 	void SetCellAction(ActionReq ar, bool hover){
 		GameGrid2D g = ar.p == ar.t ? this.playerGrid : this.enemyGrid;
+		if(ar.loc == null){
+			return; // Return early if there's not loc of cell given. Nothing will be done
+		}
 		switch(ar.a){
 		case pAction.fireBasic:
 		case pAction.fireAgain:
@@ -171,10 +269,5 @@ public class PlayBoard2D : MonoBehaviour {
 		this.enemyGrid.Flip(); //This one's facing the player, needs to be flipped
 		//Now fill out the decorative cells
 		//
-	}
-
-	public Vector3 GetShotOrigin(){ //Called by someone who wants to know where shots originate on this board
-		Debug.Log("Returning: " + shotOrig.position.ToString());
-		return shotOrig.position;
 	}
 }

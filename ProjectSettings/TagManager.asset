@@ -55,6 +55,9 @@ TagManager:
   - name: MainState
     uniqueID: 2314488221
     locked: 0
+  - name: Particles
+    uniqueID: 3658035533
+    locked: 0
   - name: UI
     uniqueID: 78344301
     locked: 0

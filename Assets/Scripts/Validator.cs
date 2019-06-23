@@ -22,7 +22,7 @@ public class Validator {
         case ActionProcState.reject:
             return false;
         case ActionProcState.multiTower:
-            Debug.Log("In ActionProcState multiTower");
+            //Debug.Log("In ActionProcState multiTower");
             switch(ar.a){
             case pAction.buildOffenceTower:
             case pAction.buildDefenceTower:
@@ -32,7 +32,7 @@ public class Validator {
                 return false;
             }
         case ActionProcState.basicActions:
-            Debug.Log("In ActionProcState basicActions");
+            //Debug.Log("In ActionProcState basicActions");
             //Debug.Log("Validate " + ar.ToString());
             switch(ar.a){
             case pAction.buildOffenceTower:
@@ -399,15 +399,15 @@ public class Validator {
         adjTowers = adjTowers.Except(ignoreLocs).ToList();
         List<Vector2> outList = new List<Vector2>(){loc};
         if(adjTowers.Count == 0){ // We're at the end!
-            Debug.Log("At the end of the chain, loc: " + loc.ToString());
+            //Debug.Log("At the end of the chain, loc: " + loc.ToString());
         }
         else if(adjTowers.Count == 1){ //Not at end yet, recurse
-            Debug.Log("Not the end of the chain, loc: " + loc.ToString() + ", next: " + adjTowers[0].ToString());
+            //Debug.Log("Not the end of the chain, loc: " + loc.ToString() + ", next: " + adjTowers[0].ToString());
             ignoreLocs.Add(loc);
             outList.AddRange(_accumulateChainLocs(pGrid, adjTowers[0], gridSize, ignoreLocs));
         }
         else{
-            Debug.LogError("Found that count of adjacent towers was > 2 while recursing? found: " + adjTowers.Count.ToString());
+            //Debug.LogError("Found that count of adjacent towers was > 2 while recursing? found: " + adjTowers.Count.ToString());
         }
         return outList;
     }

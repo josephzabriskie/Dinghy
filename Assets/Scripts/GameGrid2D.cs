@@ -46,6 +46,14 @@ public class GameGrid2D : MonoBehaviour {
 		}
 	}
 
+	public Vector3 GetCellCoord(Vector2 pos){
+		return cells[(int)pos.x, (int)pos.y].transform.position;
+	}
+
+	public Cell2D GetCell(Vector2 pos){
+		return cells[(int)pos.x, (int)pos.y];
+	}
+
 	public int[] GetGridSize(){
 		int[] ret = {this.sizex, this.sizey};
 		return ret;

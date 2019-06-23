@@ -46,6 +46,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 			UIController.instance.DBPWrite("Player " +  this.playerId.ToString() + " joined!");
 			//Find our local playboard, and get grids
 			this.pb = GameObject.FindGameObjectWithTag("PlayBoard").GetComponent<PlayBoard2D>(); // Find the playboard in the scene	
+			this.pb.pobj = this;
 			//this.ip = GameObject.FindGameObjectWithTag("InputProcessor").GetComponent<InputProcessor>();
 			InputProcessor.instance.RegisterReport(this);
 
@@ -102,7 +103,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		if (!isLocalPlayer || !this.ReadyGuard()){// Ignore info if not local or Start not called yet
 			return;
 		}
-		Debug.Log("Player: " + this.playerId + " got update to our grids.");
+		Debug.Log("Player: " + this.playerId + " got Playboard update");
 		//Debug.Log("Ours: " + our.Length.ToString() + " :: Theirs: "  + other.Length.ToString());
 		//Debug.Log("Got AA list: " + gbi.aaArray.Count().ToString());
 		this.latestCapitolLocs = gbi.capitolTowers.ToList();
@@ -114,7 +115,7 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		if(gbi.hitSunk){
 			UIController.instance.HitSunkDisplayFlash();
 		}
-		this.pb.SetGridStates(this.latestPlayerGrid, this.latestEnemyGrid);
+		this.pb.UpdateBoardFancy(gbi.lastArs.ToList(), this.latestPlayerGrid, this.latestEnemyGrid);
 	}
 
 	[ClientRpc]
@@ -172,8 +173,8 @@ public class PlayerConnectionObj : NetworkBehaviour {
 		if (!isLocalPlayer || !this.ReadyGuard()){
 			return;
 		}
-		Debug.Log("RpcReportActionReqs from player " + this.playerId.ToString());
 		ActionReq[] qa = InputProcessor.instance.GetQueuedActions().ToArray();
+		//Debug.Log("RpcReportActionReqs from player " + this.playerId.ToString());
 		// for(int i =0; i < qa.Count(); i ++){
 		// 	Debug.Log("Send " + i.ToString() + ": " + qa[i].coords[0].ToString());
 		// }

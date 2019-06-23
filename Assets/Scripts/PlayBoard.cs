@@ -42,9 +42,17 @@ namespace PlayerActions{
 			a=inAction;
 			loc=inCoords;
 		}
-		public override string ToString()
-    	{	string locStr = loc==null ? "null" : loc.Count()==0 ? "0 len" : loc.ToString();
-        	return "P: " + p + " T: " + t + " A: " + a + " loc0: " + locStr;
+		public override string ToString(){
+			string locStr = "";
+			if(loc == null){
+				locStr = "Null";
+			}
+			else{
+				foreach(Vector2 v in loc){
+					locStr += string.Format("({0}:{1}), ", v.x,v.y);
+				}
+			}
+        	return "P: " + p + " T: " + t + " A: " + a + " loc: " + locStr;
     	}
 	}
 }
@@ -58,6 +66,12 @@ namespace PlayboardTypes{
 		Intel
 	}
 
+	public enum ReportType{
+		Hidden, // Not reported to other
+		NameOnly, // Reported to other player in name only
+		Visible, // Reported fully to both players
+	}
+
 	public struct ActionParam{
 		public pAction action;
 		public Faction faction; // Faction this action is associated with
@@ -65,13 +79,15 @@ namespace PlayboardTypes{
 		public int cooldown; // cooldown
 		public int maxUses; // max uses
 		public bool enabled; //If this is allowed at all
-		public ActionParam(pAction action, Faction faction, int factionCost, int cooldown, int maxUses, bool enabled){
+		public ReportType reportType;
+		public ActionParam(pAction action, Faction faction, int factionCost, int cooldown, int maxUses, bool enabled, ReportType reportType){
 			this.action = action;
 			this.faction = faction;
 			this.factionCost = factionCost;
 			this.cooldown = cooldown; // 0 means no cooldown
 			this.maxUses = maxUses; // 0 means no more uses, -1 means no limit
 			this.enabled = enabled; // false means player can't cause this
+			this.reportType = reportType;
 		}
 		public override string ToString(){
 			return String.Format("APM: A:{0} f:{1}, c:{2}, cd:{3}, mu: {4}",
@@ -146,28 +162,28 @@ namespace PlayboardTypes{
 	public class PlayerActionTracker{
 		//Useful static values
 		static List<pAction> allActions = ((pAction[])Enum.GetValues(typeof(pAction))).ToList(); // How to get all pActions defined in the enum!
-		static Dictionary<pAction, ActionParam> actionParams = new Dictionary<pAction, ActionParam>{
+		static public Dictionary<pAction, ActionParam> actionParams = new Dictionary<pAction, ActionParam>{
 			//Action					ActionParam(	action 						faction            cost.cd.uses.enabled)
-			{pAction.noAction, 			new ActionParam(pAction.noAction, 			Faction.NoFaction,	0, 0, -1,	true)},
-			{pAction.buildOffenceTower, new ActionParam(pAction.buildOffenceTower,	Faction.Offence,	0, 1, 7,	true)},
-			{pAction.buildDefenceTower, new ActionParam(pAction.buildDefenceTower,	Faction.Defence,	0, 1, 7,	true)},
-			{pAction.buildIntelTower, 	new ActionParam(pAction.buildIntelTower, 	Faction.Intel,		0, 1, 7,	true)},
-			{pAction.buildWall, 		new ActionParam(pAction.buildWall,			Faction.Defence,	3, 2, 5,	true)},
-			{pAction.fireBasic, 		new ActionParam(pAction.fireBasic,			Faction.Offence,	0, 0, -1,	true)},
-			{pAction.scout, 			new ActionParam(pAction.scout,				Faction.Intel,		3, 0, 0,	true)},
-			{pAction.fireAgain,			new ActionParam(pAction.fireAgain,			Faction.Offence,	3, 2, -1,	true)},
-			{pAction.fireRow,			new ActionParam(pAction.fireRow,			Faction.Offence,	7, 0, 1,	false)},
-			{pAction.fireSquare,		new ActionParam(pAction.fireSquare,			Faction.Offence,	1, 4, -1,	true)},
-			{pAction.blockingShot,		new ActionParam(pAction.blockingShot,		Faction.Offence,	5, 3, 4,	false)},// this one's odd, what should the cost be?
-			{pAction.hellFire,			new ActionParam(pAction.hellFire,			Faction.Offence,	7, 6, -1,	true)},
-			{pAction.flare,				new ActionParam(pAction.flare,				Faction.Intel,		3, 3, -1,	true)},
-			{pAction.placeMine,			new ActionParam(pAction.placeMine,			Faction.Defence,	5, 1, 4,	false)},
-			{pAction.buildDefenceGrid,	new ActionParam(pAction.buildDefenceGrid, 	Faction.Defence,	7, 6, 3,	true)},
-			{pAction.buildReflector,	new ActionParam(pAction.buildReflector,	 	Faction.Defence,	5, 2, 6,	true)},
-			{pAction.fireReflected,		new ActionParam(pAction.fireReflected,		Faction.NoFaction,	0, 0, 0,	false)}, // Player can't cause this
-			{pAction.firePiercing,		new ActionParam(pAction.firePiercing,		Faction.Intel,		5, 0, 0,	false)},
-			{pAction.placeMole,			new ActionParam(pAction.placeMole,			Faction.Intel,		5, 4, 2,	true)},
-			{pAction.towerTakeover,		new ActionParam(pAction.towerTakeover,		Faction.Intel,		7, 5, -1,	true)},
+			{pAction.noAction, 			new ActionParam(pAction.noAction, 			Faction.NoFaction,	0, 0, -1,	true, ReportType.Hidden)},
+			{pAction.buildOffenceTower, new ActionParam(pAction.buildOffenceTower,	Faction.Offence,	0, 1, 7,	true, ReportType.Hidden)},
+			{pAction.buildDefenceTower, new ActionParam(pAction.buildDefenceTower,	Faction.Defence,	0, 1, 7,	true, ReportType.Hidden)},
+			{pAction.buildIntelTower, 	new ActionParam(pAction.buildIntelTower, 	Faction.Intel,		0, 1, 7,	true, ReportType.Hidden)},
+			{pAction.buildWall, 		new ActionParam(pAction.buildWall,			Faction.Defence,	3, 2, 5,	true, ReportType.Hidden)},
+			{pAction.fireBasic, 		new ActionParam(pAction.fireBasic,			Faction.Offence,	0, 0, -1,	true, ReportType.Visible)},
+			{pAction.scout, 			new ActionParam(pAction.scout,				Faction.Intel,		3, 0, 0,	true, ReportType.NameOnly)},
+			{pAction.fireAgain,			new ActionParam(pAction.fireAgain,			Faction.Offence,	3, 2, -1,	true, ReportType.Visible)},
+			{pAction.fireRow,			new ActionParam(pAction.fireRow,			Faction.Offence,	7, 0, 1,	false, ReportType.Visible)},
+			{pAction.fireSquare,		new ActionParam(pAction.fireSquare,			Faction.Offence,	1, 4, -1,	true, ReportType.Visible)},
+			{pAction.blockingShot,		new ActionParam(pAction.blockingShot,		Faction.Offence,	5, 3, 4,	false, ReportType.Visible)},
+			{pAction.hellFire,			new ActionParam(pAction.hellFire,			Faction.Offence,	7, 6, -1,	true, ReportType.Visible)},
+			{pAction.flare,				new ActionParam(pAction.flare,				Faction.Intel,		3, 3, -1,	true, ReportType.NameOnly)},
+			{pAction.placeMine,			new ActionParam(pAction.placeMine,			Faction.Defence,	5, 1, 4,	false, ReportType.Hidden)},
+			{pAction.buildDefenceGrid,	new ActionParam(pAction.buildDefenceGrid, 	Faction.Defence,	7, 6, 3,	true, ReportType.Hidden)},
+			{pAction.buildReflector,	new ActionParam(pAction.buildReflector,	 	Faction.Defence,	5, 2, 6,	true, ReportType.Hidden)},
+			{pAction.fireReflected,		new ActionParam(pAction.fireReflected,		Faction.NoFaction,	0, 0, 0,	false, ReportType.Visible)}, // Player can't cause this
+			{pAction.firePiercing,		new ActionParam(pAction.firePiercing,		Faction.Intel,		5, 0, 0,	false, ReportType.Visible)},
+			{pAction.placeMole,			new ActionParam(pAction.placeMole,			Faction.Intel,		5, 4, 2,	true, ReportType.Hidden)},
+			{pAction.towerTakeover,		new ActionParam(pAction.towerTakeover,		Faction.Intel,		7, 5, -1,	true, ReportType.Visible)},
 		};
 		static Dictionary<Faction, CBldg> factionBldgMap = new Dictionary<Faction, CBldg>{
 			{Faction.Offence, CBldg.towerOffence},
@@ -299,6 +315,7 @@ namespace PlayboardTypes{
 		ActionProcState actionProcState;
 		public bool[] hitSunk; //Does either player need a hitsunk message. (e.g get hitSunk[1] to tell if player 1 has sunk a ship this turn)
 		Dictionary<Vector2, bool>[] sunkDicts;
+		List<ActionReq> lastActions;
 
 		public PlayBoard(int sizex, int sizey){
 			//Debug.Log("Hey, I'm making a Playboard: " + sizex.ToString() + "X" + sizey.ToString());
@@ -310,6 +327,7 @@ namespace PlayboardTypes{
 			this.InitializeCells();
 			validator = new Validator(ActionProcState.reject);
 			pats = new PlayerActionTracker[playercnt]{new PlayerActionTracker(), new PlayerActionTracker()};
+			lastActions = new List<ActionReq>(){};
 		}
 
 		void InitializeCells(){
@@ -400,6 +418,32 @@ namespace PlayboardTypes{
 			return playerlose;
 		}
 
+		public List<ActionReq> GetLastActions(int player){
+			List<ActionReq> retList = new List<ActionReq>();
+			foreach(ActionReq ar in this.lastActions){
+				if(ar.p == player){ // If the player owns the action, add it regardless
+					retList.Add(ar);
+					continue;
+				}
+				ReportType rt = PlayerActionTracker.actionParams[ar.a].reportType;
+				switch (rt){
+				case ReportType.Hidden: // Do nothing here, don't add to list
+					break;
+				case ReportType.NameOnly:
+					ActionReq newar = new ActionReq(ar.p, ar.t, ar.a, null);
+					retList.Add(newar);
+					break;
+				case ReportType.Visible:
+					retList.Add(ar);
+					break;
+				default:
+					Debug.LogErrorFormat("GetLastActions(): Error, unhandled report type: {0}", rt);
+					break;
+				}
+			}
+			return retList;
+		}
+
 		public List<ActionAvail> GetActionAvailable(int playerId){
 			return this.pats[playerId].GetActionAvailibility(this.GetPlayerGameState(playerId, true));
 		}
@@ -433,7 +477,6 @@ namespace PlayboardTypes{
 				}
 			}
 		}
-		
 
 		//Here we do the cleanup/calcs/etc that needs to happen at the end of apply
 		void FinalizeApply(){
@@ -451,7 +494,6 @@ namespace PlayboardTypes{
 			UpdateSunkDicts();
 		}
 
-
 		//We expect this to be called only once per round
 		public void ApplyValidActions(List<ActionReq> ars){
 			Debug.Log("PlayBoard processing Actions. Got " + ars.Count);
@@ -459,7 +501,7 @@ namespace PlayboardTypes{
 			foreach(ActionReq ar in ars){ // Trust no one, validate it allllll
 				if (this.validator.Validate(ar, this.GetGridSide(ar.p, CellPerspective.PlayersOwn), this.GetGridSide((ar.p + 1) % playercnt, CellPerspective.PlayersEnemy), new Vector2(sizex, sizey), this.capitolTowerLocs[ar.p])){
 					validARs.Add(ar);
-					Debug.Log("validated ar! :) " + ar.ToString());
+					//Debug.Log("validated ar! :) " + ar.ToString());
 				}
 				else{
 					Debug.LogWarning("Got bad AR, dont' use: " + ar.ToString());
@@ -496,13 +538,14 @@ namespace PlayboardTypes{
 			if(this.actionProcState == ActionProcState.multiTower){
 				this.capitolTowerLocs[0].AddRange(buildARs.Where(ar => ar.p == 0).Select(ar =>ar.loc[0])); // Here we assume that we've only grabbed tower placements, hopefully valid...
 				this.capitolTowerLocs[1].AddRange(buildARs.Where(ar => ar.p == 1).Select(ar =>ar.loc[0]));
-				Debug.Log("Got towerCapitols: len0: " + this.capitolTowerLocs[0].Count.ToString());
-				Debug.Log("Got towerCapitols: len1: " + this.capitolTowerLocs[1].Count.ToString());
+				//Debug.Log("Got towerCapitols: len0: " + this.capitolTowerLocs[0].Count.ToString());
+				//Debug.Log("Got towerCapitols: len1: " + this.capitolTowerLocs[1].Count.ToString());
 			}
 			List<ActionReq> otherARs = ars.Where(ar => !buildARs.Contains(ar)).ToList();
 			ars = buildARs.Concat(otherARs).ToList();
 			//Now we need to expande certain actions, usually ones that will trigger onXXXX() in many cells
 			ars = this.ActionExpansion(ars);
+			this.lastActions = ars.ToList();
 			foreach (ActionReq ar in ars){
 				if(buildActions.Contains(ar.a)){
 					this.GetCell(ar.t, new Vector2Int((int)ar.loc[0].x,(int)ar.loc[0].y)).onBuild(ar);

@@ -16,10 +16,10 @@ public abstract class Cell2D : MonoBehaviour {
 
 	// Public functions, you shouldn't add new public functions to anything but the base class
 	public abstract void SetCellStruct(CellStruct newCS);
-
 	public abstract void SetHovered(bool hov);
-
 	public abstract void SetSelected(bool sel);
+	public abstract void OnHit();
+	public abstract void OnBuild();
 
 	public void Flip(){
 		this.transform.Rotate(0.0f, 0.0f, 180.0f);
@@ -35,7 +35,7 @@ public abstract class Cell2D : MonoBehaviour {
 	}
 
 	void OnMouseDown(){
-		Debug.Log("Clicked on: " + this.coords.ToString() + "State currently " + this.cStruct.ToString());
+		Debug.Log("Clicked on: " + this.coords.ToString() + "State currently " + this.cStruct.bldg.ToString());
 		this.parentGrid.RXCellInput(this.coords, this.cStruct);
 	}
 

@@ -50,6 +50,12 @@ public class Cell2Dv1 : Cell2D {
 	bool selected = false;
 	//Scouted sprite
 	public Sprite scouted;
+	//Audio
+	AudioSource audSrc;
+	public AudioClip defaultHit;
+	public AudioClip defaultBuild;
+	//Particles
+	ParticleSystem buildParticles;
 
 	// Use this for initialization
 	void Start () {
@@ -91,6 +97,8 @@ public class Cell2Dv1 : Cell2D {
 		//this.moleTextObj.SetActive(false);
 		this.SetCellStruct(new CellStruct(CBldg.hidden));
 		this.SetBGColor(Color.white);
+		this.audSrc = GetComponent<AudioSource>();
+		this.buildParticles = transform.Find("Build Particle").GetComponent<ParticleSystem>();
 	}
 
 	public override void SetCellStruct(CellStruct newCS){
@@ -209,6 +217,7 @@ public class Cell2Dv1 : Cell2D {
 
 	void OnMouseEnter(){
 		parentGrid.RXCellHover(coords, true);
+		audSrc.PlayOneShot(AudioLib.instance.defaultTileHover, 0.2f);
 	}
 
 	void OnMouseExit(){
@@ -218,6 +227,19 @@ public class Cell2Dv1 : Cell2D {
 	void OnMouseDown(){
 		Debug.Log("Clicked on: " + this.coords.ToString() + "State currently " + this.cStruct.ToString());
 		this.parentGrid.RXCellInput(this.coords, this.cStruct);
+		audSrc.PlayOneShot(AudioLib.instance.defaultTileSelect);
+	}
+
+	public override void OnHit(){
+		audSrc.PlayOneShot(defaultHit);
+	}
+
+	public override void OnBuild(){
+		if(this.buildParticles.isPlaying){
+			this.buildParticles.Stop();
+		}
+		this.buildParticles.Play();
+		audSrc.PlayOneShot(defaultBuild);
 	}
 
 	void UpdateBGState(){

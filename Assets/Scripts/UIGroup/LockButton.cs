@@ -6,6 +6,8 @@ using UnityEngine.UI;
 
 public class LockButton : MonoBehaviour {
 	Button button;
+	AudioSource audSrc;
+	public AudioClip pressSound;
 
 	void Start () {
 		this.button = GetComponent<Button>();
@@ -22,4 +24,8 @@ public class LockButton : MonoBehaviour {
 	public void SetEnabled(bool en){
 		this.button.interactable = en;
 	}
+
+	 void OnClick(){
+		 audSrc.PlayOneShot(pressSound);
+	 }
 }
