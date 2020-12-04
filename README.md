@@ -1,4 +1,4 @@
-# Dinghy
+# Enclave
 A BattleShipper
 
 Dinghy is a game that aims to be battleship++.
